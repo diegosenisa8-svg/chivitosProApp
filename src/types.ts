@@ -22,6 +22,8 @@ export type MenuItem = {
   priceMax?: number
   image: string
   modifiers?: ModifierGroup[]
+  badge?: 'mas-pedido' | 'nuevo' | 'picante' | 'combo'
+  featured?: boolean
 }
 
 export type Category = {
@@ -48,6 +50,12 @@ export type Restaurant = {
   mapEmbed: string
   lat: number
   lng: number
+  etaMin?: number
+  etaMax?: number
+  deliveryFee?: number
+  minOrder?: number
+  hoursLabel?: string
+  phone?: string
 }
 
 export type MenuData = {
@@ -72,4 +80,18 @@ export type CartLine = {
   quantity: number
   notes: string
   modifiers: SelectedModifier[]
+  sizeLabel?: string
+}
+
+export type Fulfillment = 'delivery' | 'pickup'
+
+export type CheckoutInfo = {
+  name: string
+  phone: string
+  fulfillment: Fulfillment
+  address: string
+  schedule: 'now' | 'later'
+  scheduleTime: string
+  payment: 'efectivo' | 'pos' | 'transferencia'
+  notes: string
 }

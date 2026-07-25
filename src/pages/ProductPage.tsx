@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Toast } from '../components/Toast'
 import { useCart } from '../context/CartContext'
 import { useMenu } from '../context/MenuContext'
 import { formatMoney, formatPrice } from '../lib/format'
+import { findItem, getFeaturedItems } from '../lib/menuUtils'
 import type { MenuItem, SelectedModifier } from '../types'
 
 type SelMap = Record<string, Record<string, number>>
@@ -12,19 +14,20 @@ export function ProductPage() {
   const navigate = useNavigate()
   const { addLine } = useCart()
   const { menu } = useMenu()
-
-  const item = useMemo(() => {
-    for (const cat of menu.categories) {
-      const found = cat.items.find((i) => i.id === id)
-      if (found) return found
-    }
-    return undefined
-  }, [menu, id])
+  const item = findItem(menu, id)
 
   const [qty, setQty] = useState(1)
   const [notes, setNotes] = useState('')
   const [sel, setSel] = useState<SelMap>({})
   const [tried, setTried] = useState(false)
+  const [size, setSize] = useState<'base' | 'max'>('base')
+
+  const upsell = useMemo(() => {
+    if (!item) return []
+    return getFeaturedItems(menu, 8)
+      .filter((i) => i.id !== item.id)
+      .slice(0, 3)
+  }, [menu, item])
 
   const missingRequired = useMemo(() => {
     if (!item?.modifiers) return []
@@ -35,6 +38,12 @@ export function ProductPage() {
       return total < g.min
     })
   }, [item, sel])
+
+  const unitPrice = item
+    ? size === 'max' && item.priceMax != null
+      ? item.priceMax
+      : item.price
+    : 0
 
   const unitExtras = useMemo(() => {
     if (!item?.modifiers) return 0
@@ -57,7 +66,7 @@ export function ProductPage() {
     )
   }
 
-  const total = (item.price + unitExtras) * qty
+  const total = (unitPrice + unitExtras) * qty
 
   function toggleOption(groupId: string, optionId: string, max: number, allowQuantity?: boolean) {
     setSel((prev) => {
@@ -74,9 +83,8 @@ export function ProductPage() {
         return { ...prev, [groupId]: current ? {} : { [optionId]: 1 } }
       }
 
-      if (current) {
-        delete group[optionId]
-      } else {
+      if (current) delete group[optionId]
+      else {
         const count = Object.values(group).reduce((a, b) => a + b, 0)
         if (count >= max) return prev
         group[optionId] = 1
@@ -120,21 +128,28 @@ export function ProductPage() {
     addLine({
       itemId: product.id,
       name: product.name,
-      unitPrice: product.price,
+      unitPrice,
       quantity: qty,
       notes,
       modifiers,
+      sizeLabel:
+        product.priceMax != null
+          ? size === 'max'
+            ? 'Porción grande'
+            : 'Porción chica'
+          : undefined,
     })
     navigate('/menu')
   }
 
   return (
     <div className="page product-page">
+      <Toast />
       <header className="topbar">
         <button type="button" className="icon-btn" onClick={() => navigate(-1)} aria-label="Volver">
           ‹
         </button>
-        <h1 className="topbar-heading">{item.name.toUpperCase()}</h1>
+        <h1 className="topbar-heading">{item.name}</h1>
         <span className="topbar-spacer" />
       </header>
 
@@ -145,6 +160,28 @@ export function ProductPage() {
       {item.description && <p className="product-desc">{item.description}</p>}
 
       <div className="product-body">
+        {item.priceMax != null && (
+          <section className="size-picker">
+            <h2>Tamaño</h2>
+            <div className="size-options">
+              <button
+                type="button"
+                className={size === 'base' ? 'active' : ''}
+                onClick={() => setSize('base')}
+              >
+                Chica · {formatPrice(item.price)}
+              </button>
+              <button
+                type="button"
+                className={size === 'max' ? 'active' : ''}
+                onClick={() => setSize('max')}
+              >
+                Grande · {formatPrice(item.priceMax)}
+              </button>
+            </div>
+          </section>
+        )}
+
         {(item.modifiers || []).map((group) => {
           const invalid = tried && missingRequired.some((g) => g.id === group.id)
           const chosen = sel[group.id] || {}
@@ -152,7 +189,7 @@ export function ProductPage() {
             <section key={group.id} className={`mod-group ${invalid ? 'invalid' : ''}`}>
               <h2>
                 {group.name}
-                {group.required ? '(Obligatorio)' : ''}
+                {group.required ? ' (Obligatorio)' : ''}
               </h2>
               <ul>
                 {group.options.map((opt) => {
@@ -197,7 +234,7 @@ export function ProductPage() {
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Añada aquí los comentarios sobre este producto"
+            placeholder="Ej: sin cebolla, punto de la carne a punto…"
             rows={3}
           />
         </label>
@@ -205,15 +242,30 @@ export function ProductPage() {
         <div className="qty-block">
           <span>Cantidad</span>
           <div className="qty-controls">
-            <span className="qty-value">{qty}</span>
             <button type="button" onClick={() => setQty((q) => Math.max(1, q - 1))}>
               −
             </button>
+            <span className="qty-value">{qty}</span>
             <button type="button" onClick={() => setQty((q) => q + 1)}>
               +
             </button>
           </div>
         </div>
+
+        {upsell.length > 0 && (
+          <section className="upsell">
+            <h2>¿Le sumás algo?</h2>
+            <div className="upsell-row">
+              {upsell.map((u) => (
+                <Link key={u.id} to={`/product/${u.id}`} className="upsell-card">
+                  <img src={u.image} alt="" />
+                  <span>{u.name}</span>
+                  <strong>{formatPrice(u.price)}</strong>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
 
       {tried && missingRequired.length > 0 && (
@@ -223,9 +275,9 @@ export function ProductPage() {
       )}
 
       <div className="bottom-cta">
-        <span className="cta-price">{formatMoney(total, menu.restaurant.currency)}</span>
+        <span className="cta-price">{formatMoney(total)}</span>
         <button type="button" className="cta-action" onClick={() => onAdd(item)}>
-          Agregar al pedido
+          Agregar {formatMoney(total)}
         </button>
       </div>
     </div>

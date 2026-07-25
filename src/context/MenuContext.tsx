@@ -2,10 +2,12 @@ import {
   createContext,
   useContext,
   useEffect,
+  useMemo,
   useState,
   type ReactNode,
 } from 'react'
 import fallbackMenu from '../data/menu.json'
+import { prepareMenu } from '../lib/menuUtils'
 import type { MenuData } from '../types'
 
 type MenuContextValue = {
@@ -13,17 +15,27 @@ type MenuContextValue = {
   loading: boolean
   error: string | null
   fromApi: boolean
+  setOpenOverride: (open: boolean) => void
 }
 
 const MenuContext = createContext<MenuContextValue | null>(null)
-
+const OPEN_KEY = 'chivitos-open-override'
 const apiBase = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
 
 export function MenuProvider({ children }: { children: ReactNode }) {
-  const [menu, setMenu] = useState<MenuData>(fallbackMenu as MenuData)
+  const [raw, setRaw] = useState<MenuData>(fallbackMenu as MenuData)
   const [loading, setLoading] = useState(Boolean(apiBase))
   const [error, setError] = useState<string | null>(null)
   const [fromApi, setFromApi] = useState(false)
+  const [openOverride, setOpenOverrideState] = useState<boolean | null>(() => {
+    try {
+      const v = localStorage.getItem(OPEN_KEY)
+      if (v === null) return null
+      return v === 'true'
+    } catch {
+      return null
+    }
+  })
 
   useEffect(() => {
     if (!apiBase) {
@@ -38,14 +50,14 @@ export function MenuProvider({ children }: { children: ReactNode }) {
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         const data = (await res.json()) as MenuData
         if (!cancelled) {
-          setMenu(data)
+          setRaw(data)
           setFromApi(true)
           setError(null)
         }
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : 'API error')
-          setMenu(fallbackMenu as MenuData)
+          setRaw(fallbackMenu as MenuData)
           setFromApi(false)
         }
       } finally {
@@ -58,8 +70,28 @@ export function MenuProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const menu = useMemo(() => {
+    const prepared = prepareMenu(raw)
+    if (openOverride === null) return prepared
+    return {
+      ...prepared,
+      restaurant: { ...prepared.restaurant, open: openOverride },
+    }
+  }, [raw, openOverride])
+
   return (
-    <MenuContext.Provider value={{ menu, loading, error, fromApi }}>
+    <MenuContext.Provider
+      value={{
+        menu,
+        loading,
+        error,
+        fromApi,
+        setOpenOverride: (open) => {
+          setOpenOverrideState(open)
+          localStorage.setItem(OPEN_KEY, String(open))
+        },
+      }}
+    >
       {children}
     </MenuContext.Provider>
   )

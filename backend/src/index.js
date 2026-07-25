@@ -19,6 +19,15 @@ app.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'chivitos-pro-api' })
 })
 
+app.get('/', (_req, res) => {
+  res.json({
+    service: 'chivitos-pro-api',
+    health: '/health',
+    menu: '/api/menu',
+    orders: '/api/orders',
+  })
+})
+
 function mapMenu(restaurant, categories) {
   return {
     restaurant: {

@@ -1,12 +1,18 @@
 import { Link } from 'react-router-dom'
+import { FulfillmentToggle } from '../components/FulfillmentToggle'
+import { Toast } from '../components/Toast'
+import { useCart } from '../context/CartContext'
 import { useMenu } from '../context/MenuContext'
+import { formatMoney } from '../lib/format'
 
 export function HomePage() {
   const { menu, loading } = useMenu()
+  const { fulfillment } = useCart()
   const r = menu.restaurant
 
   return (
     <div className="home">
+      <Toast />
       <div className="home-map">
         <iframe
           title="Mapa ChivitosPro"
@@ -20,49 +26,40 @@ export function HomePage() {
         </div>
       </div>
 
-      <Link to="/menu" className="home-card">
+      <section className="home-card">
         <div className="home-card-top">
-          <h1>{r.name}</h1>
+          <div className="home-brand">
+            <img src={r.logo} alt="" className="home-logo" />
+            <div>
+              <h1>{r.name}</h1>
+              <p className="home-address">{r.address}</p>
+            </div>
+          </div>
           <span className={`badge ${r.open ? 'open' : 'closed'}`}>
             {loading ? '…' : r.open ? 'ABIERTO' : 'CERRADO'}
           </span>
         </div>
-        <p className="home-address">{r.address}</p>
-        <div className="home-card-bottom">
-          <div className="home-services">
-            {r.delivery && (
-              <span className="svc" aria-label="Delivery">
-                <TruckIcon />
-              </span>
-            )}
-            {r.takeaway && (
-              <span className="svc" aria-label="Para llevar">
-                <BagIcon />
-              </span>
-            )}
-          </div>
-          <span className="home-distance">{r.distanceKm.toFixed(1).replace('.', ',')} km</span>
+
+        <div className="home-meta">
+          <span>{r.hoursLabel}</span>
+          <span>
+            {r.etaMin}–{r.etaMax} min
+          </span>
+          <span>{r.distanceKm.toFixed(1).replace('.', ',')} km</span>
         </div>
-      </Link>
+
+        <FulfillmentToggle />
+
+        <p className="home-fee">
+          {fulfillment === 'delivery'
+            ? `Envío ${formatMoney(r.deliveryFee || 80)} · Mínimo ${formatMoney(r.minOrder || 250)}`
+            : 'Retiro en el local · Sin costo de envío'}
+        </p>
+
+        <Link to="/menu" className="btn btn-primary home-cta">
+          Ver menú
+        </Link>
+      </section>
     </div>
-  )
-}
-
-function TruckIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="M3 7h11v10H3zM14 10h4l3 3v4h-7z" />
-      <circle cx="7.5" cy="17.5" r="1.5" />
-      <circle cx="17.5" cy="17.5" r="1.5" />
-    </svg>
-  )
-}
-
-function BagIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="M6 8h12l-1 12H7L6 8z" />
-      <path d="M9 8V6a3 3 0 0 1 6 0v2" />
-    </svg>
   )
 }

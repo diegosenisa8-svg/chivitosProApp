@@ -1,43 +1,45 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import {
-  buildWhatsAppMessage,
-  cartLineTotal,
-  useCart,
-} from '../context/CartContext'
+import { useMemo, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Toast } from '../components/Toast'
+import { cartLineTotal, useCart } from '../context/CartContext'
 import { useMenu } from '../context/MenuContext'
-import { submitOrder } from '../lib/api'
 import { formatMoney, formatPrice } from '../lib/format'
+import { getFeaturedItems } from '../lib/menuUtils'
 
 export function CartPage() {
   const navigate = useNavigate()
-  const { lines, subtotal, removeLine } = useCart()
+  const {
+    lines,
+    subtotal,
+    removeLine,
+    setQuantity,
+    discount,
+    deliveryFee,
+    fulfillment,
+    coupon,
+    applyCoupon,
+  } = useCart()
   const { menu } = useMenu()
-  const r = menu.restaurant
-  const [busy, setBusy] = useState(false)
+  const [code, setCode] = useState(coupon)
 
-  async function processOrder() {
-    if (!lines.length || busy) return
-    setBusy(true)
-    try {
-      await submitOrder(lines, r.currency)
-    } catch {
-      // Si la API falla, igual abrimos WhatsApp
-    }
-
-    const msg = buildWhatsAppMessage(r.name, lines, subtotal, r.currency)
-    const url = `https://wa.me/${r.whatsapp}?text=${encodeURIComponent(msg)}`
-    window.open(url, '_blank')
-    setBusy(false)
-  }
+  const total = Math.max(0, subtotal - discount + deliveryFee)
+  const upsell = useMemo(
+    () =>
+      getFeaturedItems(menu, 10)
+        .filter((i) => !lines.some((l) => l.itemId === i.id))
+        .filter((i) => /bebida|coca|fanta|sprite|papas|postre|helado/i.test(i.name + i.id) || i.badge)
+        .slice(0, 3),
+    [menu, lines],
+  )
 
   return (
     <div className="page cart-page">
+      <Toast />
       <header className="topbar">
         <button type="button" className="icon-btn" onClick={() => navigate(-1)} aria-label="Volver">
           ‹
         </button>
-        <h1 className="topbar-heading">MI PEDIDO</h1>
+        <h1 className="topbar-heading">Mi pedido</h1>
         <span className="topbar-spacer" />
       </header>
 
@@ -54,15 +56,13 @@ export function CartPage() {
             {lines.map((line) => (
               <li key={line.key} className="cart-line">
                 <div className="cart-line-top">
-                  <strong>
-                    {line.quantity}x {line.name}
-                  </strong>
-                  <div className="cart-line-actions">
-                    <span>{formatPrice(cartLineTotal(line))}</span>
-                    <button type="button" onClick={() => removeLine(line.key)} aria-label="Quitar">
-                      ×
-                    </button>
+                  <div>
+                    <strong>{line.name}</strong>
+                    {line.sizeLabel && <p className="cart-mod">{line.sizeLabel}</p>}
                   </div>
+                  <button type="button" onClick={() => removeLine(line.key)} aria-label="Quitar">
+                    ×
+                  </button>
                 </div>
                 {line.modifiers.map((m, idx) => (
                   <p key={`${m.optionId}-${idx}`} className="cart-mod">
@@ -72,35 +72,79 @@ export function CartPage() {
                   </p>
                 ))}
                 {line.notes && <p className="cart-mod">Nota: {line.notes}</p>}
+                <div className="cart-line-bottom">
+                  <div className="qty-controls sm">
+                    <button type="button" onClick={() => setQuantity(line.key, line.quantity - 1)}>
+                      −
+                    </button>
+                    <span className="qty-value">{line.quantity}</span>
+                    <button type="button" onClick={() => setQuantity(line.key, line.quantity + 1)}>
+                      +
+                    </button>
+                  </div>
+                  <strong>{formatPrice(cartLineTotal(line))}</strong>
+                </div>
               </li>
             ))}
           </ul>
 
-          <button type="button" className="coupon">
-            CUPÓN DE DESCUENTO
-          </button>
+          {upsell.length > 0 && (
+            <section className="upsell">
+              <h2>¿Sumás algo más?</h2>
+              <div className="upsell-row">
+                {upsell.map((u) => (
+                  <Link key={u.id} to={`/product/${u.id}`} className="upsell-card">
+                    <img src={u.image} alt="" />
+                    <span>{u.name}</span>
+                    <strong>{formatPrice(u.price)}</strong>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <div className="coupon-box">
+            <input
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="Cupón de descuento"
+            />
+            <button type="button" className="btn btn-secondary" onClick={() => applyCoupon(code)}>
+              Aplicar
+            </button>
+          </div>
+          <p className="hint">Probá CHIVITO10 o PRIMERA</p>
 
           <div className="totals">
             <div>
               <span>Subtotal</span>
-              <span>{formatMoney(subtotal, r.currency)}</span>
+              <span>{formatMoney(subtotal)}</span>
+            </div>
+            {discount > 0 && (
+              <div>
+                <span>Descuento ({coupon})</span>
+                <span>-{formatMoney(discount)}</span>
+              </div>
+            )}
+            <div>
+              <span>{fulfillment === 'delivery' ? 'Envío' : 'Retiro'}</span>
+              <span>{deliveryFee > 0 ? formatMoney(deliveryFee) : 'Gratis'}</span>
             </div>
             <div className="total-row">
               <span>Total</span>
-              <strong>{formatMoney(subtotal, r.currency)}</strong>
+              <strong>{formatMoney(total)}</strong>
             </div>
+            <p className="eta-line">
+              Tiempo estimado {menu.restaurant.etaMin}–{menu.restaurant.etaMax} min
+            </p>
           </div>
         </main>
       )}
 
       {lines.length > 0 && (
-        <div className="bottom-cta">
-          <div className="cta-total">
-            <span>TOTAL</span>
-            <strong>{formatMoney(subtotal, r.currency)}</strong>
-          </div>
-          <button type="button" className="cta-action" onClick={processOrder} disabled={busy}>
-            {busy ? 'Procesando…' : 'Procesar Pedido'}
+        <div className="bottom-cta single">
+          <button type="button" className="cta-action full" onClick={() => navigate('/checkout')}>
+            Continuar · {formatMoney(total)}
           </button>
         </div>
       )}
