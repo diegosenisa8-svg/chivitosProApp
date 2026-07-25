@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Restaurant {
+  id         Int      @id @default(1)
+  name       String
+  address    String
+  city       String
+  country    String
+  open       Boolean  @default(true)
+  distanceKm Float    @default(0)
+  delivery   Boolean  @default(true)
+  takeaway   Boolean  @default(true)
+  currency   String   @default("UYU")
+  whatsapp   String
+  logo       String
+  hero       String
+  mapEmbed   String
+  lat        Float
+  lng        Float
+  updatedAt  DateTime @updatedAt
+}
+
+model Category {
+  id        String    @id
+  name      String
+  subtitle  String    @default("")
+  banner    String
+  sortOrder Int       @default(0)
+  items     Product[]
+}
+
+model Product {
+  id          String           @id
+  name        String
+  description String           @default("")
+  price       Float
+  priceMax    Float?
+  image       String
+  sortOrder   Int              @default(0)
+  categoryId  String
+  category    Category         @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  modifiers   ModifierGroup[]
+}
+
+model ModifierGroup {
+  id            String           @id @default(cuid())
+  externalId    String
+  name          String
+  required      Boolean          @default(false)
+  min           Int              @default(0)
+  max           Int              @default(1)
+  allowQuantity Boolean          @default(false)
+  productId     String
+  product       Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  options       ModifierOption[]
+
+  @@unique([productId, externalId])
+}
+
+model ModifierOption {
+  id        String        @id @default(cuid())
+  externalId String
+  name      String
+  price     Float         @default(0)
+  groupId   String
+  group     ModifierGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, externalId])
+}
+
+model Order {
+  id         String      @id @default(cuid())
+  status     String      @default("pending")
+  customerName String?
+  phone      String?
+  notes      String?
+  total      Float
+  currency   String      @default("UYU")
+  payload    Json
+  createdAt  DateTime    @default(now())
+  items      OrderItem[]
+}
+
+model OrderItem {
+  id        String @id @default(cuid())
+  orderId   String
+  order     Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  name      String
+  quantity  Int
+  unitPrice Float
+  notes     String @default("")
+  modifiers Json
+  lineTotal Float
+}

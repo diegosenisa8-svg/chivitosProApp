@@ -1,0 +1,5444 @@
+{
+  "restaurant": {
+    "name": "ChivitosPro",
+    "address": "Salto, Uruguay 1802",
+    "city": "Salto",
+    "country": "Uruguay",
+    "open": true,
+    "distanceKm": 1.8,
+    "delivery": true,
+    "takeaway": true,
+    "currency": "UYU",
+    "whatsapp": "59899000000",
+    "logo": "/logo.png",
+    "hero": "/hero.png",
+    "mapEmbed": "https://www.openstreetmap.org/export/embed.html?bbox=-57.99%2C-31.42%2C-57.93%2C-31.36&layer=mapnik&marker=-31.388%2C-57.960",
+    "lat": -31.388,
+    "lng": -57.96
+  },
+  "categories": [
+    {
+      "id": "bebidas",
+      "name": "Bebidas",
+      "subtitle": "",
+      "banner": "/hero.png",
+      "items": [
+        {
+          "id": "patricia-lata-473",
+          "name": "Patricia Lata 473",
+          "description": "",
+          "price": 150.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20250622022518cea6a4.png"
+        },
+        {
+          "id": "pilsen-lata-473",
+          "name": "Pilsen Lata 473",
+          "description": "",
+          "price": 150.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20250622022533ec2445.png"
+        },
+        {
+          "id": "agua-500ml-con-gas",
+          "name": "Agua 500ml con gas",
+          "description": "",
+          "price": 90.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/2025062202205371b5a4.jpg"
+        },
+        {
+          "id": "agua-500ml-sin-gas",
+          "name": "Agua 500ml sin gas",
+          "description": "",
+          "price": 90.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20250622021900d77162.jpeg"
+        },
+        {
+          "id": "coca-cola-cero-1-5",
+          "name": "Coca Cola Cero 1.5",
+          "description": "",
+          "price": 200.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/202506220219183c71d2.jpg"
+        },
+        {
+          "id": "coca-cola-clásica-1-5",
+          "name": "Coca Cola Clásica 1.5",
+          "description": "",
+          "price": 200.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20250622021846394d89.jpeg"
+        },
+        {
+          "id": "fanta-1-5",
+          "name": "Fanta 1.5",
+          "description": "",
+          "price": 200.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20250622022637767e27.jpg"
+        },
+        {
+          "id": "fanta-500ml",
+          "name": "Fanta 500ml",
+          "description": "",
+          "price": 120.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/202506220221181c1041.jpg"
+        },
+        {
+          "id": "lata-coca-cola",
+          "name": "LATA Coca Cola",
+          "description": "",
+          "price": 80.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251018002338c3f26d.png"
+        },
+        {
+          "id": "lata-coca-cola-cero-310ml",
+          "name": "LATA Coca Cola Cero 310ml",
+          "description": "",
+          "price": 80.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251018002316555a2e.png"
+        },
+        {
+          "id": "lata-coca-light-310ml",
+          "name": "LATA Coca Light 310ml",
+          "description": "",
+          "price": 80.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251016232026d3b400.png"
+        },
+        {
+          "id": "lata-pomelo-310ml",
+          "name": "LATA Pomelo 310ml",
+          "description": "",
+          "price": 80.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/2025101623193539f389.png"
+        },
+        {
+          "id": "lata-sprite-310ml",
+          "name": "LATA Sprite 310ml",
+          "description": "",
+          "price": 80.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251016231809163b15.png"
+        },
+        {
+          "id": "lata-tonica-310ml",
+          "name": "LATA Tonica 310ml",
+          "description": "",
+          "price": 80.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251016231845599d05.png"
+        },
+        {
+          "id": "pomelo-cero-1-5",
+          "name": "Pomelo Cero 1.5",
+          "description": "",
+          "price": 200.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/2025101623201212eee4.png"
+        },
+        {
+          "id": "sprite-1-5",
+          "name": "Sprite 1.5",
+          "description": "",
+          "price": 200.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/2025101623182322a4f2.png"
+        },
+        {
+          "id": "vitale-limon",
+          "name": "Vitale Limon",
+          "description": "",
+          "price": 120.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251016232131a34982.png"
+        }
+      ]
+    },
+    {
+      "id": "chivitospro",
+      "name": "ChivitosPro",
+      "subtitle": "El clásico uruguayo, a tu manera",
+      "banner": "/hero.png",
+      "items": [
+        {
+          "id": "chivitos-al-plato",
+          "name": "Chivitos Al Plato",
+          "description": "Carne de primera, Jamón, muzzarella, panceta, huevo a la plancha, morrón de la casa, aceitunas, colchón de papas fritas, ensalada clásica y ensalada rusa",
+          "price": 500.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/202510162319245ba231.png",
+          "priceMax": 900.0,
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "chivitos-al-plato-sin-verduras",
+          "name": "Chivitos Al Plato Sin Verduras",
+          "description": "Carne de primera, jamón, muzzarella, panceta, huevo a la plancha, morrón de la casa, aceitunas, colchón de papas fritas, papas noisette y aritos de cebolla",
+          "price": 500.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251016231833baeca1.png",
+          "priceMax": 900.0,
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "chivito-bbq",
+          "name": "Chivito Bbq",
+          "description": "Carne de primera, queso cheddar, panceta, huevo a la plancha, cebolla salteada, salsa BBQ y mayonesa",
+          "price": 390.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251016232047e824a9.png",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "chivito-clasico",
+          "name": "Chivito Clasico",
+          "description": "Carne de primera, lechuga, tomate y mayonesa hellmans",
+          "price": 310.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/202510162320378c40f1.png",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "chivito-especial",
+          "name": "Chivito Especial",
+          "description": "Carne de primera, lechuga, tomate, huevo a la plancha, muzzarella y mayonesa hellmans",
+          "price": 340.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/2025101623185817f18f.png",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "chivito-sensacion",
+          "name": "Chivito Sensacion",
+          "description": "Carne de primera, muzzarella, cebolla salteada, panceta, lechuga, tomate, huevo a la plancha, salsa de la casa",
+          "price": 390.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251016231911f568db.png",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "chivitopro",
+          "name": "Chivitopro",
+          "description": "Carne de primera, Jamón, muzzarella, panceta, huevo a la plancha, morrón casero, lechuga, tomate, mayonesa",
+          "price": 390.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/2025101623210565b9ab.png",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ensaladas",
+      "name": "Ensaladas",
+      "subtitle": "",
+      "banner": "/hero.png",
+      "items": [
+        {
+          "id": "ensalada-mediterranea",
+          "name": "Ensalada Mediterranea",
+          "description": "",
+          "price": 400.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251016232117102a87.png"
+        },
+        {
+          "id": "ensaladapro-pollo",
+          "name": "Ensaladapro Pollo",
+          "description": "Pollo Grill con muzzarella, cebolla salteada, lechuga, tomate, zanahoria rallada y aceitunas.",
+          "price": 400.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/202510162313114b0549.png"
+        }
+      ]
+    },
+    {
+      "id": "fritos",
+      "name": "Fritos",
+      "subtitle": "",
+      "banner": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251018002338c3f26d.png",
+      "items": [
+        {
+          "id": "nuggets-de-pollo",
+          "name": "Nuggets De Pollo",
+          "description": "",
+          "price": 220.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/2025101623150456cf5a.png"
+        },
+        {
+          "id": "picada-para-2-personas",
+          "name": "Picada Para 2 Personas",
+          "description": "Nuestra picada para dos incluye, rabas, aros de cebolla, papas fritas, nuggets, noisettes, cheddar fundido, mayonesa y ketchup.",
+          "price": 790.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251016231442aafddb.png"
+        }
+      ]
+    },
+    {
+      "id": "guarniciones",
+      "name": "Guarniciones",
+      "subtitle": "",
+      "banner": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251018002316555a2e.png",
+      "items": [
+        {
+          "id": "aros-de-cebolla",
+          "name": "Aros De Cebolla",
+          "description": "",
+          "price": 200.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251018001632cbd006.png"
+        },
+        {
+          "id": "rabas",
+          "name": "Rabas",
+          "description": "",
+          "price": 240.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251018001521050df0.png"
+        },
+        {
+          "id": "papas-con-sabores-pro",
+          "name": "Papas Con Sabores Pro",
+          "description": "",
+          "price": 450.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/202510180015427828d4.png"
+        },
+        {
+          "id": "papas-noisettes",
+          "name": "Papas Noisettes",
+          "description": "",
+          "price": 220.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/202510180016518cafbb.png"
+        },
+        {
+          "id": "papas-onduladas",
+          "name": "Papas Onduladas",
+          "description": "",
+          "price": 250.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20250622022518cea6a4.png"
+        },
+        {
+          "id": "papas-onduladas-cheddar",
+          "name": "Papas Onduladas Cheddar",
+          "description": "",
+          "price": 300.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20250622022533ec2445.png"
+        },
+        {
+          "id": "papas-onduladas-cheddar-y-panceta",
+          "name": "Papas Onduladas Cheddar Y Panceta",
+          "description": "",
+          "price": 350.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/2025062202205371b5a4.jpg"
+        },
+        {
+          "id": "papas-onduladas-con-huevo",
+          "name": "Papas Onduladas Con Huevo",
+          "description": "",
+          "price": 300.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20250622021900d77162.jpeg"
+        }
+      ]
+    },
+    {
+      "id": "hamburguesas",
+      "name": "Hamburguesas",
+      "subtitle": "100% carne premium",
+      "banner": "/hero.png",
+      "items": [
+        {
+          "id": "big-pro-con-1-carne",
+          "name": "Big Pro Con 1 Carne",
+          "description": "Una carne premium, queso cheddar, panceta, lechuga, tomate, cebolla salteada, huevo y salsa ranchera",
+          "price": 310.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/202506220219183c71d2.jpg",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hamburguesa-bacon",
+          "name": "Hamburguesa Bacon",
+          "description": "Carne premium, lechuga, tomate, panceta, cebolla salteada, queso cheddar, mayonesa y kétchup Hellmans.",
+          "price": 300.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20250622021846394d89.jpeg",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hamburguesa-bacon-cheesse",
+          "name": "Hamburguesa Bacon Cheesse",
+          "description": "Carne premium, panceta, queso cheddar, mayonesa y kétchup Hellmans.",
+          "price": 280.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20250622022637767e27.jpg",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hamburguesa-bacon-crunch",
+          "name": "Hamburguesa Bacon Crunch",
+          "description": "Lechuga, tomate, queso cheddar, panceta y salsa BACON CRUNCH",
+          "price": 290.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/202506220221181c1041.jpg",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hamburguesa-clasica",
+          "name": "Hamburguesa Clasica",
+          "description": "Carne premium, lechuga, tomate, mayonesa y kétchup Hellmans",
+          "price": 230.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251018002338c3f26d.png",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hamburguesa-completa",
+          "name": "Hamburguesa Completa",
+          "description": "Carne premium, lechuga, tomate, jamón, muzzarella, huevo, mayonesa y kétchup Hellmans.",
+          "price": 290.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251018002316555a2e.png",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hamburguesa-criolla",
+          "name": "Hamburguesa Criolla",
+          "description": "Carne premium, lechuga, tomate, queso muzzarella, salsa criolla, mayonesa y kétchup Hellmans.",
+          "price": 260.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251016232026d3b400.png",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hamburguesa-crispy",
+          "name": "Hamburguesa Crispy",
+          "description": "Salsa de limón, lechuga, tomate, muzzarella, panceta y un espectacular pollo crispy.",
+          "price": 300.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/2025101623193539f389.png",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hamburguesa-deliciosa",
+          "name": "Hamburguesa Deliciosa",
+          "description": "Carne premium, lechuga, tomate, queso cheddar, mayonesa y kétchup Hellmans.",
+          "price": 260.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251016231809163b15.png",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hamburguesa-italiana",
+          "name": "Hamburguesa Italiana",
+          "description": "Carne premium, lechuga, rúcula, tomate confitado, queso philadelphia, jamón, mayonesa y kétchup",
+          "price": 310.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251016231845599d05.png",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hamburguesa-light",
+          "name": "Hamburguesa Light",
+          "description": "pollo grill, lechuga, tomate, cebolla salteada, muzzarella, mayo y kétchup hellmans",
+          "price": 290.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/2025101623201212eee4.png",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hamburguesa-pepinillo",
+          "name": "Hamburguesa Pepinillo",
+          "description": "Carne premium, lechuga, cebolla cruda, queso cheddar, pepinillo salsa de pepinillo de la casa",
+          "price": 260.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/2025101623182322a4f2.png",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hamburguesa-queso",
+          "name": "Hamburguesa Queso",
+          "description": "Carne premium, doble queso cheddar, mayonesa y kétchup Hellmans.",
+          "price": 230.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251016232131a34982.png",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hamburguesa-queso-y-huevo",
+          "name": "Hamburguesa Queso Y Huevo",
+          "description": "Carne premium, doble queso cheddar, huevo, mayonesa y kétchup Hellmans.",
+          "price": 270.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/202510162319245ba231.png",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hamburguesa-ranchera",
+          "name": "Hamburguesa Ranchera",
+          "description": "Carne premium, doble cheddar, muzzarella, panceta, cebolla salteada, huevo y salsa ranch de la casa",
+          "price": 320.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251016231833baeca1.png",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hamburguesa-ruta66",
+          "name": "Hamburguesa Ruta66",
+          "description": "Una carne premium, triple queso cheddar, triple panceta, cebolla cocida y salsa ranchera",
+          "price": 320.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251016232047e824a9.png",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hamburguesa-simple",
+          "name": "Hamburguesa Simple",
+          "description": "",
+          "price": 220.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/202510162320378c40f1.png",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hamburguesa-ahumada-pro",
+          "name": "Hamburguesa Ahumada Pro",
+          "description": "Doble carne premium, cheddar fundido, panceta, aros de cebolla, salsa ahumada y salsa dulce de mostaza de la casa",
+          "price": 340.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/2025101623185817f18f.png",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hamburguesa-bacon-sweet",
+          "name": "Hamburguesa Bacon Sweet",
+          "description": "Doble carne premium, doble cheddar, panceta y cebolla caramelizada, mayonesa y kétchup hellmans.",
+          "price": 340.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251016231911f568db.png",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hamburguesa-bbq",
+          "name": "Hamburguesa Bbq",
+          "description": "Doble carne premium, doble queso cheddar, panceta y salsa BBQ de la casa",
+          "price": 330.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/2025101623210565b9ab.png",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hamburguesa-big-pro",
+          "name": "Hamburguesa Big Pro",
+          "description": "Doble carne premium, doble queso cheddar, panceta, lechuga, tomate, cebolla salteada, huevo, mayonesa y kétchup hellmans.",
+          "price": 350.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251016232117102a87.png",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hamburguesa-doble",
+          "name": "Hamburguesa Doble",
+          "description": "Doble carne premium, doble queso cheddar, panceta, mayonesa y kétchup hellmans.",
+          "price": 330.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/202510162313114b0549.png",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hamburguesa-super",
+          "name": "Hamburguesa Super",
+          "description": "Cuatro carnes premium, doble queso cheddar, panceta, mayonesa y kécthup hellmans",
+          "price": 440.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/2025101623150456cf5a.png",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hamburguesa-triple",
+          "name": "Hamburguesa Triple",
+          "description": "Tres carnes premium, doble cheddar, panceta, mayonesa y kécthup hellmans",
+          "price": 380.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251016231442aafddb.png",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hamburguesa-vegetariana-completa",
+          "name": "Hamburguesa Vegetariana Completa",
+          "description": "lechuga, cebolla salteada, tomate, muzzarella, huevo a la plancha, mayonesa y kétchup",
+          "price": 290.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251018001632cbd006.png",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hamburguesa-vegetariana-queso",
+          "name": "Hamburguesa Vegetariana Queso",
+          "description": "Queso cheddar, mayonesa y kétchup",
+          "price": 250.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251018001521050df0.png",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hamburguesa-vegetariana-queso-y-huevo",
+          "name": "Hamburguesa Vegetariana Queso Y Huevo",
+          "description": "Queso cheddar, huevo a la plancha, mayonesa y kétchup",
+          "price": 270.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/202510180015427828d4.png",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hamburguesa-vegetariana-ranch",
+          "name": "Hamburguesa Vegetariana Ranch",
+          "description": "doble cheddar, muzzarella, huevo a la plancha, cebolla salteada, salsa ranch de la casa",
+          "price": 300.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/202510180016518cafbb.png",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "vegetariana-completa-combo",
+          "name": "Vegetariana Completa Combo",
+          "description": "",
+          "price": 440.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20250622022518cea6a4.png",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "vegetariana-queso-combo",
+          "name": "Vegetariana Queso Combo",
+          "description": "",
+          "price": 400.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20250622022533ec2445.png",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "vegetariana-queso-y-huevo-combo",
+          "name": "Vegetariana Queso Y Huevo Combo",
+          "description": "",
+          "price": 420.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/2025062202205371b5a4.jpg",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "vegetariana-ranchera-combo",
+          "name": "Vegetariana Ranchera Combo",
+          "description": "",
+          "price": 450.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20250622021900d77162.jpeg",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "milanesas",
+      "name": "Milanesas",
+      "subtitle": "Al plato",
+      "banner": "/hero.png",
+      "items": [
+        {
+          "id": "chuleton",
+          "name": "Chuleton",
+          "description": "Un espectacular chuletón de ternera acompañado de papas corte casero y un huevo a la plancha",
+          "price": 450.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/202506220219183c71d2.jpg",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "milanesa-con-cheddar-panceta-y-papas",
+          "name": "Milanesa Con Cheddar Panceta Y Papas",
+          "description": "",
+          "price": 490.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20250622021846394d89.jpeg",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "milanesa-picada-con-salsa",
+          "name": "Milanesa Picada Con Salsa",
+          "description": "",
+          "price": 360.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20250622022637767e27.jpg",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "milanesa-sin-guarnicion",
+          "name": "Milanesa Sin Guarnicion",
+          "description": "",
+          "price": 320.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/202506220221181c1041.jpg",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pizzas",
+      "name": "Pizzas",
+      "subtitle": "Masa casera",
+      "banner": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/202506220221181c1041.jpg",
+      "items": [
+        {
+          "id": "pizza-muzzarella",
+          "name": "Pizza Muzzarella",
+          "description": "Pizza de masa rectangular. (Equivale a media pizza tradicional. Rinde para 1 persona).",
+          "price": 250.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251018002338c3f26d.png"
+        }
+      ]
+    },
+    {
+      "id": "postres",
+      "name": "Postres",
+      "subtitle": "",
+      "banner": "/hero.png",
+      "items": [
+        {
+          "id": "helado-agua-frutilla",
+          "name": "Helado Agua Frutilla",
+          "description": "",
+          "price": 30.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251018002316555a2e.png"
+        },
+        {
+          "id": "helado-agua-naranja",
+          "name": "Helado Agua Naranja",
+          "description": "",
+          "price": 30.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251016232026d3b400.png"
+        },
+        {
+          "id": "bombón-crocante",
+          "name": "Bombón Crocante",
+          "description": "",
+          "price": 95.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/2025101623193539f389.png"
+        },
+        {
+          "id": "bombón-escocés",
+          "name": "Bombón Escocés",
+          "description": "",
+          "price": 100.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251016231809163b15.png"
+        },
+        {
+          "id": "bombón-suizo",
+          "name": "Bombón Suizo",
+          "description": "",
+          "price": 90.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251016231845599d05.png"
+        },
+        {
+          "id": "bombón-vanilla-split",
+          "name": "Bombón Vanilla Split",
+          "description": "",
+          "price": 90.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/2025101623201212eee4.png"
+        },
+        {
+          "id": "postre-crocantino-1-130l",
+          "name": "Postre Crocantino 1.130L",
+          "description": "",
+          "price": 450.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/2025101623182322a4f2.png"
+        },
+        {
+          "id": "postre-delicia-1-080l",
+          "name": "Postre Delicia 1.080L",
+          "description": "",
+          "price": 450.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251016232131a34982.png"
+        },
+        {
+          "id": "tentación-chocolate-1l",
+          "name": "Tentación Chocolate 1L",
+          "description": "",
+          "price": 360.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/202510162319245ba231.png"
+        },
+        {
+          "id": "tentación-crema-cookie-1l",
+          "name": "Tentación Crema Cookie 1L",
+          "description": "",
+          "price": 360.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251016231833baeca1.png"
+        },
+        {
+          "id": "tentación-dulce-de-leche-granizado-1l",
+          "name": "Tentación Dulce de Leche Granizado 1L",
+          "description": "",
+          "price": 360.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251016232047e824a9.png"
+        },
+        {
+          "id": "tentación-frutilla-1l",
+          "name": "Tentación Frutilla 1L",
+          "description": "",
+          "price": 360.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/202510162320378c40f1.png"
+        },
+        {
+          "id": "tentación-mascarpone-1l",
+          "name": "Tentación Mascarpone 1L",
+          "description": "",
+          "price": 360.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/2025101623185817f18f.png"
+        }
+      ]
+    },
+    {
+      "id": "sandwiches",
+      "name": "Sandwiches",
+      "subtitle": "",
+      "banner": "/hero.png",
+      "items": [
+        {
+          "id": "sandwiche-caliente",
+          "name": "Sandwiche Caliente",
+          "description": "",
+          "price": 220.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/20251016231911f568db.png",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sandwiche-con-muzzarella",
+          "name": "Sandwiche Con Muzzarella",
+          "description": "",
+          "price": 300.0,
+          "image": "https://nucleocheckprod.blob.core.windows.net/images/Chivitos%20Pro%20-%20Salto/products/2025101623210565b9ab.png",
+          "modifiers": [
+            {
+              "id": "refrescos",
+              "name": "Refrescos Medianos",
+              "required": false,
+              "min": 0,
+              "max": 1,
+              "options": [
+                {
+                  "id": "coca",
+                  "name": "LATA Coca Clasica 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "coca0",
+                  "name": "LATA Coca Cero 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "sprite",
+                  "name": "LATA Sprite 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "pomelo",
+                  "name": "LATA Pomelo 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "light",
+                  "name": "LATA Coca Light 310ml",
+                  "price": 80
+                },
+                {
+                  "id": "fanta",
+                  "name": "Fanta 500ml",
+                  "price": 100
+                }
+              ]
+            },
+            {
+              "id": "guarnicion",
+              "name": "Guarnicion",
+              "required": true,
+              "min": 1,
+              "max": 1,
+              "options": [
+                {
+                  "id": "sin",
+                  "name": "SIN GUARNICION",
+                  "price": 0
+                },
+                {
+                  "id": "aros",
+                  "name": "AROS DE CEBOLLA",
+                  "price": 80
+                },
+                {
+                  "id": "ondas",
+                  "name": "PAPAS ONDULADAS",
+                  "price": 80
+                },
+                {
+                  "id": "cheddar",
+                  "name": "ONDULADAS CHEDDAR",
+                  "price": 130
+                },
+                {
+                  "id": "cheddar-panceta",
+                  "name": "ONDULADAS CHEDDAR PANCETA",
+                  "price": 180
+                }
+              ]
+            },
+            {
+              "id": "dips",
+              "name": "DIPS SALSAS EXTRA",
+              "required": false,
+              "min": 0,
+              "max": 10,
+              "allowQuantity": true,
+              "options": [
+                {
+                  "id": "limon",
+                  "name": "Salsa Limón",
+                  "price": 30
+                },
+                {
+                  "id": "bbq",
+                  "name": "Salsa BBQ",
+                  "price": 30
+                },
+                {
+                  "id": "ketchup",
+                  "name": "Kétchup",
+                  "price": 20
+                },
+                {
+                  "id": "mayo",
+                  "name": "Mayonesa",
+                  "price": 20
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
