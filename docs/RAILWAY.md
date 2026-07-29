@@ -50,7 +50,8 @@ Health: `https://TU-API.up.railway.app/health`
 2. Nombre sugerido: `web`
 3. Settings:
    - **Root Directory:** `/` (vacío / raíz)
-   - **Watch Paths:** `src/**`, `public/**`, `index.html`, `vite.config.ts`, `package.json`
+   - Builder: Docker (usa `Dockerfile` de la raíz)
+   - **Watch Paths:** `src/**`, `public/**`, `index.html`, `vite.config.ts`, `package.json`, `Dockerfile`
 4. Variables:
 
 | Variable | Valor |

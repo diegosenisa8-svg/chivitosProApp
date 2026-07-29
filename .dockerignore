@@ -1,0 +1,16 @@
+node_modules
+dist
+.git
+.github
+*.md
+.env
+.env.*
+!.env.example
+backend
+docs
+scripts
+video_frames
+admin_video_frames
+*.mp4
+backend/temp_*
+**/.cache

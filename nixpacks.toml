@@ -1,4 +1,4 @@
-# Front en Railway
+# Fallback si Railway usa Nixpacks en vez de Docker
 [phases.setup]
 nixPkgs = ["nodejs_22"]
 

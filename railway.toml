@@ -1,10 +1,10 @@
-# Servicio FRONT (Root Directory = / en Railway)
+# Servicio FRONT (Root Directory = /)
+# Usa Dockerfile en la raíz (más estable que Nixpacks + npm ci doble)
 [build]
-builder = "NIXPACKS"
-buildCommand = "npm ci && npm run build"
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "npm run start:web"
 healthcheckPath = "/"
 healthcheckTimeout = 30
 restartPolicyType = "ON_FAILURE"
