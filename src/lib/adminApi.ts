@@ -87,7 +87,14 @@ async function adminFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (token) headers.set('Authorization', `Bearer ${token}`)
 
   const res = await fetch(apiUrl(`/api/admin${path}`), { ...init, headers })
-  const data = await res.json().catch(() => ({}))
+  const text = await res.text()
+  const contentType = res.headers.get('content-type') || ''
+  if (!contentType.includes('application/json')) {
+    throw new Error(
+      'La API no respondió JSON. Configurá API_URL en el servicio web (Railway) apuntando al back.',
+    )
+  }
+  const data = text ? JSON.parse(text) : {}
   if (!res.ok) {
     throw new Error(data.error || `Error ${res.status}`)
   }
@@ -99,6 +106,9 @@ export async function adminLogin(email: string, password: string) {
     method: 'POST',
     body: JSON.stringify({ email, password }),
   })
+  if (!data?.token || !data?.admin) {
+    throw new Error('Login inválido: la API no devolvió token')
+  }
   setAdminToken(data.token)
   return data.admin
 }

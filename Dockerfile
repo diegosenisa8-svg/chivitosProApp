@@ -11,19 +11,23 @@ COPY vite.config.ts tsconfig*.json ./
 COPY public ./public
 COPY src ./src
 
-# VITE_* viene de las variables del servicio en Railway (build-time)
+# Misma origen en prod (proxy runtime). No hace falta VITE_API_URL en build.
+ENV VITE_API_URL=
 RUN npm run build
 
 FROM node:22-alpine
 
 WORKDIR /app
 
-RUN npm install -g serve@14.2.5
-
-COPY --from=build /app/dist ./dist
-
 ENV NODE_ENV=production
 ENV PORT=3000
+
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
+
+COPY server.mjs ./
+COPY --from=build /app/dist ./dist
+
 EXPOSE 3000
 
-CMD ["sh", "-c", "serve -s dist -l tcp://0.0.0.0:${PORT}"]
+CMD ["node", "server.mjs"]

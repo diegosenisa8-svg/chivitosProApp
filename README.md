@@ -58,7 +58,7 @@ En el dashboard (mismo repo dos veces):
 |---|---|---|
 | **Postgres** | — | (plugin) |
 | **api** | `backend` | `DATABASE_URL=${{Postgres.DATABASE_URL}}`, `JWT_SECRET`, `CORS_ORIGIN=https://${{web.RAILWAY_PUBLIC_DOMAIN}}` |
-| **web** | `/` | `VITE_API_URL=https://${{api.RAILWAY_PUBLIC_DOMAIN}}` |
+| **web** | `/` | `API_URL=https://${{BackchivitosProApp.RAILWAY_PUBLIC_DOMAIN}}` |
 
 Generate Domain en `api` y `web`.
 

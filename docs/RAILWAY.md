@@ -56,9 +56,9 @@ Health: `https://TU-API.up.railway.app/health`
 
 | Variable | Valor |
 |---|---|
-| `VITE_API_URL` | `https://${{api.RAILWAY_PUBLIC_DOMAIN}}` |
+| `API_URL` | `https://${{BackchivitosProApp.RAILWAY_PUBLIC_DOMAIN}}` (o el nombre de tu servicio API) |
 
-> Importante: `VITE_*` se usa en el **build**. Si cambiás la URL de la API, hacé **Redeploy** del Web.
+> `API_URL` es **runtime**: el front hace proxy de `/api` → back. No hace falta `VITE_API_URL` en producción.
 
 5. **Generate Domain**
 6. Deploy

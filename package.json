@@ -8,13 +8,14 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "start:web": "serve -s dist -l tcp://0.0.0.0:${PORT:-3000}"
+    "start:web": "node server.mjs"
   },
   "dependencies": {
+    "express": "^5.2.1",
+    "http-proxy-middleware": "^3.0.7",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-router-dom": "^7.18.1",
-    "serve": "^14.2.6",
     "vite-plugin-pwa": "^1.3.0",
     "workbox-window": "^7.4.1"
   },
