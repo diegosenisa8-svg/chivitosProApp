@@ -1,9 +1,11 @@
+# Servicio API (Root Directory = backend en Railway)
 [build]
 builder = "NIXPACKS"
+buildCommand = "npm ci"
 
 [deploy]
 startCommand = "npx prisma migrate deploy && node prisma/seed.js && node src/index.js"
 healthcheckPath = "/health"
-healthcheckTimeout = 30
+healthcheckTimeout = 60
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10

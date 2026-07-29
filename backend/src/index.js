@@ -22,9 +22,9 @@ app.use(
       if (!origin) return callback(null, true)
       if (corsOrigin === '*') return callback(null, true)
       if (allowedOrigins.includes(origin)) return callback(null, true)
-      // Túneles de desarrollo (ngrok / cloudflare)
+      // Túneles de desarrollo + Railway
       if (
-        /\.ngrok-free\.dev$|\.ngrok-free\.app$|\.ngrok\.io$|\.trycloudflare\.com$/i.test(
+        /\.ngrok-free\.dev$|\.ngrok-free\.app$|\.ngrok\.io$|\.trycloudflare\.com$|\.up\.railway\.app$/i.test(
           new URL(origin).hostname,
         )
       ) {
