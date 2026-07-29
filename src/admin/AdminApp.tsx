@@ -34,6 +34,7 @@ import type { MenuData, MenuItem, ModifierGroup, RestaurantSettings } from '../t
 import '../admin.css'
 import { DevPopup } from './DevPopup'
 import { NAV, type AdminSection } from './nav'
+import { ChatAssistant } from '../components/ChatAssistant'
 
 export function AdminApp() {
   const navigate = useNavigate()
@@ -253,6 +254,7 @@ export function AdminApp() {
     <div className="admin-shell wide">
       <DevPopup open={devOpen} title={devTitle} onClose={() => setDevOpen(false)} />
       {toast && <div className="admin-toast">{toast}</div>}
+      <ChatAssistant variant="admin" />
 
       <aside className="admin-sidebar scroll">
         <div className="admin-brand compact">

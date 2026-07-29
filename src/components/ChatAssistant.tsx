@@ -4,19 +4,22 @@ import { apiUrl, getApiBase } from '../lib/apiBase'
 type Msg = { role: 'user' | 'assistant'; text: string }
 
 const WELCOME =
-  'Soy el Asistente de ChivitosPro de IA. Te ayudo con el menú, precios, demora y horarios. ¿Qué se te antoja?'
+  'Soy el Asistente de ChivitosPro de IA. Conozco el menú cargado: productos, precios, extras, demora y horarios. ¿En qué te ayudo?'
 
-export function ChatAssistant() {
+export function ChatAssistant({ variant = 'admin' }: { variant?: 'admin' | 'app' }) {
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [messages, setMessages] = useState<Msg[]>([{ role: 'assistant', text: WELCOME }])
-  const endRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (open) endRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, open])
+    if (!open) return
+    const el = listRef.current
+    if (!el) return
+    el.scrollTop = el.scrollHeight
+  }, [messages, open, busy])
 
   async function send() {
     const text = input.trim()
@@ -51,7 +54,7 @@ export function ChatAssistant() {
   }
 
   return (
-    <div className="chat-assist">
+    <div className={`chat-assist chat-assist--${variant}`}>
       {open && (
         <div className="chat-assist-panel" role="dialog" aria-label="Asistente de ChivitosPro">
           <header className="chat-assist-head">
@@ -63,14 +66,13 @@ export function ChatAssistant() {
               ×
             </button>
           </header>
-          <div className="chat-assist-messages">
+          <div className="chat-assist-messages" ref={listRef}>
             {messages.map((m, i) => (
               <div key={`${m.role}-${i}`} className={`chat-bubble ${m.role}`}>
                 {m.text}
               </div>
             ))}
             {busy && <div className="chat-bubble assistant muted">Escribiendo…</div>}
-            <div ref={endRef} />
           </div>
           {error && <p className="chat-assist-error">{error}</p>}
           <form

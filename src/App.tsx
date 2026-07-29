@@ -1,5 +1,4 @@
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
-import { ChatAssistant } from './components/ChatAssistant'
 import { ThemeToggle } from './components/ThemeToggle'
 import { CartProvider } from './context/CartContext'
 import { MenuProvider } from './context/MenuContext'
@@ -20,7 +19,6 @@ function AppRoutes() {
   return (
     <div className={isAdmin ? 'admin-root' : 'app-shell'}>
       <ThemeToggle className={isAdmin ? 'theme-toggle--admin' : ''} />
-      {!isAdmin && <ChatAssistant />}
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/menu" element={<MenuPage />} />
