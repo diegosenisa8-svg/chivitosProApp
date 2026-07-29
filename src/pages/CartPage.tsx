@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Toast } from '../components/Toast'
 import { cartLineTotal, useCart } from '../context/CartContext'
 import { useMenu } from '../context/MenuContext'
+import { mediaUrl } from '../lib/apiBase'
 import { formatMoney, formatPrice } from '../lib/format'
 import { getFeaturedItems } from '../lib/menuUtils'
 
@@ -94,7 +95,7 @@ export function CartPage() {
               <div className="upsell-row">
                 {upsell.map((u) => (
                   <Link key={u.id} to={`/product/${u.id}`} className="upsell-card">
-                    <img src={u.image} alt="" />
+                    <img src={mediaUrl(u.image)} alt="" />
                     <span>{u.name}</span>
                     <strong>{formatPrice(u.price)}</strong>
                   </Link>

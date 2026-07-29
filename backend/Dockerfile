@@ -10,7 +10,7 @@ RUN npm install
 COPY data ./data
 COPY src ./src
 COPY scripts/start.sh ./scripts/start.sh
-RUN chmod +x ./scripts/start.sh
+RUN chmod +x ./scripts/start.sh && mkdir -p uploads
 
 ENV NODE_ENV=production
 ENV PORT=8080

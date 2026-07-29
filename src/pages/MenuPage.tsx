@@ -4,6 +4,7 @@ import { FulfillmentToggle } from '../components/FulfillmentToggle'
 import { Toast } from '../components/Toast'
 import { useCart } from '../context/CartContext'
 import { useMenu } from '../context/MenuContext'
+import { mediaUrl } from '../lib/apiBase'
 import { formatPrice } from '../lib/format'
 import { getFeaturedItems } from '../lib/menuUtils'
 
@@ -109,7 +110,7 @@ export function MenuPage() {
             <div className="featured-row">
               {featured.map((item) => (
                 <Link key={item.id} to={`/product/${item.id}`} className="featured-card">
-                  <img src={item.image} alt="" loading="lazy" />
+                  <img src={mediaUrl(item.image)} alt="" loading="lazy" />
                   <strong>{item.name}</strong>
                   <span>{formatPrice(item.price)}</span>
                 </Link>
@@ -144,7 +145,7 @@ export function MenuPage() {
               {cat.items.map((item) => (
                 <li key={item.id}>
                   <Link to={`/product/${item.id}`} className="item-row">
-                    <img src={item.image} alt="" className="item-thumb" loading="lazy" />
+                    <img src={mediaUrl(item.image)} alt="" className="item-thumb" loading="lazy" />
                     <div className="item-body">
                       <div className="item-line">
                         <h3>

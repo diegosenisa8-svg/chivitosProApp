@@ -1,6 +1,8 @@
 import 'dotenv/config'
 import cors from 'cors'
 import express from 'express'
+import path from 'node:path'
+import { existsSync, mkdirSync } from 'node:fs'
 import { z } from 'zod'
 import { prisma } from './lib/prisma.js'
 import { mapMenu } from './lib/menu.js'
@@ -9,6 +11,8 @@ import adminRoutes from './routes/admin.js'
 
 const app = express()
 const port = Number(process.env.PORT || 8080)
+const uploadDir = path.join(process.cwd(), 'uploads')
+if (!existsSync(uploadDir)) mkdirSync(uploadDir, { recursive: true })
 
 const corsOrigin = process.env.CORS_ORIGIN || '*'
 const allowedOrigins =
@@ -36,6 +40,7 @@ app.use(
   }),
 )
 app.use(express.json({ limit: '2mb' }))
+app.use('/uploads', express.static(uploadDir))
 
 app.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'chivitos-pro-api' })

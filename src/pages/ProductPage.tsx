@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Toast } from '../components/Toast'
 import { useCart } from '../context/CartContext'
 import { useMenu } from '../context/MenuContext'
+import { mediaUrl } from '../lib/apiBase'
 import { formatMoney, formatPrice } from '../lib/format'
 import { findItem, getFeaturedItems } from '../lib/menuUtils'
 import type { MenuItem, SelectedModifier } from '../types'
@@ -154,7 +155,7 @@ export function ProductPage() {
       </header>
 
       <div className="product-hero">
-        <img src={item.image} alt={item.name} />
+        <img src={mediaUrl(item.image)} alt={item.name} />
       </div>
 
       {item.description && <p className="product-desc">{item.description}</p>}
@@ -258,7 +259,7 @@ export function ProductPage() {
             <div className="upsell-row">
               {upsell.map((u) => (
                 <Link key={u.id} to={`/product/${u.id}`} className="upsell-card">
-                  <img src={u.image} alt="" />
+                  <img src={mediaUrl(u.image)} alt="" />
                   <span>{u.name}</span>
                   <strong>{formatPrice(u.price)}</strong>
                 </Link>

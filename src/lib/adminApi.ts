@@ -146,6 +146,19 @@ export async function createProduct(body: Record<string, unknown>) {
   })
 }
 
+export async function uploadImage(file: File) {
+  if (getApiBase() === null) throw new Error('API deshabilitada')
+  const token = getAdminToken()
+  const form = new FormData()
+  form.append('file', file)
+  const headers = new Headers()
+  if (token) headers.set('Authorization', `Bearer ${token}`)
+  const res = await fetch(apiUrl('/api/admin/upload'), { method: 'POST', headers, body: form })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.error || `Error ${res.status}`)
+  return data as { url: string; filename: string; size: number }
+}
+
 export async function deleteProduct(id: string) {
   return adminFetch<{ ok: boolean }>(`/products/${id}`, { method: 'DELETE' })
 }

@@ -656,6 +656,31 @@ th {
   margin-bottom: 10px;
 }
 
+.upload-box {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px dashed var(--admin-line);
+  border-radius: 12px;
+  background: var(--admin-input);
+}
+
+.upload-box input[type='file'] {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--admin-text);
+  padding: 0;
+}
+
+.product-editor .preview img {
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  border-radius: 12px;
+  background: var(--admin-line-soft);
+}
+
 .provider-row {
   display: flex;
   justify-content: space-between;

@@ -1,4 +1,7 @@
 import { Router } from 'express'
+import multer from 'multer'
+import { existsSync, mkdirSync } from 'node:fs'
+import path from 'node:path'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { hashPassword, signToken, verifyPassword } from '../lib/auth.js'
@@ -7,6 +10,42 @@ import { mapMenu } from '../lib/menu.js'
 import { mergeSettings, slugify } from '../lib/settings.js'
 
 const router = Router()
+
+const uploadDir = path.join(process.cwd(), 'uploads')
+if (!existsSync(uploadDir)) mkdirSync(uploadDir, { recursive: true })
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, uploadDir),
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname || '').toLowerCase() || '.jpg'
+      const safe = ext.match(/^\.(jpe?g|png|webp|gif)$/) ? ext : '.jpg'
+      cb(null, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${safe}`)
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (!/^image\/(jpeg|png|webp|gif)$/i.test(file.mimetype)) {
+      cb(new Error('Solo imágenes JPG, PNG, WEBP o GIF'))
+      return
+    }
+    cb(null, true)
+  },
+})
+
+router.post('/upload', requireAdmin, (req, res) => {
+  upload.single('file')(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ error: err.message || 'Error al subir imagen' })
+    }
+    if (!req.file) return res.status(400).json({ error: 'No se recibió archivo' })
+    res.status(201).json({
+      url: `/uploads/${req.file.filename}`,
+      filename: req.file.filename,
+      size: req.file.size,
+    })
+  })
+})
 
 router.post('/login', async (req, res) => {
   try {

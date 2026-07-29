@@ -22,7 +22,8 @@ if (apiTarget) {
       target: apiTarget,
       changeOrigin: true,
       xfwd: true,
-      pathFilter: (pathname) => pathname.startsWith('/api') || pathname === '/health',
+      pathFilter: (pathname) =>
+        pathname.startsWith('/api') || pathname === '/health' || pathname.startsWith('/uploads'),
     }),
   )
 } else {

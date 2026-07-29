@@ -21,10 +21,12 @@ import {
   updateOrder,
   updateProduct,
   updateRestaurant,
+  uploadImage,
   type AdminOrder,
   type AdminUser,
   type DashboardData,
 } from '../lib/adminApi'
+import { mediaUrl } from '../lib/apiBase'
 import { formatMoney } from '../lib/format'
 import type { MenuData, MenuItem, ModifierGroup, RestaurantSettings } from '../types'
 import '../admin.css'
@@ -910,15 +912,26 @@ function MenuConfigView({
                 </div>
               </div>
               {editingCat === cat.id && (
-                <QuickAddProduct
-                  categoryId={cat.id}
-                  onDone={async () => {
+                <button
+                  type="button"
+                  className="admin-btn primary"
+                  style={{ margin: '8px 0' }}
+                  onClick={() => {
+                    setEditing({
+                      id: `__new__:${cat.id}`,
+                      name: '',
+                      description: '',
+                      price: 0,
+                      image: '/logo.png',
+                      available: true,
+                      featured: false,
+                      modifiers: [],
+                    })
                     setEditingCat(null)
-                    await refreshMenu()
-                    notify('Producto creado')
                   }}
-                  onError={setError}
-                />
+                >
+                  Abrir editor de producto nuevo
+                </button>
               )}
               {cat.items.map((item, itemIndex) => (
                 <div
@@ -929,7 +942,7 @@ function MenuConfigView({
                   onClick={() => setEditing(item)}
                   onKeyDown={(e) => e.key === 'Enter' && setEditing(item)}
                 >
-                  <img src={item.image || '/logo.png'} alt="" />
+                  <img src={mediaUrl(item.image)} alt="" />
                   <div>
                     <strong>{item.name}</strong>
                     <span>
@@ -965,12 +978,17 @@ function MenuConfigView({
         </div>
         <div className="admin-card detail">
           {!editing ? (
-            <p className="admin-muted">Seleccioná un producto</p>
+            <p className="admin-muted">Seleccioná un producto o creá uno con + Ítem</p>
           ) : (
             <ProductEditor
               item={editing}
               saving={saving}
+              onCancel={() => setEditing(null)}
               onDelete={async () => {
+                if (editing.id.startsWith('__new__:')) {
+                  setEditing(null)
+                  return
+                }
                 if (!confirm('¿Eliminar producto?')) return
                 setSaving(true)
                 try {
@@ -984,14 +1002,42 @@ function MenuConfigView({
                   setSaving(false)
                 }
               }}
-              onSave={async (patch) => {
+              onSave={async (payload) => {
                 setSaving(true)
                 try {
-                  await updateProduct(editing.id, patch)
+                  const isNew = editing.id.startsWith('__new__:')
+                  const categoryId = isNew
+                    ? editing.id.slice('__new__:'.length)
+                    : payload.categoryId
+                  let productId = editing.id
+                  if (isNew) {
+                    const created = await createProduct({
+                      categoryId,
+                      name: payload.name,
+                      description: payload.description,
+                      price: payload.price,
+                      priceMax: payload.priceMax,
+                      image: payload.image,
+                      available: payload.available,
+                      featured: payload.featured,
+                    })
+                    productId = created.id
+                  } else {
+                    await updateProduct(editing.id, {
+                      name: payload.name,
+                      description: payload.description,
+                      price: payload.price,
+                      priceMax: payload.priceMax,
+                      image: payload.image,
+                      available: payload.available,
+                      featured: payload.featured,
+                    })
+                  }
+                  await saveProductModifiers(productId, payload.modifiers)
                   const m = await refreshMenu()
-                  const found = m.categories.flatMap((c) => c.items).find((i) => i.id === editing.id)
-                  if (found) setEditing(found)
-                  notify('Producto guardado')
+                  const found = m.categories.flatMap((c) => c.items).find((i) => i.id === productId)
+                  setEditing(found || null)
+                  notify(isNew ? 'Producto creado' : 'Producto guardado')
                 } catch (e) {
                   setError(e instanceof Error ? e.message : 'Error')
                 } finally {
@@ -1006,76 +1052,78 @@ function MenuConfigView({
   )
 }
 
-function QuickAddProduct({
-  categoryId,
-  onDone,
-  onError,
-}: {
-  categoryId: string
-  onDone: () => Promise<void>
-  onError: (m: string) => void
-}) {
-  const [name, setName] = useState('')
-  const [price, setPrice] = useState('200')
-  return (
-    <div className="quick-add">
-      <input placeholder="Nombre" value={name} onChange={(e) => setName(e.target.value)} />
-      <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} />
-      <button
-        type="button"
-        className="admin-btn primary"
-        onClick={async () => {
-          try {
-            await createProduct({
-              categoryId,
-              name: name.trim(),
-              price: Number(price),
-              image: '/logo.png',
-            })
-            setName('')
-            await onDone()
-          } catch (e) {
-            onError(e instanceof Error ? e.message : 'Error')
-          }
-        }}
-      >
-        Crear
-      </button>
-    </div>
-  )
-}
-
 function ProductEditor({
   item,
   saving,
   onSave,
   onDelete,
+  onCancel,
 }: {
   item: MenuItem
   saving: boolean
-  onSave: (patch: Record<string, unknown>) => Promise<void>
+  onSave: (payload: {
+    name: string
+    description: string
+    price: number
+    priceMax: number | null
+    image: string
+    available: boolean
+    featured: boolean
+    categoryId?: string
+    modifiers: Array<{
+      id: string
+      name: string
+      required: boolean
+      min: number
+      max: number
+      allowQuantity?: boolean
+      options: { id: string; name: string; price: number }[]
+    }>
+  }) => Promise<void>
   onDelete: () => Promise<void>
+  onCancel: () => void
 }) {
+  const isNew = item.id.startsWith('__new__:')
   const [form, setForm] = useState({
     name: item.name,
     description: item.description || '',
-    price: String(item.price),
+    price: String(item.price || ''),
     priceMax: item.priceMax != null ? String(item.priceMax) : '',
-    image: item.image,
+    image: item.image || '/logo.png',
     available: item.available !== false,
     featured: !!item.featured,
   })
+  const [groups, setGroups] = useState<ModifierGroup[]>(item.modifiers || [])
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
+
   useEffect(() => {
     setForm({
       name: item.name,
       description: item.description || '',
-      price: String(item.price),
+      price: String(item.price || ''),
       priceMax: item.priceMax != null ? String(item.priceMax) : '',
-      image: item.image,
+      image: item.image || '/logo.png',
       available: item.available !== false,
       featured: !!item.featured,
     })
+    setGroups(item.modifiers || [])
+    setUploadError('')
   }, [item])
+
+  async function onPickFile(file: File | null) {
+    if (!file) return
+    setUploadError('')
+    setUploading(true)
+    try {
+      const result = await uploadImage(file)
+      setForm((f) => ({ ...f, image: result.url }))
+    } catch (e) {
+      setUploadError(e instanceof Error ? e.message : 'Error al subir')
+    } finally {
+      setUploading(false)
+    }
+  }
 
   return (
     <form
@@ -1085,20 +1133,54 @@ function ProductEditor({
         onSave({
           name: form.name.trim(),
           description: form.description,
-          price: Number(form.price),
+          price: Number(form.price) || 0,
           priceMax: form.priceMax === '' ? null : Number(form.priceMax),
-          image: form.image.trim(),
+          image: form.image.trim() || '/logo.png',
           available: form.available,
           featured: form.featured,
+          modifiers: groups.map((g) => ({
+            id: g.id,
+            name: g.name,
+            required: g.required,
+            min: g.min,
+            max: g.max,
+            allowQuantity: g.allowQuantity,
+            options: g.options,
+          })),
         })
       }}
     >
+      <h3 style={{ margin: 0 }}>{isNew ? 'Nuevo producto' : 'Editar producto'}</h3>
+
       <div className="preview">
-        <img src={form.image || '/logo.png'} alt="" />
+        <img src={mediaUrl(form.image)} alt="" />
       </div>
+
+      <label className="upload-box">
+        <span>Cargar imagen desde la PC</span>
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          disabled={uploading || saving}
+          onChange={(e) => onPickFile(e.target.files?.[0] || null)}
+        />
+      </label>
+      {uploading && <p className="admin-muted">Subiendo imagen…</p>}
+      {uploadError && <p className="admin-error">{uploadError}</p>}
+
+      <label>
+        URL imagen (opcional / alternativa)
+        <input value={form.image} onChange={(e) => setForm((f) => ({ ...f, image: e.target.value }))} />
+      </label>
+
       <label>
         Nombre
-        <input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+        <input
+          value={form.name}
+          onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+          required
+          placeholder="Ej. Hamburguesa Pro"
+        />
       </label>
       <label>
         Descripción
@@ -1113,23 +1195,24 @@ function ProductEditor({
           Precio
           <input
             type="number"
+            min="0"
+            step="1"
             value={form.price}
             onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
+            required
           />
         </label>
         <label>
-          Precio max
+          Precio max (opcional)
           <input
             type="number"
+            min="0"
+            step="1"
             value={form.priceMax}
             onChange={(e) => setForm((f) => ({ ...f, priceMax: e.target.value }))}
           />
         </label>
       </div>
-      <label>
-        URL imagen
-        <input value={form.image} onChange={(e) => setForm((f) => ({ ...f, image: e.target.value }))} />
-      </label>
       <div className="checks">
         <label className="check">
           <input
@@ -1148,17 +1231,128 @@ function ProductEditor({
           Destacado
         </label>
       </div>
-      {!!item.modifiers?.length && (
-        <p className="admin-muted">
-          Extras: {item.modifiers.map((m) => m.name).join(', ')} (editá en Opcionales y agregados)
-        </p>
+
+      <h4>Subproductos / extras</h4>
+      <p className="admin-muted">Grupos tipo guarnición, dips, carnes extras…</p>
+      {groups.map((g, gi) => (
+        <div key={g.id} className="mod-group-edit">
+          <div className="row-2">
+            <input
+              value={g.name}
+              placeholder="Nombre del grupo"
+              onChange={(e) => {
+                const next = [...groups]
+                next[gi] = { ...g, name: e.target.value }
+                setGroups(next)
+              }}
+            />
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={g.required}
+                onChange={(e) => {
+                  const next = [...groups]
+                  next[gi] = { ...g, required: e.target.checked, min: e.target.checked ? Math.max(1, g.min) : 0 }
+                  setGroups(next)
+                }}
+              />
+              Obligatorio
+            </label>
+          </div>
+          {g.options.map((o, oi) => (
+            <div key={o.id} className="row-2">
+              <input
+                value={o.name}
+                placeholder="Opción"
+                onChange={(e) => {
+                  const next = [...groups]
+                  const opts = [...g.options]
+                  opts[oi] = { ...o, name: e.target.value }
+                  next[gi] = { ...g, options: opts }
+                  setGroups(next)
+                }}
+              />
+              <input
+                type="number"
+                value={o.price}
+                title="Precio extra"
+                onChange={(e) => {
+                  const next = [...groups]
+                  const opts = [...g.options]
+                  opts[oi] = { ...o, price: Number(e.target.value) || 0 }
+                  next[gi] = { ...g, options: opts }
+                  setGroups(next)
+                }}
+              />
+              <button
+                type="button"
+                className="admin-btn ghost"
+                onClick={() => {
+                  const next = [...groups]
+                  next[gi] = { ...g, options: g.options.filter((_, i) => i !== oi) }
+                  setGroups(next)
+                }}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+          <div className="row-2">
+            <button
+              type="button"
+              className="admin-btn ghost"
+              onClick={() => {
+                const next = [...groups]
+                next[gi] = {
+                  ...g,
+                  options: [...g.options, { id: `opt-${Date.now()}`, name: 'Nueva opción', price: 0 }],
+                }
+                setGroups(next)
+              }}
+            >
+              + Opción
+            </button>
+            <button
+              type="button"
+              className="admin-btn danger"
+              onClick={() => setGroups(groups.filter((_, i) => i !== gi))}
+            >
+              Quitar grupo
+            </button>
+          </div>
+        </div>
+      ))}
+      <button
+        type="button"
+        className="admin-btn"
+        onClick={() =>
+          setGroups([
+            ...groups,
+            {
+              id: `grp-${Date.now()}`,
+              name: 'Nuevo grupo',
+              required: false,
+              min: 0,
+              max: 1,
+              options: [{ id: `opt-${Date.now()}`, name: 'Opción', price: 0 }],
+            },
+          ])
+        }
+      >
+        + Grupo de extras
+      </button>
+
+      <button type="submit" className="admin-btn primary" disabled={saving || uploading || !form.name.trim()}>
+        {saving ? 'Guardando…' : isNew ? 'Crear producto' : 'Guardar cambios'}
+      </button>
+      <button type="button" className="admin-btn ghost" disabled={saving} onClick={onCancel}>
+        Cancelar
+      </button>
+      {!isNew && (
+        <button type="button" className="admin-btn danger" disabled={saving} onClick={onDelete}>
+          Eliminar producto
+        </button>
       )}
-      <button type="submit" className="admin-btn primary" disabled={saving}>
-        Guardar
-      </button>
-      <button type="button" className="admin-btn danger" disabled={saving} onClick={onDelete}>
-        Eliminar producto
-      </button>
     </form>
   )
 }
