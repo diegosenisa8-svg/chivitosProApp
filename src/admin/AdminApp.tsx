@@ -50,7 +50,6 @@ export function AdminApp() {
   const [orderQuery, setOrderQuery] = useState('')
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null)
   const [editing, setEditing] = useState<MenuItem | null>(null)
-  const [editingCat, setEditingCat] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState('')
   const [error, setError] = useState('')
@@ -338,8 +337,6 @@ export function AdminApp() {
             menu={menu}
             editing={editing}
             setEditing={setEditing}
-            editingCat={editingCat}
-            setEditingCat={setEditingCat}
             saving={saving}
             notify={notify}
             setError={setError}
@@ -783,8 +780,6 @@ function MenuConfigView({
   menu,
   editing,
   setEditing,
-  editingCat,
-  setEditingCat,
   saving,
   notify,
   setError,
@@ -795,8 +790,6 @@ function MenuConfigView({
   menu: MenuData
   editing: MenuItem | null
   setEditing: (i: MenuItem | null) => void
-  editingCat: string | null
-  setEditingCat: (id: string | null) => void
   saving: boolean
   notify: (m: string) => void
   setError: (m: string) => void
@@ -805,13 +798,95 @@ function MenuConfigView({
   onPreview: () => void
 }) {
   const [newCatName, setNewCatName] = useState('')
+  const [openCatId, setOpenCatId] = useState<string | null>(null)
+
+  const openCat = menu.categories.find((c) => c.id === openCatId) || null
+
+  const startNewProduct = (categoryId: string) => {
+    setEditing({
+      id: `__new__:${categoryId}`,
+      name: '',
+      description: '',
+      price: 0,
+      image: '/logo.png',
+      available: true,
+      featured: false,
+      modifiers: [],
+    })
+  }
+
+  const saveProduct = async (payload: {
+    name: string
+    description: string
+    price: number
+    priceMax: number | null
+    image: string
+    available: boolean
+    featured: boolean
+    categoryId?: string
+    modifiers: Array<{
+      id: string
+      name: string
+      required: boolean
+      min: number
+      max: number
+      allowQuantity?: boolean
+      options: { id: string; name: string; price: number }[]
+    }>
+  }) => {
+    if (!editing) return
+    setSaving(true)
+    try {
+      const isNew = editing.id.startsWith('__new__:')
+      const categoryId = isNew ? editing.id.slice('__new__:'.length) : payload.categoryId
+      let productId = editing.id
+      if (isNew) {
+        const created = await createProduct({
+          categoryId,
+          name: payload.name,
+          description: payload.description,
+          price: payload.price,
+          priceMax: payload.priceMax,
+          image: payload.image,
+          available: payload.available,
+          featured: payload.featured,
+        })
+        productId = created.id
+      } else {
+        await updateProduct(editing.id, {
+          name: payload.name,
+          description: payload.description,
+          price: payload.price,
+          priceMax: payload.priceMax,
+          image: payload.image,
+          available: payload.available,
+          featured: payload.featured,
+        })
+      }
+      await saveProductModifiers(productId, payload.modifiers)
+      const m = await refreshMenu()
+      const found = m.categories.flatMap((c) => c.items).find((i) => i.id === productId)
+      setEditing(found || null)
+      notify(isNew ? 'Producto creado' : 'Producto guardado')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <section className="admin-section">
       <header className="admin-header">
         <div>
           <h2>Configuración del menú</h2>
-          <p>Categorías, productos, precios, stock y orden</p>
+          <p>
+            {editing
+              ? 'Editando producto'
+              : openCat
+                ? `Productos en ${openCat.name}`
+                : 'Todas las categorías · tocá una para ver sus productos'}
+          </p>
         </div>
         <div className="header-actions">
           <button type="button" className="admin-btn" onClick={onPreview}>
@@ -823,52 +898,103 @@ function MenuConfigView({
         </div>
       </header>
 
-      <div className="admin-card settings-form" style={{ marginBottom: 16 }}>
-        <div className="row-2">
-          <input
-            placeholder="Nueva categoría"
-            value={newCatName}
-            onChange={(e) => setNewCatName(e.target.value)}
-          />
+      {editing ? (
+        <div className="admin-card detail menu-editor-full">
           <button
             type="button"
-            className="admin-btn primary"
-            disabled={saving || !newCatName.trim()}
-            onClick={async () => {
+            className="admin-btn ghost menu-back-btn"
+            onClick={() => setEditing(null)}
+          >
+            ← Volver a {openCat?.name || 'categoría'}
+          </button>
+          <ProductEditor
+            item={editing}
+            saving={saving}
+            onCancel={() => setEditing(null)}
+            onDelete={async () => {
+              if (editing.id.startsWith('__new__:')) {
+                setEditing(null)
+                return
+              }
+              if (!confirm('¿Eliminar producto?')) return
               setSaving(true)
               try {
-                await createCategory({ name: newCatName.trim() })
-                setNewCatName('')
+                await deleteProduct(editing.id)
+                setEditing(null)
                 await refreshMenu()
-                notify('Categoría creada')
+                notify('Producto eliminado')
               } catch (e) {
                 setError(e instanceof Error ? e.message : 'Error')
               } finally {
                 setSaving(false)
               }
             }}
-          >
-            + Categoría
-          </button>
+            onSave={saveProduct}
+          />
         </div>
-      </div>
+      ) : openCat ? (
+        <div className="admin-card list menu-drill">
+          <div className="menu-drill-head">
+            <button
+              type="button"
+              className="admin-btn ghost menu-back-btn"
+              onClick={() => setOpenCatId(null)}
+            >
+              ← Todas las categorías
+            </button>
+            <div className="menu-drill-title">
+              <img
+                src={mediaUrl(openCat.banner || openCat.items[0]?.image || '/logo.png')}
+                alt=""
+              />
+              <div>
+                <h3>{openCat.name}</h3>
+                <span>
+                  {openCat.items.length} producto{openCat.items.length === 1 ? '' : 's'}
+                  {openCat.subtitle ? ` · ${openCat.subtitle}` : ''}
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="admin-btn primary"
+              onClick={() => startNewProduct(openCat.id)}
+            >
+              + Agregar producto
+            </button>
+          </div>
 
-      <div className="admin-grid-2 orders-layout">
-        <div className="admin-card list menu-list-admin">
-          {menu.categories.map((cat, catIndex) => (
-            <div key={cat.id} className="menu-cat-block">
-              <div className="cat-head">
-                <h3>{cat.name}</h3>
-                <div className="cat-actions">
+          {openCat.items.length === 0 ? (
+            <p className="admin-muted" style={{ padding: 16 }}>
+              Esta categoría todavía no tiene productos. Agregá el primero.
+            </p>
+          ) : (
+            openCat.items.map((item, itemIndex) => (
+              <div key={item.id} className="product-row menu-product-card">
+                <img src={mediaUrl(item.image)} alt="" />
+                <div>
+                  <strong>{item.name}</strong>
+                  <span>
+                    {formatMoney(item.price)}
+                    {item.modifiers?.length ? ` · ${item.modifiers.length} extras` : ''}
+                    {item.description ? ` · ${item.description}` : ''}
+                  </span>
+                </div>
+                <div className="product-row-actions">
                   <button
                     type="button"
                     className="admin-btn ghost"
-                    disabled={catIndex === 0}
+                    title="Subir"
+                    disabled={itemIndex === 0}
                     onClick={async () => {
-                      const ids = menu.categories.map((c) => c.id)
-                      ;[ids[catIndex - 1], ids[catIndex]] = [ids[catIndex], ids[catIndex - 1]]
+                      const ids = openCat.items.map((i) => i.id)
+                      ;[ids[itemIndex - 1], ids[itemIndex]] = [ids[itemIndex], ids[itemIndex - 1]]
                       await reorderMenu({
-                        categories: ids.map((id, i) => ({ id, sortOrder: i })),
+                        products: ids.map((id, i) => ({
+                          id,
+                          sortOrder: i,
+                          categoryId: openCat.id,
+                        })),
                       })
                       await refreshMenu()
                     }}
@@ -878,176 +1004,148 @@ function MenuConfigView({
                   <button
                     type="button"
                     className="admin-btn ghost"
-                    disabled={catIndex === menu.categories.length - 1}
+                    title="Bajar"
+                    disabled={itemIndex === openCat.items.length - 1}
                     onClick={async () => {
-                      const ids = menu.categories.map((c) => c.id)
-                      ;[ids[catIndex + 1], ids[catIndex]] = [ids[catIndex], ids[catIndex + 1]]
+                      const ids = openCat.items.map((i) => i.id)
+                      ;[ids[itemIndex + 1], ids[itemIndex]] = [ids[itemIndex], ids[itemIndex + 1]]
                       await reorderMenu({
-                        categories: ids.map((id, i) => ({ id, sortOrder: i })),
+                        products: ids.map((id, i) => ({
+                          id,
+                          sortOrder: i,
+                          categoryId: openCat.id,
+                        })),
                       })
                       await refreshMenu()
                     }}
                   >
                     ↓
                   </button>
+                  <span className={`pill ${item.available === false ? 'off' : 'on'}`}>
+                    {item.available === false ? 'Off' : 'On'}
+                  </span>
                   <button
                     type="button"
-                    className="admin-btn ghost"
-                    onClick={() => setEditingCat(editingCat === cat.id ? null : cat.id)}
+                    className="admin-btn"
+                    onClick={() => setEditing(item)}
                   >
-                    + Ítem
-                  </button>
-                  <button
-                    type="button"
-                    className="admin-btn danger"
-                    onClick={async () => {
-                      if (!confirm(`¿Eliminar categoría ${cat.name}?`)) return
-                      await deleteCategory(cat.id)
-                      await refreshMenu()
-                      notify('Categoría eliminada')
-                    }}
-                  >
-                    ×
+                    Editar
                   </button>
                 </div>
               </div>
-              {editingCat === cat.id && (
-                <button
-                  type="button"
-                  className="admin-btn primary"
-                  style={{ margin: '8px 0' }}
-                  onClick={() => {
-                    setEditing({
-                      id: `__new__:${cat.id}`,
-                      name: '',
-                      description: '',
-                      price: 0,
-                      image: '/logo.png',
-                      available: true,
-                      featured: false,
-                      modifiers: [],
-                    })
-                    setEditingCat(null)
-                  }}
-                >
-                  Abrir editor de producto nuevo
-                </button>
-              )}
-              {cat.items.map((item, itemIndex) => (
-                <div
-                  key={item.id}
-                  className={`product-row ${editing?.id === item.id ? 'active' : ''}`}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setEditing(item)}
-                  onKeyDown={(e) => e.key === 'Enter' && setEditing(item)}
-                >
-                  <img src={mediaUrl(item.image)} alt="" />
-                  <div>
-                    <strong>{item.name}</strong>
-                    <span>
-                      {formatMoney(item.price)}
-                      {item.modifiers?.length ? ` · ${item.modifiers.length} extras` : ''}
+            ))
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="admin-card settings-form" style={{ marginBottom: 16 }}>
+            <div className="row-2">
+              <input
+                placeholder="Nueva categoría"
+                value={newCatName}
+                onChange={(e) => setNewCatName(e.target.value)}
+              />
+              <button
+                type="button"
+                className="admin-btn primary"
+                disabled={saving || !newCatName.trim()}
+                onClick={async () => {
+                  setSaving(true)
+                  try {
+                    await createCategory({ name: newCatName.trim() })
+                    setNewCatName('')
+                    await refreshMenu()
+                    notify('Categoría creada')
+                  } catch (e) {
+                    setError(e instanceof Error ? e.message : 'Error')
+                  } finally {
+                    setSaving(false)
+                  }
+                }}
+              >
+                + Categoría
+              </button>
+            </div>
+          </div>
+
+          <div className="menu-cat-cards">
+            {menu.categories.map((cat, catIndex) => {
+              const thumb = cat.banner || cat.items[0]?.image || '/logo.png'
+              return (
+                <div key={cat.id} className="menu-cat-card">
+                  <button
+                    type="button"
+                    className="menu-cat-card-main"
+                    onClick={() => setOpenCatId(cat.id)}
+                  >
+                    <span className="menu-cat-handle" aria-hidden>
+                      ☰
                     </span>
-                  </div>
-                  <div className="product-row-actions">
+                    <img src={mediaUrl(thumb)} alt="" />
+                    <span className="menu-cat-card-text">
+                      <strong>{cat.name}</strong>
+                      <span>
+                        {cat.subtitle ||
+                          `${cat.items.length} producto${cat.items.length === 1 ? '' : 's'}`}
+                      </span>
+                    </span>
+                    <span className="menu-cat-chevron" aria-hidden>
+                      ›
+                    </span>
+                  </button>
+                  <div className="cat-actions menu-cat-card-actions">
                     <button
                       type="button"
                       className="admin-btn ghost"
-                      onClick={async (e) => {
-                        e.stopPropagation()
-                        if (itemIndex === 0) return
-                        const ids = cat.items.map((i) => i.id)
-                        ;[ids[itemIndex - 1], ids[itemIndex]] = [ids[itemIndex], ids[itemIndex - 1]]
+                      disabled={catIndex === 0}
+                      title="Subir"
+                      onClick={async () => {
+                        const ids = menu.categories.map((c) => c.id)
+                        ;[ids[catIndex - 1], ids[catIndex]] = [ids[catIndex], ids[catIndex - 1]]
                         await reorderMenu({
-                          products: ids.map((id, i) => ({ id, sortOrder: i, categoryId: cat.id })),
+                          categories: ids.map((id, i) => ({ id, sortOrder: i })),
                         })
                         await refreshMenu()
                       }}
                     >
                       ↑
                     </button>
-                    <span className={`pill ${item.available === false ? 'off' : 'on'}`}>
-                      {item.available === false ? 'Off' : 'On'}
-                    </span>
+                    <button
+                      type="button"
+                      className="admin-btn ghost"
+                      disabled={catIndex === menu.categories.length - 1}
+                      title="Bajar"
+                      onClick={async () => {
+                        const ids = menu.categories.map((c) => c.id)
+                        ;[ids[catIndex + 1], ids[catIndex]] = [ids[catIndex], ids[catIndex + 1]]
+                        await reorderMenu({
+                          categories: ids.map((id, i) => ({ id, sortOrder: i })),
+                        })
+                        await refreshMenu()
+                      }}
+                    >
+                      ↓
+                    </button>
+                    <button
+                      type="button"
+                      className="admin-btn danger"
+                      title="Eliminar"
+                      onClick={async () => {
+                        if (!confirm(`¿Eliminar categoría ${cat.name}?`)) return
+                        await deleteCategory(cat.id)
+                        await refreshMenu()
+                        notify('Categoría eliminada')
+                      }}
+                    >
+                      ×
+                    </button>
                   </div>
                 </div>
-              ))}
-            </div>
-          ))}
-        </div>
-        <div className="admin-card detail">
-          {!editing ? (
-            <p className="admin-muted">Seleccioná un producto o creá uno con + Ítem</p>
-          ) : (
-            <ProductEditor
-              item={editing}
-              saving={saving}
-              onCancel={() => setEditing(null)}
-              onDelete={async () => {
-                if (editing.id.startsWith('__new__:')) {
-                  setEditing(null)
-                  return
-                }
-                if (!confirm('¿Eliminar producto?')) return
-                setSaving(true)
-                try {
-                  await deleteProduct(editing.id)
-                  setEditing(null)
-                  await refreshMenu()
-                  notify('Producto eliminado')
-                } catch (e) {
-                  setError(e instanceof Error ? e.message : 'Error')
-                } finally {
-                  setSaving(false)
-                }
-              }}
-              onSave={async (payload) => {
-                setSaving(true)
-                try {
-                  const isNew = editing.id.startsWith('__new__:')
-                  const categoryId = isNew
-                    ? editing.id.slice('__new__:'.length)
-                    : payload.categoryId
-                  let productId = editing.id
-                  if (isNew) {
-                    const created = await createProduct({
-                      categoryId,
-                      name: payload.name,
-                      description: payload.description,
-                      price: payload.price,
-                      priceMax: payload.priceMax,
-                      image: payload.image,
-                      available: payload.available,
-                      featured: payload.featured,
-                    })
-                    productId = created.id
-                  } else {
-                    await updateProduct(editing.id, {
-                      name: payload.name,
-                      description: payload.description,
-                      price: payload.price,
-                      priceMax: payload.priceMax,
-                      image: payload.image,
-                      available: payload.available,
-                      featured: payload.featured,
-                    })
-                  }
-                  await saveProductModifiers(productId, payload.modifiers)
-                  const m = await refreshMenu()
-                  const found = m.categories.flatMap((c) => c.items).find((i) => i.id === productId)
-                  setEditing(found || null)
-                  notify(isNew ? 'Producto creado' : 'Producto guardado')
-                } catch (e) {
-                  setError(e instanceof Error ? e.message : 'Error')
-                } finally {
-                  setSaving(false)
-                }
-              }}
-            />
-          )}
-        </div>
-      </div>
+              )
+            })}
+          </div>
+        </>
+      )}
     </section>
   )
 }

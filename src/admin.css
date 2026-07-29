@@ -640,6 +640,148 @@ th {
   align-items: center;
 }
 
+.menu-cat-cards {
+  display: grid;
+  gap: 10px;
+  max-width: 720px;
+}
+
+.menu-cat-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+  align-items: stretch;
+  background: var(--admin-card);
+  border: 1px solid var(--admin-line);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.menu-cat-card-main {
+  display: grid;
+  grid-template-columns: 20px 56px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+}
+
+.menu-cat-card-main:hover {
+  background: var(--admin-line-soft);
+}
+
+.menu-cat-handle,
+.menu-cat-chevron {
+  color: var(--admin-muted);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.menu-cat-chevron {
+  font-size: 22px;
+  font-weight: 300;
+}
+
+.menu-cat-card-main img {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: var(--admin-line-soft);
+}
+
+.menu-cat-card-text {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.menu-cat-card-text strong {
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.menu-cat-card-text span {
+  color: var(--admin-muted);
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.menu-cat-card-actions {
+  padding: 8px 10px 8px 0;
+  align-self: center;
+}
+
+.menu-drill {
+  max-width: 860px;
+  max-height: none;
+  padding: 12px;
+}
+
+.menu-drill-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 8px 16px;
+  border-bottom: 1px solid var(--admin-line);
+  margin-bottom: 8px;
+}
+
+.menu-drill-title {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex: 1;
+  min-width: 200px;
+}
+
+.menu-drill-title img {
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.menu-drill-title h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.menu-drill-title span {
+  display: block;
+  color: var(--admin-muted);
+  font-size: 13px;
+}
+
+.menu-back-btn {
+  margin-bottom: 4px;
+}
+
+.menu-product-card {
+  border: 1px solid var(--admin-line);
+  border-radius: 12px;
+  margin-bottom: 8px;
+  background: var(--admin-input);
+}
+
+.menu-product-card:hover,
+.menu-product-card.active {
+  background: var(--admin-line-soft);
+}
+
+.menu-editor-full {
+  max-width: 720px;
+}
+
 .quick-add {
   display: grid;
   grid-template-columns: 1fr 90px auto;
