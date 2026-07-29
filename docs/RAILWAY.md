@@ -166,3 +166,4 @@ railway domain
 - El start de la API corre `prisma migrate deploy` + seed (admin + menú si está vacío).
 - El Web sirve `dist` con `serve -s` (SPA OK).
 - No hace falta Cloudflare Pages si usás Railway para el front.
+- Las imágenes subidas van a `/uploads` en el disco del API. Sin un **Volume** en Railway se pierden al redeploy; montá un volume en `/app/uploads` (o la ruta del contenedor) si querés persistencia.
