@@ -160,19 +160,17 @@ app.post('/api/orders', async (req, res) => {
 })
 
 async function ensureAdmin() {
-  const count = await prisma.adminUser.count()
-  if (count > 0) return
+  // Siempre sincroniza email/clave desde env (arregla hashes inválidos o filas manuales)
   const email = (process.env.ADMIN_EMAIL || 'admin@chivitospro.com').toLowerCase()
   const password = process.env.ADMIN_PASSWORD || 'chivitos2026'
   const name = process.env.ADMIN_NAME || 'Admin ChivitosPro'
-  await prisma.adminUser.create({
-    data: {
-      email,
-      name,
-      passwordHash: await hashPassword(password),
-    },
+  const passwordHash = await hashPassword(password)
+  await prisma.adminUser.upsert({
+    where: { email },
+    update: { name, passwordHash },
+    create: { email, name, passwordHash },
   })
-  console.log(`Admin creado: ${email} / ${password}`)
+  console.log(`Admin sync OK: ${email}`)
 }
 
 ensureAdmin()

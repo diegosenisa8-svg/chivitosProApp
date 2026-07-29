@@ -17,8 +17,17 @@ router.post('/login', async (req, res) => {
       })
       .parse(req.body)
 
-    const admin = await prisma.adminUser.findUnique({ where: { email: body.email.toLowerCase() } })
-    if (!admin || !(await verifyPassword(body.password, admin.passwordHash))) {
+    const email = body.email.trim().toLowerCase()
+    const password = body.password
+    const admin = await prisma.adminUser.findUnique({ where: { email } })
+    if (!admin) {
+      return res.status(401).json({ error: 'Email o contraseña incorrectos' })
+    }
+    const hash = String(admin.passwordHash || '')
+    // Hash bcrypt válido empieza con $2; si no, la fila está mal (ej. texto plano)
+    const ok =
+      hash.startsWith('$2') && (await verifyPassword(password, hash).catch(() => false))
+    if (!ok) {
       return res.status(401).json({ error: 'Email o contraseña incorrectos' })
     }
 
