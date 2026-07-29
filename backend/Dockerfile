@@ -2,14 +2,13 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-COPY package.json ./
+COPY package.json package-lock.json* ./
+COPY prisma ./prisma
+
 RUN npm install
 
-COPY prisma ./prisma
 COPY data ./data
 COPY src ./src
-
-RUN npx prisma generate
 
 ENV NODE_ENV=production
 EXPOSE 8080
