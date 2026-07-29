@@ -36,6 +36,7 @@ Vas a crear **3 cosas** en un mismo proyecto Railway:
 | `ADMIN_EMAIL` | `admin@chivitospro.com` |
 | `ADMIN_PASSWORD` | `chivitos2026` |
 | `ADMIN_NAME` | `Admin ChivitosPro` |
+| `GEMINI_API_KEY` | tu API key de Google AI Studio (asistente del chat) |
 
 5. **Settings → Networking → Generate Domain**
 6. Deploy (automático al conectar el repo)

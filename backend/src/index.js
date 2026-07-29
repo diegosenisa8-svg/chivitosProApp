@@ -8,6 +8,7 @@ import { prisma } from './lib/prisma.js'
 import { mapMenu } from './lib/menu.js'
 import { hashPassword } from './lib/auth.js'
 import { upsertCustomerFromOrder } from './lib/customers.js'
+import { askAssistant } from './lib/assistant.js'
 import adminRoutes from './routes/admin.js'
 
 const app = express()
@@ -53,6 +54,7 @@ app.get('/', (_req, res) => {
     health: '/health',
     menu: '/api/menu',
     orders: '/api/orders',
+    assistant: '/api/assistant/chat',
     admin: '/api/admin',
   })
 })
@@ -172,6 +174,38 @@ app.post('/api/orders', async (req, res) => {
     }
     console.error(err)
     res.status(500).json({ error: 'Failed to create order' })
+  }
+})
+
+app.post('/api/assistant/chat', async (req, res) => {
+  try {
+    const body = z
+      .object({
+        messages: z
+          .array(
+            z.object({
+              role: z.enum(['user', 'assistant']),
+              text: z.string().min(1).max(2000),
+            }),
+          )
+          .min(1)
+          .max(20),
+      })
+      .parse(req.body)
+
+    const reply = await askAssistant(body.messages)
+    res.json({ reply })
+  } catch (err) {
+    if (err?.name === 'ZodError') {
+      return res.status(400).json({ error: 'Mensaje inválido' })
+    }
+    if (err?.code === 'NO_KEY') {
+      return res.status(503).json({
+        error: 'Asistente no configurado. Definí GEMINI_API_KEY en el backend.',
+      })
+    }
+    console.error('Assistant error', err)
+    res.status(500).json({ error: err?.message || 'No se pudo responder' })
   }
 })
 
