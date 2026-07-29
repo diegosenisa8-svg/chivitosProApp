@@ -62,7 +62,7 @@ export function MenuPage() {
           ‹
         </button>
         <div className="topbar-title-full">
-          <img src={menu.restaurant.logo} alt="" />
+          <img src={menu.restaurant.logo || '/logo.png'} alt="ChivitosPro" />
           <span>{menu.restaurant.name}</span>
           <button type="button" className="info-btn" aria-label="Información" onClick={() => setInfoOpen(true)}>
             i

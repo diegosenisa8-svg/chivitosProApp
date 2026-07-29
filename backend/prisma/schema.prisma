@@ -7,24 +7,41 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         String   @default("admin")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
 model Restaurant {
-  id         Int      @id @default(1)
-  name       String
-  address    String
-  city       String
-  country    String
-  open       Boolean  @default(true)
-  distanceKm Float    @default(0)
-  delivery   Boolean  @default(true)
-  takeaway   Boolean  @default(true)
-  currency   String   @default("UYU")
-  whatsapp   String
-  logo       String
-  hero       String
-  mapEmbed   String
-  lat        Float
-  lng        Float
-  updatedAt  DateTime @updatedAt
+  id           Int      @id @default(1)
+  name         String
+  address      String
+  city         String
+  country      String
+  open         Boolean  @default(true)
+  distanceKm   Float    @default(0)
+  delivery     Boolean  @default(true)
+  takeaway     Boolean  @default(true)
+  currency     String   @default("UYU")
+  whatsapp     String
+  logo         String
+  hero         String
+  mapEmbed     String
+  lat          Float
+  lng          Float
+  hoursLabel   String   @default("Lun–Dom 11:30 a 00:00")
+  etaMin       Int      @default(35)
+  etaMax       Int      @default(55)
+  deliveryFee  Float    @default(80)
+  minOrder     Float    @default(250)
+  phone        String   @default("")
+  settings     Json     @default("{}")
+  updatedAt    DateTime @updatedAt
 }
 
 model Category {
@@ -44,9 +61,12 @@ model Product {
   priceMax    Float?
   image       String
   sortOrder   Int              @default(0)
+  available   Boolean          @default(true)
+  featured    Boolean          @default(false)
   categoryId  String
   category    Category         @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   modifiers   ModifierGroup[]
+  updatedAt   DateTime         @updatedAt
 }
 
 model ModifierGroup {
@@ -65,27 +85,36 @@ model ModifierGroup {
 }
 
 model ModifierOption {
-  id        String        @id @default(cuid())
+  id         String        @id @default(cuid())
   externalId String
-  name      String
-  price     Float         @default(0)
-  groupId   String
-  group     ModifierGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  name       String
+  price      Float         @default(0)
+  groupId    String
+  group      ModifierGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@unique([groupId, externalId])
 }
 
 model Order {
-  id         String      @id @default(cuid())
-  status     String      @default("pending")
-  customerName String?
-  phone      String?
-  notes      String?
-  total      Float
-  currency   String      @default("UYU")
-  payload    Json
-  createdAt  DateTime    @default(now())
-  items      OrderItem[]
+  id             String      @id @default(cuid())
+  status         String      @default("pending")
+  customerName   String?
+  phone          String?
+  notes          String?
+  fulfillment    String      @default("delivery")
+  address        String?
+  payment        String      @default("efectivo")
+  schedule       String      @default("now")
+  scheduleTime   String?
+  subtotal       Float       @default(0)
+  discount       Float       @default(0)
+  deliveryFee    Float       @default(0)
+  total          Float
+  currency       String      @default("UYU")
+  payload        Json
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  items          OrderItem[]
 }
 
 model OrderItem {
@@ -99,4 +128,5 @@ model OrderItem {
   notes     String @default("")
   modifiers Json
   lineTotal Float
+  sizeLabel String @default("")
 }

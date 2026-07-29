@@ -22,9 +22,14 @@ export function CheckoutPage() {
   } = useCart()
   const [busy, setBusy] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [testPopup, setTestPopup] = useState(false)
 
   const total = Math.max(0, subtotal - discount + deliveryFee)
   const r = menu.restaurant
+  const isLocal =
+    import.meta.env.DEV ||
+    ['localhost', '127.0.0.1'].includes(window.location.hostname) ||
+    /\.ngrok(-free)?\.(dev|app|io)$/i.test(window.location.hostname)
 
   function validate() {
     const next: Record<string, string> = {}
@@ -51,9 +56,19 @@ export function CheckoutPage() {
     setBusy(true)
 
     try {
-      await submitOrder(lines, r.currency)
+      await submitOrder(lines, r.currency, { ...checkout, fulfillment }, {
+        subtotal,
+        discount,
+        deliveryFee,
+      })
     } catch {
-      // Seguimos igual; el canal de envío no se toca en este cambio
+      // En local igual mostramos el popup de prueba
+    }
+
+    if (isLocal) {
+      setBusy(false)
+      setTestPopup(true)
+      return
     }
 
     const msg = buildWhatsAppMessage(
@@ -72,7 +87,15 @@ export function CheckoutPage() {
     navigate('/confirm', { state: { total, eta: `${r.etaMin}–${r.etaMax}` } })
   }
 
-  if (!lines.length) {
+  function closeTestPopup() {
+    setTestPopup(false)
+    clear()
+    navigate('/confirm', {
+      state: { total, eta: `${r.etaMin}–${r.etaMax}`, test: true },
+    })
+  }
+
+  if (!lines.length && !testPopup) {
     return (
       <div className="page">
         <p className="empty">No hay ítems para checkout</p>
@@ -86,6 +109,18 @@ export function CheckoutPage() {
   return (
     <div className="page checkout-page">
       <Toast />
+      {testPopup && (
+        <div className="modal-backdrop centered" role="dialog" aria-modal="true">
+          <div className="modal sheet test-order-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="confirm-check">✓</div>
+            <h2>Pedido de prueba enviado</h2>
+            <p>Modo local: no se abre WhatsApp. El pedido quedó registrado en el admin.</p>
+            <button type="button" className="btn btn-primary" onClick={closeTestPopup}>
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
       <header className="topbar">
         <button type="button" className="icon-btn" onClick={() => navigate(-1)} aria-label="Volver">
           ‹

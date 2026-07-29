@@ -50,7 +50,22 @@ Sin `VITE_API_URL`, el front usa el menú estático embebido.
 
 Health check: `GET /health`  
 Menú: `GET /api/menu`  
-Pedidos: `POST /api/orders`
+Pedidos: `POST /api/orders`  
+Admin: `https://TU-FRONT/admin`
+
+### Panel admin
+- URL: `/admin`
+- Login default: `admin@chivitospro.com` / `chivitos2026`
+- Variables Railway recomendadas:
+  - `JWT_SECRET`
+  - `ADMIN_EMAIL` / `ADMIN_PASSWORD` / `ADMIN_NAME`
+  - `CORS_ORIGIN` (debe incluir el dominio de Cloudflare Pages)
+
+El admin permite:
+- Dashboard (ventas, ticket, top productos, pedidos abiertos)
+- Gestión de pedidos y cambio de estados
+- Edición de productos (precio, descripción, imagen, stock, destacado)
+- Config del local (abierto/cerrado, horarios, envío, mínimo)
 
 Para reseedear el menú en Railway:
 

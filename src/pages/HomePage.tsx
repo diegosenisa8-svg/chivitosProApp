@@ -29,7 +29,7 @@ export function HomePage() {
       <section className="home-card">
         <div className="home-card-top">
           <div className="home-brand">
-            <img src={r.logo} alt="" className="home-logo" />
+            <img src={r.logo || '/logo.png'} alt="ChivitosPro" className="home-logo" />
             <div>
               <h1>{r.name}</h1>
               <p className="home-address">{r.address}</p>

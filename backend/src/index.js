@@ -1,19 +1,41 @@
+import 'dotenv/config'
 import cors from 'cors'
 import express from 'express'
-import { PrismaClient } from '@prisma/client'
 import { z } from 'zod'
+import { prisma } from './lib/prisma.js'
+import { mapMenu } from './lib/menu.js'
+import { hashPassword } from './lib/auth.js'
+import adminRoutes from './routes/admin.js'
 
-const prisma = new PrismaClient()
 const app = express()
 const port = Number(process.env.PORT || 8080)
 
 const corsOrigin = process.env.CORS_ORIGIN || '*'
+const allowedOrigins =
+  corsOrigin === '*'
+    ? []
+    : corsOrigin.split(',').map((s) => s.trim()).filter(Boolean)
+
 app.use(
   cors({
-    origin: corsOrigin === '*' ? true : corsOrigin.split(',').map((s) => s.trim()),
+    origin(origin, callback) {
+      if (!origin) return callback(null, true)
+      if (corsOrigin === '*') return callback(null, true)
+      if (allowedOrigins.includes(origin)) return callback(null, true)
+      // Túneles de desarrollo (ngrok / cloudflare)
+      if (
+        /\.ngrok-free\.dev$|\.ngrok-free\.app$|\.ngrok\.io$|\.trycloudflare\.com$/i.test(
+          new URL(origin).hostname,
+        )
+      ) {
+        return callback(null, true)
+      }
+      return callback(new Error(`CORS blocked: ${origin}`))
+    },
+    credentials: true,
   }),
 )
-app.use(express.json({ limit: '1mb' }))
+app.use(express.json({ limit: '2mb' }))
 
 app.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'chivitos-pro-api' })
@@ -25,61 +47,11 @@ app.get('/', (_req, res) => {
     health: '/health',
     menu: '/api/menu',
     orders: '/api/orders',
+    admin: '/api/admin',
   })
 })
 
-function mapMenu(restaurant, categories) {
-  return {
-    restaurant: {
-      name: restaurant.name,
-      address: restaurant.address,
-      city: restaurant.city,
-      country: restaurant.country,
-      open: restaurant.open,
-      distanceKm: restaurant.distanceKm,
-      delivery: restaurant.delivery,
-      takeaway: restaurant.takeaway,
-      currency: restaurant.currency,
-      whatsapp: restaurant.whatsapp,
-      logo: restaurant.logo,
-      hero: restaurant.hero,
-      mapEmbed: restaurant.mapEmbed,
-      lat: restaurant.lat,
-      lng: restaurant.lng,
-    },
-    categories: categories.map((cat) => ({
-      id: cat.id,
-      name: cat.name,
-      subtitle: cat.subtitle,
-      banner: cat.banner,
-      items: cat.items.map((item) => ({
-        id: item.id,
-        name: item.name,
-        description: item.description,
-        price: item.price,
-        ...(item.priceMax != null ? { priceMax: item.priceMax } : {}),
-        image: item.image,
-        ...(item.modifiers.length
-          ? {
-              modifiers: item.modifiers.map((g) => ({
-                id: g.externalId,
-                name: g.name,
-                required: g.required,
-                min: g.min,
-                max: g.max,
-                ...(g.allowQuantity ? { allowQuantity: true } : {}),
-                options: g.options.map((o) => ({
-                  id: o.externalId,
-                  name: o.name,
-                  price: o.price,
-                })),
-              })),
-            }
-          : {}),
-      })),
-    })),
-  }
-}
+app.use('/api/admin', adminRoutes)
 
 app.get('/api/menu', async (_req, res) => {
   try {
@@ -114,6 +86,14 @@ const orderSchema = z.object({
   phone: z.string().optional(),
   notes: z.string().optional(),
   currency: z.string().default('UYU'),
+  fulfillment: z.enum(['delivery', 'pickup']).default('delivery'),
+  address: z.string().optional(),
+  payment: z.string().default('efectivo'),
+  schedule: z.enum(['now', 'later']).default('now'),
+  scheduleTime: z.string().optional(),
+  subtotal: z.number().nonnegative().optional(),
+  discount: z.number().nonnegative().default(0),
+  deliveryFee: z.number().nonnegative().default(0),
   items: z
     .array(
       z.object({
@@ -124,6 +104,7 @@ const orderSchema = z.object({
         notes: z.string().default(''),
         modifiers: z.array(z.any()).default([]),
         lineTotal: z.number().nonnegative(),
+        sizeLabel: z.string().optional(),
       }),
     )
     .min(1),
@@ -132,7 +113,9 @@ const orderSchema = z.object({
 app.post('/api/orders', async (req, res) => {
   try {
     const body = orderSchema.parse(req.body)
-    const total = body.items.reduce((s, i) => s + i.lineTotal, 0)
+    const itemsTotal = body.items.reduce((s, i) => s + i.lineTotal, 0)
+    const subtotal = body.subtotal ?? itemsTotal
+    const total = Math.max(0, subtotal - (body.discount || 0) + (body.deliveryFee || 0))
 
     const order = await prisma.order.create({
       data: {
@@ -140,6 +123,14 @@ app.post('/api/orders', async (req, res) => {
         phone: body.phone,
         notes: body.notes,
         currency: body.currency,
+        fulfillment: body.fulfillment,
+        address: body.address,
+        payment: body.payment,
+        schedule: body.schedule,
+        scheduleTime: body.scheduleTime,
+        subtotal,
+        discount: body.discount || 0,
+        deliveryFee: body.deliveryFee || 0,
         total,
         payload: body,
         items: {
@@ -151,6 +142,7 @@ app.post('/api/orders', async (req, res) => {
             notes: i.notes || '',
             modifiers: i.modifiers,
             lineTotal: i.lineTotal,
+            sizeLabel: i.sizeLabel || '',
           })),
         },
       },
@@ -167,20 +159,26 @@ app.post('/api/orders', async (req, res) => {
   }
 })
 
-app.get('/api/orders', async (_req, res) => {
-  try {
-    const orders = await prisma.order.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 50,
-      include: { items: true },
-    })
-    res.json(orders)
-  } catch (err) {
-    console.error(err)
-    res.status(500).json({ error: 'Failed to list orders' })
-  }
-})
+async function ensureAdmin() {
+  const count = await prisma.adminUser.count()
+  if (count > 0) return
+  const email = (process.env.ADMIN_EMAIL || 'admin@chivitospro.com').toLowerCase()
+  const password = process.env.ADMIN_PASSWORD || 'chivitos2026'
+  const name = process.env.ADMIN_NAME || 'Admin ChivitosPro'
+  await prisma.adminUser.create({
+    data: {
+      email,
+      name,
+      passwordHash: await hashPassword(password),
+    },
+  })
+  console.log(`Admin creado: ${email} / ${password}`)
+}
 
-app.listen(port, () => {
-  console.log(`ChivitosPro API on :${port}`)
-})
+ensureAdmin()
+  .catch((err) => console.error('Admin bootstrap error', err))
+  .finally(() => {
+    app.listen(port, () => {
+      console.log(`ChivitosPro API on :${port}`)
+    })
+  })

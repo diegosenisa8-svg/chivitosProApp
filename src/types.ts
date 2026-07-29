@@ -24,6 +24,7 @@ export type MenuItem = {
   modifiers?: ModifierGroup[]
   badge?: 'mas-pedido' | 'nuevo' | 'picante' | 'combo'
   featured?: boolean
+  available?: boolean
 }
 
 export type Category = {
@@ -56,6 +57,37 @@ export type Restaurant = {
   minOrder?: number
   hoursLabel?: string
   phone?: string
+  settings?: RestaurantSettings
+}
+
+export type RestaurantSettings = {
+  alertPhone?: string
+  orderAppEnabled?: boolean
+  alertCallEnabled?: boolean
+  scheduledOrdersEnabled?: boolean
+  tableReservationEnabled?: boolean
+  dineInEnabled?: boolean
+  servicesPaused?: boolean
+  separatePickupDeliveryHours?: boolean
+  schedules?: {
+    id: string
+    label: string
+    open: string
+    close: string
+    service?: string
+  }[]
+  exceptions?: { id: string; date: string; label: string; closed?: boolean }[]
+  deliveryZones?: {
+    id: string
+    name: string
+    color: string
+    fee: number
+    active: boolean
+  }[]
+  paymentMethods?: Record<string, boolean>
+  taxes?: { enabled: boolean; rate: number; label: string }
+  marketing?: Record<string, boolean>
+  publish?: Record<string, boolean>
 }
 
 export type MenuData = {

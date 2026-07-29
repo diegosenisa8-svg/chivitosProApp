@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from 'react'
 import fallbackMenu from '../data/menu.json'
+import { apiUrl, getApiBase } from '../lib/apiBase'
 import { prepareMenu } from '../lib/menuUtils'
 import type { MenuData } from '../types'
 
@@ -20,11 +21,10 @@ type MenuContextValue = {
 
 const MenuContext = createContext<MenuContextValue | null>(null)
 const OPEN_KEY = 'chivitos-open-override'
-const apiBase = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
 
 export function MenuProvider({ children }: { children: ReactNode }) {
   const [raw, setRaw] = useState<MenuData>(fallbackMenu as MenuData)
-  const [loading, setLoading] = useState(Boolean(apiBase))
+  const [loading, setLoading] = useState(getApiBase() !== null)
   const [error, setError] = useState<string | null>(null)
   const [fromApi, setFromApi] = useState(false)
   const [openOverride, setOpenOverrideState] = useState<boolean | null>(() => {
@@ -38,7 +38,7 @@ export function MenuProvider({ children }: { children: ReactNode }) {
   })
 
   useEffect(() => {
-    if (!apiBase) {
+    if (getApiBase() === null) {
       setLoading(false)
       return
     }
@@ -46,7 +46,7 @@ export function MenuProvider({ children }: { children: ReactNode }) {
     let cancelled = false
     ;(async () => {
       try {
-        const res = await fetch(`${apiBase}/api/menu`)
+        const res = await fetch(apiUrl('/api/menu'))
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         const data = (await res.json()) as MenuData
         if (!cancelled) {
