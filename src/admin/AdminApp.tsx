@@ -9,6 +9,7 @@ import {
   deleteProduct,
   fetchAdminMenu,
   fetchAdminOrders,
+  fetchCustomers,
   fetchDashboard,
   fetchModifierLibrary,
   fetchReports,
@@ -22,6 +23,7 @@ import {
   updateProduct,
   updateRestaurant,
   uploadImage,
+  type AdminCustomer,
   type AdminOrder,
   type AdminUser,
   type DashboardData,
@@ -43,6 +45,8 @@ export function AdminApp() {
   const [section, setSection] = useState<AdminSection>('dashboard')
   const [dash, setDash] = useState<DashboardData | null>(null)
   const [orders, setOrders] = useState<AdminOrder[]>([])
+  const [customers, setCustomers] = useState<AdminCustomer[]>([])
+  const [customerQuery, setCustomerQuery] = useState('')
   const [menu, setMenu] = useState<MenuData | null>(null)
   const [library, setLibrary] = useState<Awaited<ReturnType<typeof fetchModifierLibrary>>>([])
   const [reports, setReports] = useState<Awaited<ReturnType<typeof fetchReports>> | null>(null)
@@ -119,6 +123,10 @@ export function AdminApp() {
     setOrders(list)
   }, [orderFilter, orderQuery])
 
+  const refreshCustomers = useCallback(async () => {
+    setCustomers(await fetchCustomers(customerQuery))
+  }, [customerQuery])
+
   useEffect(() => {
     if (!admin) return
     setError('')
@@ -126,6 +134,7 @@ export function AdminApp() {
       try {
         if (section === 'dashboard') await refreshDashboard()
         if (section === 'orders' || section === 'take-orders') await refreshOrders()
+        if (section === 'clients') await refreshCustomers()
         if (
           section === 'menu' ||
           section === 'modifiers' ||
@@ -148,7 +157,7 @@ export function AdminApp() {
         setError(e instanceof Error ? e.message : 'Error')
       }
     })()
-  }, [admin, section, refreshDashboard, refreshOrders, refreshMenu])
+  }, [admin, section, refreshDashboard, refreshOrders, refreshMenu, refreshCustomers])
 
   useEffect(() => {
     if (!admin || (section !== 'orders' && section !== 'take-orders' && section !== 'dashboard')) return
@@ -329,6 +338,15 @@ export function AdminApp() {
                 setSaving(false)
               }
             }}
+          />
+        )}
+
+        {section === 'clients' && (
+          <ClientsView
+            customers={customers}
+            query={customerQuery}
+            setQuery={setCustomerQuery}
+            onRefresh={refreshCustomers}
           />
         )}
 
@@ -560,6 +578,88 @@ function DashboardView({
             ))}
           </ul>
         </div>
+      </div>
+    </section>
+  )
+}
+
+function ClientsView({
+  customers,
+  query,
+  setQuery,
+  onRefresh,
+}: {
+  customers: AdminCustomer[]
+  query: string
+  setQuery: (v: string) => void
+  onRefresh: () => void
+}) {
+  function formatLastOrder(iso: string) {
+    try {
+      return new Date(iso).toLocaleString('es-UY', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      })
+    } catch {
+      return iso
+    }
+  }
+
+  return (
+    <section className="admin-section">
+      <header className="admin-header">
+        <div>
+          <h2>Clientes</h2>
+          <p>Quienes pidieron desde la app · nombre, última compra y WhatsApp</p>
+        </div>
+        <button type="button" className="admin-btn" onClick={onRefresh}>
+          Actualizar
+        </button>
+      </header>
+
+      <div className="filters">
+        <input
+          placeholder="Buscar por nombre o teléfono"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && onRefresh()}
+        />
+        <button type="button" className="admin-btn" onClick={onRefresh}>
+          Buscar
+        </button>
+      </div>
+
+      <div className="admin-card list clients-list">
+        {customers.length === 0 ? (
+          <p className="admin-muted" style={{ padding: 16 }}>
+            Todavía no hay clientes. Cuando alguien finalice un pedido en la app, aparece acá.
+          </p>
+        ) : (
+          customers.map((c) => (
+            <div key={c.id} className="client-row">
+              <div>
+                <strong>{c.name}</strong>
+                <span>
+                  {c.phone}
+                  {c.orderCount > 1 ? ` · ${c.orderCount} pedidos` : ' · 1 pedido'}
+                </span>
+                <span className="client-last">Última vez: {formatLastOrder(c.lastOrderAt)}</span>
+              </div>
+              {c.whatsappUrl ? (
+                <a
+                  className="admin-btn primary"
+                  href={c.whatsappUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  WhatsApp
+                </a>
+              ) : (
+                <span className="admin-muted">Sin WA</span>
+              )}
+            </div>
+          ))
+        )}
       </div>
     </section>
   )

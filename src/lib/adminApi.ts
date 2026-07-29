@@ -254,6 +254,21 @@ export async function updateOrder(id: string, patch: Record<string, unknown>) {
   })
 }
 
+export type AdminCustomer = {
+  id: string
+  name: string
+  phone: string
+  phoneKey: string
+  orderCount: number
+  lastOrderAt: string
+  whatsappUrl: string | null
+}
+
+export async function fetchCustomers(q = '') {
+  const qs = q.trim() ? `?q=${encodeURIComponent(q.trim())}` : ''
+  return adminFetch<AdminCustomer[]>(`/customers${qs}`)
+}
+
 export const ORDER_STATUS_LABELS: Record<string, string> = {
   pending: 'Pendiente',
   confirmed: 'Confirmado',

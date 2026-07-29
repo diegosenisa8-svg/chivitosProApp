@@ -8,6 +8,7 @@ import { hashPassword, signToken, verifyPassword } from '../lib/auth.js'
 import { requireAdmin } from '../middleware/auth.js'
 import { mapMenu } from '../lib/menu.js'
 import { mergeSettings, slugify } from '../lib/settings.js'
+import { syncCustomersFromOrders, whatsappUrlForPhone } from '../lib/customers.js'
 
 const router = Router()
 
@@ -588,6 +589,41 @@ router.get('/reports', requireAdmin, async (req, res) => {
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'Error al cargar reportes' })
+  }
+})
+
+router.get('/customers', requireAdmin, async (req, res) => {
+  try {
+    const q = String(req.query.q || '').trim()
+    await syncCustomersFromOrders().catch((e) => console.warn('customer sync', e))
+
+    const customers = await prisma.customer.findMany({
+      where: q
+        ? {
+            OR: [
+              { name: { contains: q, mode: 'insensitive' } },
+              { phone: { contains: q, mode: 'insensitive' } },
+              { phoneKey: { contains: q.replace(/\D/g, ''), mode: 'insensitive' } },
+            ],
+          }
+        : undefined,
+      orderBy: { lastOrderAt: 'desc' },
+    })
+
+    res.json(
+      customers.map((c) => ({
+        id: c.id,
+        name: c.name,
+        phone: c.phone,
+        phoneKey: c.phoneKey,
+        orderCount: c.orderCount,
+        lastOrderAt: c.lastOrderAt,
+        whatsappUrl: whatsappUrlForPhone(c.phoneKey),
+      })),
+    )
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'No se pudieron cargar clientes' })
   }
 })
 

@@ -2,6 +2,7 @@ export type AdminSection =
   | 'dashboard'
   | 'orders'
   | 'take-orders'
+  | 'clients'
   | 'menu'
   | 'modifiers'
   | 'profile'
@@ -26,6 +27,7 @@ export const NAV: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard', group: 'ops' },
   { id: 'orders', label: 'Pedidos', group: 'ops' },
   { id: 'take-orders', label: 'App toma de pedidos', group: 'ops' },
+  { id: 'clients', label: 'Clientes', group: 'ops' },
   { id: 'menu', label: 'Configuración del menú', group: 'ops' },
   { id: 'modifiers', label: 'Opcionales y agregados', group: 'ops' },
   { id: 'preview', label: 'Vista previa / Pedido prueba', group: 'ops' },

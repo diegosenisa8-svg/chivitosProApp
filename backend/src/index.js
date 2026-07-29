@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { prisma } from './lib/prisma.js'
 import { mapMenu } from './lib/menu.js'
 import { hashPassword } from './lib/auth.js'
+import { upsertCustomerFromOrder } from './lib/customers.js'
 import adminRoutes from './routes/admin.js'
 
 const app = express()
@@ -153,6 +154,16 @@ app.post('/api/orders', async (req, res) => {
       },
       include: { items: true },
     })
+
+    try {
+      await upsertCustomerFromOrder({
+        name: body.customerName,
+        phone: body.phone,
+        orderedAt: order.createdAt,
+      })
+    } catch (e) {
+      console.warn('Customer upsert failed', e)
+    }
 
     res.status(201).json({ id: order.id, total: order.total, status: order.status })
   } catch (err) {
