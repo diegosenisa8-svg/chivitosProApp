@@ -178,7 +178,7 @@ async function ensureAdmin() {
 ensureAdmin()
   .catch((err) => console.error('Admin bootstrap error', err))
   .finally(() => {
-    app.listen(port, () => {
-      console.log(`ChivitosPro API on :${port}`)
+    app.listen(port, '0.0.0.0', () => {
+      console.log(`ChivitosPro API listening on 0.0.0.0:${port}`)
     })
   })

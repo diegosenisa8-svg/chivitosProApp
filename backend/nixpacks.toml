@@ -5,4 +5,4 @@ nixPkgs = ["nodejs_22"]
 cmds = ["npm ci"]
 
 [start]
-cmd = "npx prisma migrate deploy && node prisma/seed.js && node src/index.js"
+cmd = "./scripts/start.sh"

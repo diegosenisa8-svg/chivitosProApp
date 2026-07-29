@@ -9,8 +9,11 @@ RUN npm install
 
 COPY data ./data
 COPY src ./src
+COPY scripts/start.sh ./scripts/start.sh
+RUN chmod +x ./scripts/start.sh
 
 ENV NODE_ENV=production
+ENV PORT=8080
 EXPOSE 8080
 
-CMD ["sh", "-c", "npx prisma migrate deploy && node prisma/seed.js && node src/index.js"]
+CMD ["./scripts/start.sh"]
