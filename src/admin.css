@@ -908,24 +908,45 @@ th {
   min-height: 72px;
 }
 
+@media print {
+  .admin-sidebar,
+  .admin-header,
+  .filters,
+  .status-actions,
+  .admin-toast {
+    display: none !important;
+  }
+  .admin-shell {
+    display: block;
+    background: #fff;
+    color: #000;
+  }
+  .admin-card.detail {
+    border: 0;
+    box-shadow: none;
+  }
+}
+
 .chat-assist {
   position: fixed;
+  top: calc(14px + env(safe-area-inset-top, 0px));
+  right: 72px;
   z-index: 60;
   display: flex;
   flex-direction: column;
+  align-items: flex-end;
   gap: 10px;
   max-width: min(380px, calc(100vw - 24px));
+  pointer-events: none;
 }
 
-.chat-assist--admin {
-  right: 18px;
-  bottom: 18px;
-  align-items: flex-end;
+.chat-assist > * {
+  pointer-events: auto;
 }
 
 .chat-assist-fab {
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   border: 1px solid var(--admin-line);
   background: #e8a317;
@@ -936,6 +957,7 @@ th {
   display: grid;
   place-items: center;
   padding: 0;
+  order: 1;
 }
 
 .chat-assist-fab.open {
@@ -954,6 +976,7 @@ th {
   border-radius: 16px;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
   overflow: hidden;
+  order: 2;
 }
 
 .chat-assist-head {
@@ -993,14 +1016,14 @@ th {
 .chat-assist-messages {
   flex: 1 1 auto;
   min-height: 0;
-  overflow-y: auto;
   overflow-x: hidden;
+  overflow-y: scroll;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   padding: 12px;
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: 8px;
+  align-content: start;
 }
 
 .chat-bubble {
@@ -1008,20 +1031,20 @@ th {
   padding: 8px 10px;
   border-radius: 12px;
   font-size: 13px;
-  line-height: 1.4;
+  line-height: 1.35;
   white-space: pre-wrap;
   word-break: break-word;
 }
 
 .chat-bubble.user {
-  align-self: flex-end;
+  justify-self: end;
   background: #e8a317;
   color: #1a1208;
   border-bottom-right-radius: 4px;
 }
 
 .chat-bubble.assistant {
-  align-self: flex-start;
+  justify-self: start;
   background: var(--admin-input);
   border: 1px solid var(--admin-line);
   border-bottom-left-radius: 4px;
@@ -1047,6 +1070,7 @@ th {
   gap: 6px;
   padding: 10px 12px 12px;
   border-top: 1px solid var(--admin-line);
+  background: var(--admin-card);
 }
 
 .chat-assist-form input {
@@ -1065,7 +1089,7 @@ th {
   color: #1a1208;
   padding: 8px 12px;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -1074,26 +1098,13 @@ th {
   cursor: not-allowed;
 }
 
-@media print {
-  .admin-sidebar,
-  .admin-header,
-  .filters,
-  .status-actions,
-  .admin-toast {
-    display: none !important;
-  }
-  .admin-shell {
-    display: block;
-    background: #fff;
-    color: #000;
-  }
-  .admin-card.detail {
-    border: 0;
-    box-shadow: none;
-  }
-}
-
 @media (max-width: 960px) {
+  .chat-assist {
+    right: 16px;
+    top: auto;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+
   .admin-shell,
   .admin-shell.wide {
     grid-template-columns: 1fr;

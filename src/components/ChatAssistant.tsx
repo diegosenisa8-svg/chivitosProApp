@@ -4,22 +4,19 @@ import { apiUrl, getApiBase } from '../lib/apiBase'
 type Msg = { role: 'user' | 'assistant'; text: string }
 
 const WELCOME =
-  'Soy el Asistente de ChivitosPro de IA. Conozco el menú cargado: productos, precios, extras, demora y horarios. ¿En qué te ayudo?'
+  'Soy el Asistente de ChivitosPro de IA. Preguntame por el menú cargado, precios, demora u horarios.'
 
-export function ChatAssistant({ variant = 'admin' }: { variant?: 'admin' | 'app' }) {
+export function ChatAssistant() {
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [messages, setMessages] = useState<Msg[]>([{ role: 'assistant', text: WELCOME }])
-  const listRef = useRef<HTMLDivElement>(null)
+  const endRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (!open) return
-    const el = listRef.current
-    if (!el) return
-    el.scrollTop = el.scrollHeight
-  }, [messages, open, busy])
+    if (open) endRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, open])
 
   async function send() {
     const text = input.trim()
@@ -54,7 +51,17 @@ export function ChatAssistant({ variant = 'admin' }: { variant?: 'admin' | 'app'
   }
 
   return (
-    <div className={`chat-assist chat-assist--${variant}`}>
+    <div className="chat-assist">
+      <button
+        type="button"
+        className={`chat-assist-fab ${open ? 'open' : ''}`}
+        onClick={() => setOpen((v) => !v)}
+        aria-label="Abrir asistente de ChivitosPro"
+        title="Asistente IA"
+      >
+        {open ? '×' : '💬'}
+      </button>
+
       {open && (
         <div className="chat-assist-panel" role="dialog" aria-label="Asistente de ChivitosPro">
           <header className="chat-assist-head">
@@ -66,13 +73,14 @@ export function ChatAssistant({ variant = 'admin' }: { variant?: 'admin' | 'app'
               ×
             </button>
           </header>
-          <div className="chat-assist-messages" ref={listRef}>
+          <div className="chat-assist-messages">
             {messages.map((m, i) => (
               <div key={`${m.role}-${i}`} className={`chat-bubble ${m.role}`}>
                 {m.text}
               </div>
             ))}
             {busy && <div className="chat-bubble assistant muted">Escribiendo…</div>}
+            <div ref={endRef} />
           </div>
           {error && <p className="chat-assist-error">{error}</p>}
           <form
@@ -95,16 +103,6 @@ export function ChatAssistant({ variant = 'admin' }: { variant?: 'admin' | 'app'
           </form>
         </div>
       )}
-
-      <button
-        type="button"
-        className={`chat-assist-fab ${open ? 'open' : ''}`}
-        onClick={() => setOpen((v) => !v)}
-        aria-label="Abrir asistente de ChivitosPro"
-        title="Asistente IA"
-      >
-        {open ? '×' : '💬'}
-      </button>
     </div>
   )
 }
