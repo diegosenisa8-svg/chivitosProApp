@@ -1170,7 +1170,7 @@ function MenuConfigView({
                 setEditing(null)
                 return
               }
-              if (!confirm('¿Eliminar producto?')) return
+              if (!confirm(`¿Seguro que deseas eliminar el producto "${editing.name}"?`)) return
               setSaving(true)
               try {
                 await deleteProduct(editing.id)
@@ -1385,7 +1385,7 @@ function MenuConfigView({
                       className="admin-btn danger"
                       title="Eliminar"
                       onClick={async () => {
-                        if (!confirm(`¿Eliminar categoría ${cat.name}?`)) return
+                        if (!confirm(`¿Seguro que deseas eliminar la categoría "${cat.name}"?`)) return
                         await deleteCategory(cat.id)
                         await refreshMenu()
                         notify('Categoría eliminada')
@@ -1588,7 +1588,7 @@ function ProductEditor({
       <p className="admin-muted">Grupos tipo guarnición, dips, carnes extras…</p>
       {groups.map((g, gi) => (
         <div key={g.id} className="mod-group-edit">
-          <div className="row-2">
+          <div className="mod-group-head">
             <input
               value={g.name}
               placeholder="Nombre del grupo"
@@ -1612,7 +1612,7 @@ function ProductEditor({
             </label>
           </div>
           {g.options.map((o, oi) => (
-            <div key={o.id} className="row-2">
+            <div key={o.id} className="mod-option-row">
               <input
                 value={o.name}
                 placeholder="Opción"
@@ -1625,9 +1625,11 @@ function ProductEditor({
                 }}
               />
               <input
+                className="mod-option-price"
                 type="number"
                 value={o.price}
                 title="Precio extra"
+                aria-label="Precio extra"
                 onChange={(e) => {
                   const next = [...groups]
                   const opts = [...g.options]
@@ -1638,8 +1640,12 @@ function ProductEditor({
               />
               <button
                 type="button"
-                className="admin-btn ghost"
+                className="admin-btn ghost icon-del"
+                title="Eliminar opción"
+                aria-label={`Eliminar ${o.name || 'opción'}`}
                 onClick={() => {
+                  const label = o.name.trim() || 'esta opción'
+                  if (!confirm(`¿Seguro que deseas eliminar "${label}"?`)) return
                   const next = [...groups]
                   next[gi] = { ...g, options: g.options.filter((_, i) => i !== oi) }
                   setGroups(next)
@@ -1649,7 +1655,7 @@ function ProductEditor({
               </button>
             </div>
           ))}
-          <div className="row-2">
+          <div className="mod-group-actions">
             <button
               type="button"
               className="admin-btn ghost"
@@ -1667,7 +1673,11 @@ function ProductEditor({
             <button
               type="button"
               className="admin-btn danger"
-              onClick={() => setGroups(groups.filter((_, i) => i !== gi))}
+              onClick={() => {
+                const label = g.name.trim() || 'este grupo'
+                if (!confirm(`¿Seguro que deseas eliminar el grupo "${label}"?`)) return
+                setGroups(groups.filter((_, i) => i !== gi))
+              }}
             >
               Quitar grupo
             </button>
@@ -1694,17 +1704,19 @@ function ProductEditor({
         + Grupo de extras
       </button>
 
-      <button type="submit" className="admin-btn primary" disabled={saving || uploading || !form.name.trim()}>
-        {saving ? 'Guardando…' : isNew ? 'Crear producto' : 'Guardar cambios'}
-      </button>
-      <button type="button" className="admin-btn ghost" disabled={saving} onClick={onCancel}>
-        Cancelar
-      </button>
-      {!isNew && (
-        <button type="button" className="admin-btn danger" disabled={saving} onClick={onDelete}>
-          Eliminar producto
+      <div className="product-editor-actions">
+        <button type="submit" className="admin-btn primary" disabled={saving || uploading || !form.name.trim()}>
+          {saving ? 'Guardando…' : isNew ? 'Crear producto' : 'Guardar cambios'}
         </button>
-      )}
+        <button type="button" className="admin-btn ghost" disabled={saving} onClick={onCancel}>
+          Cancelar
+        </button>
+        {!isNew && (
+          <button type="button" className="admin-btn danger" disabled={saving} onClick={onDelete}>
+            Eliminar producto
+          </button>
+        )}
+      </div>
     </form>
   )
 }
@@ -1771,7 +1783,7 @@ function ModifiersView({
           </label>
           {groups.map((g, gi) => (
             <div key={g.id} className="mod-group-edit">
-              <div className="row-2">
+              <div className="mod-group-head">
                 <input
                   value={g.name}
                   onChange={(e) => {
@@ -1794,7 +1806,7 @@ function ModifiersView({
                 </label>
               </div>
               {g.options.map((o, oi) => (
-                <div key={o.id} className="row-2">
+                <div key={o.id} className="mod-option-row">
                   <input
                     value={o.name}
                     onChange={(e) => {
@@ -1806,35 +1818,65 @@ function ModifiersView({
                     }}
                   />
                   <input
+                    className="mod-option-price"
                     type="number"
                     value={o.price}
+                    aria-label="Precio extra"
                     onChange={(e) => {
                       const next = [...groups]
                       const opts = [...g.options]
-                      opts[oi] = { ...o, price: Number(e.target.value) }
+                      opts[oi] = { ...o, price: Number(e.target.value) || 0 }
                       next[gi] = { ...g, options: opts }
                       setGroups(next)
                     }}
                   />
+                  <button
+                    type="button"
+                    className="admin-btn ghost icon-del"
+                    title="Eliminar opción"
+                    aria-label={`Eliminar ${o.name || 'opción'}`}
+                    onClick={() => {
+                      const label = o.name.trim() || 'esta opción'
+                      if (!confirm(`¿Seguro que deseas eliminar "${label}"?`)) return
+                      const next = [...groups]
+                      next[gi] = { ...g, options: g.options.filter((_, i) => i !== oi) }
+                      setGroups(next)
+                    }}
+                  >
+                    ×
+                  </button>
                 </div>
               ))}
-              <button
-                type="button"
-                className="admin-btn ghost"
-                onClick={() => {
-                  const next = [...groups]
-                  next[gi] = {
-                    ...g,
-                    options: [
-                      ...g.options,
-                      { id: `opt-${Date.now()}`, name: 'Nueva opción', price: 0 },
-                    ],
-                  }
-                  setGroups(next)
-                }}
-              >
-                + Opción
-              </button>
+              <div className="mod-group-actions">
+                <button
+                  type="button"
+                  className="admin-btn ghost"
+                  onClick={() => {
+                    const next = [...groups]
+                    next[gi] = {
+                      ...g,
+                      options: [
+                        ...g.options,
+                        { id: `opt-${Date.now()}`, name: 'Nueva opción', price: 0 },
+                      ],
+                    }
+                    setGroups(next)
+                  }}
+                >
+                  + Opción
+                </button>
+                <button
+                  type="button"
+                  className="admin-btn danger"
+                  onClick={() => {
+                    const label = g.name.trim() || 'este grupo'
+                    if (!confirm(`¿Seguro que deseas eliminar el grupo "${label}"?`)) return
+                    setGroups(groups.filter((_, i) => i !== gi))
+                  }}
+                >
+                  Quitar grupo
+                </button>
+              </div>
             </div>
           ))}
           <button
@@ -2420,7 +2462,10 @@ function PagosMpView({
                 <button
                   type="button"
                   className="admin-btn danger"
-                  onClick={() => setBins((prev) => prev.filter((x) => x !== b))}
+                  onClick={() => {
+                    if (!confirm(`¿Seguro que deseas eliminar el BIN "${b}"?`)) return
+                    setBins((prev) => prev.filter((x) => x !== b))
+                  }}
                 >
                   ×
                 </button>

@@ -838,6 +838,43 @@ th {
   margin-bottom: 10px;
 }
 
+.mod-group-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.mod-option-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 88px auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.mod-option-row .mod-option-price {
+  width: 100%;
+  min-width: 0;
+}
+
+.mod-option-row .admin-btn.icon-del {
+  min-width: 40px;
+  padding-inline: 10px;
+  flex-shrink: 0;
+}
+
+.mod-group-actions,
+.product-editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.product-editor-actions {
+  margin-top: 4px;
+}
+
 .upload-box {
   display: grid;
   gap: 8px;
@@ -1122,5 +1159,13 @@ th {
   .quick-add,
   .zone-row {
     grid-template-columns: 1fr;
+  }
+
+  .mod-group-head {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mod-option-row {
+    grid-template-columns: minmax(0, 1fr) 72px auto;
   }
 }
