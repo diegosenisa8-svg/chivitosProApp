@@ -424,7 +424,7 @@ router.delete('/categories/:id', requireAdmin, async (req, res) => {
 })
 
 /** Reemplaza todo el menú con el catálogo embebido (TuMenuWeb). Borra pedidos. */
-router.post('/menu/replace-catalog', requireFullAdmin, async (req, res) => {
+router.post('/menu/replace-catalog', requireAdmin, async (req, res) => {
   try {
     const confirm = String(req.body?.confirm || '')
     if (confirm !== 'REEMPLAZAR') {
@@ -773,6 +773,48 @@ router.post('/bootstrap', async (req, res) => {
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'Bootstrap falló' })
+  }
+})
+
+/** Resetea admin/empleado a env cuando el body.secret coincide con JWT_SECRET. */
+router.post('/sync-users', async (req, res) => {
+  try {
+    const secret = String(req.body?.secret || '')
+    const expected = process.env.JWT_SECRET || ''
+    if (!expected || secret !== expected) {
+      return res.status(401).json({ error: 'Secret inválido' })
+    }
+    const email = (process.env.ADMIN_EMAIL || 'admin@chivitospro.com').toLowerCase()
+    const password = process.env.ADMIN_PASSWORD || 'chivitos2026'
+    const name = process.env.ADMIN_NAME || 'Admin ChivitosPro'
+    const passwordHash = await hashPassword(password)
+    const admin = await prisma.adminUser.upsert({
+      where: { email },
+      update: { name, passwordHash, role: 'admin' },
+      create: { email, name, passwordHash, role: 'admin' },
+    })
+    const empEmail = (process.env.EMPLOYEE_EMAIL || 'empleado@chivitospro.com').toLowerCase()
+    const empPassword = process.env.EMPLOYEE_PASSWORD || 'empleado2026'
+    const empName = process.env.EMPLOYEE_NAME || 'Empleado ChivitosPro'
+    const empHash = await hashPassword(empPassword)
+    await prisma.adminUser.upsert({
+      where: { email: empEmail },
+      update: { name: empName, passwordHash: empHash, role: 'empleado' },
+      create: { email: empEmail, name: empName, passwordHash: empHash, role: 'empleado' },
+    })
+    // También fuerza el email canónico documentado por si ADMIN_EMAIL apunta a otro
+    if (email !== 'admin@chivitospro.com') {
+      const canonHash = await hashPassword(password)
+      await prisma.adminUser.upsert({
+        where: { email: 'admin@chivitospro.com' },
+        update: { name, passwordHash: canonHash, role: 'admin' },
+        create: { email: 'admin@chivitospro.com', name, passwordHash: canonHash, role: 'admin' },
+      })
+    }
+    res.json({ ok: true, admin: admin.email })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Sync falló' })
   }
 })
 

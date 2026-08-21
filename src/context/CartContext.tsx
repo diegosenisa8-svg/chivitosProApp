@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -77,6 +78,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
   >([])
   const [checkout, setCheckoutState] = useState<CheckoutInfo>(defaultCheckout)
 
+  const registerPromotions = useCallback(
+    (list: { code: string; type: 'percent' | 'fixed'; value: number; active: boolean }[]) => {
+      setPromos(list)
+    },
+    [],
+  )
+
   useEffect(() => {
     localStorage.setItem(CART_KEY, JSON.stringify(lines))
   }, [lines])
@@ -103,7 +111,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       },
       setCoupon,
       setDeliveryFeeBase,
-      registerPromotions: (list) => setPromos(list),
+      registerPromotions,
       applyCoupon: (code) => {
         const normalized = code.trim().toUpperCase()
         const fromAdmin = promos.find((p) => p.active && p.code.toUpperCase() === normalized)
@@ -169,7 +177,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       checkout: { ...checkout, fulfillment },
       setCheckout: (patch) => setCheckoutState((c) => ({ ...c, ...patch })),
     }
-  }, [lines, toast, fulfillment, coupon, discountRate, discountFixed, deliveryFeeBase, checkout, promos])
+  }, [lines, toast, fulfillment, coupon, discountRate, discountFixed, deliveryFeeBase, checkout, promos, registerPromotions])
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
 }

@@ -40,18 +40,25 @@ const allowedOrigins =
 app.use(
   cors({
     origin(origin, callback) {
+      // Nunca tirar Error: cors lo convierte en HTTP 500
       if (!origin) return callback(null, true)
       if (corsOrigin === '*') return callback(null, true)
       if (allowedOrigins.includes(origin)) return callback(null, true)
-      // Túneles de desarrollo + Railway
-      if (
-        /\.ngrok-free\.dev$|\.ngrok-free\.app$|\.ngrok\.io$|\.trycloudflare\.com$|\.up\.railway\.app$/i.test(
-          new URL(origin).hostname,
-        )
-      ) {
-        return callback(null, true)
+      try {
+        const host = new URL(origin).hostname
+        if (
+          host === 'localhost' ||
+          host === '127.0.0.1' ||
+          /\.ngrok-free\.dev$|\.ngrok-free\.app$|\.ngrok\.io$|\.trycloudflare\.com$|\.up\.railway\.app$/i.test(
+            host,
+          )
+        ) {
+          return callback(null, true)
+        }
+      } catch {
+        /* ignore */
       }
-      return callback(new Error(`CORS blocked: ${origin}`))
+      return callback(null, false)
     },
     credentials: true,
   }),

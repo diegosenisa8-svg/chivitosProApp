@@ -10,16 +10,25 @@ export default defineConfig({
     allowedHosts: true,
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:8080',
+        target: process.env.CHIVITOS_API_PROXY || 'http://127.0.0.1:8080',
         changeOrigin: true,
+        secure: true,
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq) => {
+            // Evita 500 del back cuando CORS_ORIGIN no incluye localhost
+            proxyReq.removeHeader('origin')
+          })
+        },
       },
       '/health': {
-        target: 'http://127.0.0.1:8080',
+        target: process.env.CHIVITOS_API_PROXY || 'http://127.0.0.1:8080',
         changeOrigin: true,
+        secure: true,
       },
       '/uploads': {
-        target: 'http://127.0.0.1:8080',
+        target: process.env.CHIVITOS_API_PROXY || 'http://127.0.0.1:8080',
         changeOrigin: true,
+        secure: true,
       },
     },
   },
