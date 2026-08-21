@@ -1,22 +1,26 @@
+/**
+ * Structural + design validation for TuMenuWeb admin (updated for design doc tokens).
+ */
 const fs = require('fs')
 const nav = fs.readFileSync('src/admin/nav.ts', 'utf8')
 const app = fs.readFileSync('src/admin/AdminApp.tsx', 'utf8')
 const css = fs.readFileSync('src/admin.css', 'utf8')
 const views = fs.readFileSync('src/admin/tumenuViews.tsx', 'utf8')
+const indexCss = fs.readFileSync('src/index.css', 'utf8')
 
 const modules = ['config', 'marketing', 'reports', 'online', 'other']
 const modOk = modules.every((m) => nav.includes(`id: '${m}'`))
 const icons = ['settings', 'marketing', 'reports', 'online', 'other']
 const iconOk = icons.every((i) => nav.includes(`icon: '${i}'`))
 const railSvg = app.includes('RailIcon') && fs.existsSync('src/admin/RailIcon.tsx')
-const topbar = app.includes('tm-topbar') && css.includes('.tm-topbar')
+const topbar = app.includes('tm-topbar') && app.includes('tm-user') && css.includes('.tm-topbar')
 const dblClick = app.includes('moduleArmed') && app.includes('primer clic')
-const wizard = views.includes('tm-wizard') && views.includes('Siguiente')
-const switches = views.includes('tm-toggle') && css.includes('.tm-toggle.on')
-const orange = css.includes('--tm-accent')
-const sans = css.includes(".tm-shell .admin-header h2") && css.includes("'DM Sans'")
-const coolGray = css.includes('#f4f5f7') && css.includes('#e5e7eb')
-const utf8 = app.includes('Contraseña') && app.includes('Sí') && !app.includes('ContraseÃ')
+const wizard = views.includes('tm-wizard') && views.includes('tm-card-header') && views.includes('Siguiente')
+const switches = views.includes('tm-ios') && css.includes('.tm-ios.on')
+const orange = css.includes('--accent-icon') && css.includes('--accent-button')
+const sans = css.includes('Open Sans') && indexCss.includes('Open+Sans')
+const warmGray = css.includes('#f5f3f0') && css.includes('#f0eeeb')
+const utf8 = app.includes('Contraseña') && !app.includes('ContraseÃ')
 
 const required = [
   'profile-address', 'profile-location', 'profile-website', 'profile-product-type', 'profile-confirm',
@@ -48,11 +52,12 @@ const wires = {
 }
 
 console.log('PASS1_structure', { modOk, iconOk, railSvg, topbar, dblClick, sections: required.length, missing })
-console.log('PASS2_aesthetics', { wizard, switches, orange, sans, coolGray, utf8 })
+console.log('PASS2_aesthetics', { wizard, switches, orange, sans, warmGray, utf8 })
 console.log('PASS3_wiring', wires)
 const all = [
   modOk, iconOk, railSvg, topbar, dblClick, missing.length === 0,
-  wizard, switches, orange, sans, coolGray, utf8,
+  wizard, switches, orange, sans, warmGray, utf8,
   ...Object.values(wires),
 ]
 console.log('ALL_OK', all.every(Boolean), '/', all.length)
+process.exit(all.every(Boolean) ? 0 : 1)

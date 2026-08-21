@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { formatMoney } from '../lib/format'
 import type {
   MenuData,
@@ -31,17 +31,49 @@ function Switch({
 }) {
   return (
     <label className="tm-switch">
-      <span>{label}</span>
+      <span className="tm-switch-label">{label}</span>
       <button
         type="button"
         role="switch"
         aria-checked={checked}
-        className={`tm-toggle ${checked ? 'on' : 'off'}`}
+        className={`tm-ios ${checked ? 'on' : 'off'}`}
         onClick={() => onChange(!checked)}
       >
-        {checked ? 'Sí' : 'No'}
+        <span className="tm-ios-knob" />
       </button>
     </label>
+  )
+}
+
+/** Binary Si/No group used in config wizards (active No = red). */
+export function YesNoToggle({
+  value,
+  onChange,
+  yesLabel = 'Si',
+  noLabel = 'No',
+}: {
+  value: boolean
+  onChange: (v: boolean) => void
+  yesLabel?: string
+  noLabel?: string
+}) {
+  return (
+    <div className="tm-yesno">
+      <button
+        type="button"
+        className={`tm-yesno-btn ${value ? 'active-yes' : ''}`}
+        onClick={() => onChange(true)}
+      >
+        {yesLabel}
+      </button>
+      <button
+        type="button"
+        className={`tm-yesno-btn ${!value ? 'active-no' : ''}`}
+        onClick={() => onChange(false)}
+      >
+        {noLabel}
+      </button>
+    </div>
   )
 }
 
@@ -55,25 +87,27 @@ function WizardCard({
 }: {
   title: string
   subtitle?: string
-  children: React.ReactNode
+  children: ReactNode
   onNext?: () => void
   nextLabel?: string
   saving?: boolean
 }) {
   return (
     <section className="admin-section tm-wizard">
-      <header className="admin-header">
-        <div>
-          <h2>{title}</h2>
-          {subtitle ? <p>{subtitle}</p> : null}
+      <div className="tm-card shadow">
+        <div className="tm-card-header">
+          <div>
+            <h2 className="tm-card-title">{title}</h2>
+            {subtitle ? <p className="tm-card-sub">{subtitle}</p> : null}
+          </div>
+          {onNext ? (
+            <button type="button" className="admin-btn primary tm-next" disabled={saving} onClick={onNext}>
+              {saving ? 'Guardando…' : nextLabel === 'Siguiente' ? 'Siguiente' : nextLabel}
+            </button>
+          ) : null}
         </div>
-        {onNext ? (
-          <button type="button" className="admin-btn primary tm-next" disabled={saving} onClick={onNext}>
-            {saving ? 'Guardando…' : nextLabel === 'Siguiente' ? 'Siguiente →' : nextLabel}
-          </button>
-        ) : null}
-      </header>
-      <div className="admin-card settings-form tm-card">{children}</div>
+        <div className="tm-card-body settings-form">{children}</div>
+      </div>
     </section>
   )
 }
@@ -93,7 +127,7 @@ export function ToggleServiceView({
   settings: RestaurantSettings
   saving: boolean
   onSave: SaveFn
-  children?: React.ReactNode
+  children?: ReactNode
 }) {
   const [on, setOn] = useState(!!settings[flag])
   useEffect(() => setOn(!!settings[flag]), [settings, flag])

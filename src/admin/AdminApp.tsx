@@ -384,7 +384,6 @@ export function AdminApp() {
       {toast && <div className="admin-toast">{toast}</div>}
 
       <aside className="tm-rail">
-        <img src="/logo.png" alt="" className="tm-rail-logo" />
         {modules.map((mod) => (
           <button
             key={mod.id}
@@ -420,35 +419,38 @@ export function AdminApp() {
       </aside>
 
       <header className="tm-topbar">
-        <div className="tm-topbar-brand">
-          ChivitosPro
-          <small>▾</small>
-          {admin.role === 'empleado' ? <small>· Empleado</small> : null}
+        <div className="tm-topbar-left">
+          <img src="/logo.png" alt="ChivitosPro" className="tm-topbar-logo" />
+          <div className="tm-topbar-brand">
+            ChivitosPro
+            <span className="tm-caret">▾</span>
+          </div>
         </div>
         <div className="tm-topbar-actions">
           {flashCount > 0 ? (
             <button type="button" className="tm-help-btn" onClick={() => goSection('report-orders')}>
-              {flashCount} pedido{flashCount === 1 ? '' : 's'} nuevo{flashCount === 1 ? '' : 's'}
+              {flashCount} nuevo{flashCount === 1 ? '' : 's'}
             </button>
           ) : null}
           <button
             type="button"
             className="tm-help-btn"
+            title="Estamos encantados de ayudarte"
             onClick={() => showDev('Estamos encantados de ayudarte')}
           >
             Ayuda
           </button>
+          <div className="tm-user">
+            <div className="tm-user-name">{admin.name}</div>
+            <div className="tm-user-email">{admin.email}</div>
+          </div>
         </div>
       </header>
 
       <aside className="admin-sidebar scroll tm-submenu">
-        <div className="tm-brand">
-          <img src="/logo.png" alt="ChivitosPro" />
-          <div>
-            <strong>{modules.find((m) => m.id === activeModule)?.label || 'Panel'}</strong>
-            <small>{admin.name}</small>
-          </div>
-        </div>
+        <p className="tm-module-title">
+          {modules.find((m) => m.id === activeModule)?.label || 'Panel'}
+        </p>
 
         {(modules.find((m) => m.id === activeModule)?.groups || []).map((group) => (
           <div key={group.id} className="nav-group">
@@ -464,10 +466,11 @@ export function AdminApp() {
                 }`}
                 onClick={() => goSection(item.id)}
               >
+                <span className="tm-nav-indicator" aria-hidden />
                 <span>{item.label}</span>
                 {(item.id === 'report-orders' || item.id === 'take-orders-app') && flashCount > 0 ? (
                   <em className="nav-new">
-                    {flashCount} nuevo{flashCount === 1 ? '' : 's'}
+                    {flashCount}
                   </em>
                 ) : null}
               </button>
@@ -676,14 +679,15 @@ export function AdminApp() {
           >
             {settings.dineInEnabled !== false ? (
               <label className="tm-switch">
-                <span>Allow guests to order anonymously</span>
+                <span className="tm-switch-label">Allow guests to order anonymously</span>
                 <button
                   type="button"
                   role="switch"
-                  className={`tm-toggle ${settings.dineInAnonymous ? 'on' : 'off'}`}
+                  aria-checked={!!settings.dineInAnonymous}
+                  className={`tm-ios ${settings.dineInAnonymous ? 'on' : 'off'}`}
                   onClick={() => patchSettings({ dineInAnonymous: !settings.dineInAnonymous })}
                 >
-                  {settings.dineInAnonymous ? 'Sí' : 'No'}
+                  <span className="tm-ios-knob" />
                 </button>
               </label>
             ) : null}
