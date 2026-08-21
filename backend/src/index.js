@@ -17,6 +17,13 @@ import {
   normalizeBin,
 } from './lib/mercadopago.js'
 import { mergeSettings } from './lib/settings.js'
+import {
+  CUSTOMER_STATUS_LABELS,
+  hashCustomerPassword,
+  signCustomerToken,
+  verifyCustomerPassword,
+} from './lib/customerAuth.js'
+import { optionalCustomer, requireCustomer } from './middleware/customerAuth.js'
 import adminRoutes from './routes/admin.js'
 
 const app = express()
@@ -62,6 +69,7 @@ app.get('/', (_req, res) => {
     health: '/health',
     menu: '/api/menu',
     orders: '/api/orders',
+    auth: '/api/auth',
     payments: '/api/payments',
     assistant: '/api/assistant/chat',
     admin: '/api/admin',
@@ -127,17 +135,192 @@ const orderSchema = z.object({
     .min(1),
 })
 
-app.post('/api/orders', async (req, res) => {
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const body = z
+      .object({
+        email: z.string().email(),
+        password: z.string().min(6),
+        name: z.string().min(2),
+        phone: z.string().min(8).optional(),
+      })
+      .parse(req.body)
+
+    const email = body.email.trim().toLowerCase()
+    const exists = await prisma.customerAccount.findUnique({ where: { email } })
+    if (exists) {
+      return res.status(409).json({ error: 'Ese email ya está registrado' })
+    }
+
+    const passwordHash = await hashCustomerPassword(body.password)
+    const account = await prisma.customerAccount.create({
+      data: {
+        email,
+        passwordHash,
+        name: body.name.trim(),
+        phone: (body.phone || '').trim(),
+      },
+    })
+
+    const token = signCustomerToken(account)
+    res.status(201).json({
+      token,
+      customer: {
+        id: account.id,
+        email: account.email,
+        name: account.name,
+        phone: account.phone,
+      },
+    })
+  } catch (err) {
+    if (err?.name === 'ZodError') {
+      return res.status(400).json({ error: 'Datos inválidos', details: err.issues })
+    }
+    console.error(err)
+    res.status(500).json({ error: 'No se pudo registrar' })
+  }
+})
+
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const body = z
+      .object({
+        email: z.string().email(),
+        password: z.string().min(1),
+      })
+      .parse(req.body)
+
+    const email = body.email.trim().toLowerCase()
+    const account = await prisma.customerAccount.findUnique({ where: { email } })
+    if (!account) {
+      return res.status(401).json({ error: 'Email o contraseña incorrectos' })
+    }
+    const ok = await verifyCustomerPassword(body.password, account.passwordHash)
+    if (!ok) {
+      return res.status(401).json({ error: 'Email o contraseña incorrectos' })
+    }
+
+    const token = signCustomerToken(account)
+    res.json({
+      token,
+      customer: {
+        id: account.id,
+        email: account.email,
+        name: account.name,
+        phone: account.phone,
+      },
+    })
+  } catch (err) {
+    if (err?.name === 'ZodError') {
+      return res.status(400).json({ error: 'Datos inválidos' })
+    }
+    console.error(err)
+    res.status(500).json({ error: 'No se pudo iniciar sesión' })
+  }
+})
+
+app.get('/api/auth/me', requireCustomer, async (req, res) => {
+  const account = await prisma.customerAccount.findUnique({ where: { id: req.customer.sub } })
+  if (!account) return res.status(401).json({ error: 'Cuenta no encontrada' })
+  res.json({
+    id: account.id,
+    email: account.email,
+    name: account.name,
+    phone: account.phone,
+  })
+})
+
+app.patch('/api/auth/me', requireCustomer, async (req, res) => {
+  try {
+    const body = z
+      .object({
+        name: z.string().min(2).optional(),
+        phone: z.string().optional(),
+      })
+      .parse(req.body)
+
+    const account = await prisma.customerAccount.update({
+      where: { id: req.customer.sub },
+      data: {
+        ...(body.name ? { name: body.name.trim() } : {}),
+        ...(body.phone != null ? { phone: body.phone.trim() } : {}),
+      },
+    })
+    res.json({
+      id: account.id,
+      email: account.email,
+      name: account.name,
+      phone: account.phone,
+    })
+  } catch (err) {
+    if (err?.name === 'ZodError') {
+      return res.status(400).json({ error: 'Datos inválidos' })
+    }
+    console.error(err)
+    res.status(500).json({ error: 'No se pudo actualizar' })
+  }
+})
+
+app.get('/api/me/orders', requireCustomer, async (req, res) => {
+  try {
+    const orders = await prisma.order.findMany({
+      where: { customerAccountId: req.customer.sub },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      include: { items: true },
+    })
+    res.json(
+      orders.map((o) => ({
+        ...o,
+        statusLabel: CUSTOMER_STATUS_LABELS[o.status] || o.status,
+      })),
+    )
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'No se pudieron cargar tus pedidos' })
+  }
+})
+
+app.get('/api/me/orders/:id', requireCustomer, async (req, res) => {
+  try {
+    const order = await prisma.order.findFirst({
+      where: { id: req.params.id, customerAccountId: req.customer.sub },
+      include: { items: true },
+    })
+    if (!order) return res.status(404).json({ error: 'Pedido no encontrado' })
+    res.json({
+      ...order,
+      statusLabel: CUSTOMER_STATUS_LABELS[order.status] || order.status,
+    })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'No se pudo cargar el pedido' })
+  }
+})
+
+app.post('/api/orders', optionalCustomer, async (req, res) => {
   try {
     const body = orderSchema.parse(req.body)
     const itemsTotal = body.items.reduce((s, i) => s + i.lineTotal, 0)
     const subtotal = body.subtotal ?? itemsTotal
     const total = Math.max(0, subtotal - (body.discount || 0) + (body.deliveryFee || 0))
 
+    let accountId = null
+    let customerName = body.customerName
+    let phone = body.phone
+    if (req.customer?.sub) {
+      const account = await prisma.customerAccount.findUnique({ where: { id: req.customer.sub } })
+      if (account) {
+        accountId = account.id
+        customerName = customerName || account.name
+        phone = phone || account.phone
+      }
+    }
+
     const order = await prisma.order.create({
       data: {
-        customerName: body.customerName,
-        phone: body.phone,
+        customerName,
+        phone,
         notes: body.notes,
         currency: body.currency,
         fulfillment: body.fulfillment,
@@ -150,6 +333,7 @@ app.post('/api/orders', async (req, res) => {
         deliveryFee: body.deliveryFee || 0,
         total,
         payload: body,
+        customerAccountId: accountId,
         items: {
           create: body.items.map((i) => ({
             productId: i.productId,
@@ -168,8 +352,8 @@ app.post('/api/orders', async (req, res) => {
 
     try {
       await upsertCustomerFromOrder({
-        name: body.customerName,
-        phone: body.phone,
+        name: customerName,
+        phone,
         orderedAt: order.createdAt,
       })
     } catch (e) {

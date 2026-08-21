@@ -59,6 +59,9 @@ export function HomePage() {
         <Link to="/menu" className="btn btn-primary home-cta">
           Ver menú
         </Link>
+        <Link to="/mis-pedidos" className="btn btn-ghost home-cta">
+          Mis pedidos
+        </Link>
       </section>
     </div>
   )

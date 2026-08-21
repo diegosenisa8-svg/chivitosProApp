@@ -42,6 +42,7 @@ export async function submitOrder(
   currency: string,
   checkout?: CheckoutInfo,
   extras?: { subtotal: number; discount: number; deliveryFee: number },
+  customerToken?: string | null,
 ) {
   if (getApiBase() === null || !lines.length) return null
 
@@ -56,9 +57,12 @@ export async function submitOrder(
     sizeLabel: line.sizeLabel || '',
   }))
 
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (customerToken) headers.Authorization = `Bearer ${customerToken}`
+
   const res = await fetch(apiUrl('/api/orders'), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({
       currency,
       items,

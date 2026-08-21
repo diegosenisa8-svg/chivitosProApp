@@ -187,6 +187,12 @@ img {
   min-width: 0;
 }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .topbar-title-full img {
   width: 28px;
   height: 28px;
@@ -1170,4 +1176,132 @@ fieldset.field {
 
 .bad {
   color: var(--red);
+}
+
+.auth-page {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+  background:
+    radial-gradient(circle at 20% 10%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 45%),
+    var(--bg);
+}
+
+.auth-card {
+  width: min(400px, 100%);
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 24px 18px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 12px;
+}
+
+.auth-logo {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  margin: 0 auto;
+}
+
+.auth-card h1 {
+  margin: 0;
+  text-align: center;
+  font-size: 1.5rem;
+}
+
+.auth-sub {
+  margin: 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.auth-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.auth-switch {
+  margin-top: 4px;
+  text-align: center;
+  border: 0;
+  background: transparent;
+  width: 100%;
+}
+
+.orders-page .orders-body {
+  padding: 12px 14px 28px;
+  display: grid;
+  gap: 16px;
+}
+
+.orders-hello {
+  margin: 0;
+  font-weight: 700;
+}
+
+.orders-section h2 {
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+
+.order-status-card,
+.order-history-card {
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+  margin-bottom: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.order-status-card.status-delivering,
+.order-status-card.status-preparing,
+.order-status-card.status-confirmed {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+}
+
+.order-status-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+
+.order-status-pill {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 22%, var(--bg));
+}
+
+.order-status-msg {
+  margin: 0;
+  font-size: 15px;
+}
+
+.order-status-meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.order-status-card ul,
+.order-history-card ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.home-card .btn.btn-ghost.home-cta {
+  margin-top: 8px;
+  display: block;
+  text-align: center;
 }

@@ -69,10 +69,15 @@ export function MenuPage() {
             i
           </button>
         </div>
-        <Link to="/cart" className="icon-btn cart-btn" aria-label="Carrito">
-          <CartIcon />
-          {count > 0 && <span className="cart-badge">{count}</span>}
-        </Link>
+        <div className="topbar-actions">
+          <Link to="/mis-pedidos" className="icon-btn" aria-label="Mis pedidos" title="Mis pedidos">
+            ☰
+          </Link>
+          <Link to="/cart" className="icon-btn cart-btn" aria-label="Carrito">
+            <CartIcon />
+            {count > 0 && <span className="cart-badge">{count}</span>}
+          </Link>
+        </div>
       </header>
 
       <div className="menu-sticky">

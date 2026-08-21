@@ -1,16 +1,33 @@
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import type { ReactNode } from 'react'
 import { ThemeToggle } from './components/ThemeToggle'
 import { CartProvider } from './context/CartContext'
+import { CustomerAuthProvider, useCustomerAuth } from './context/CustomerAuthContext'
 import { MenuProvider } from './context/MenuContext'
 import { ThemeProvider } from './context/ThemeContext'
 import { AdminPage } from './pages/AdminPage'
 import { CartPage } from './pages/CartPage'
 import { CheckoutPage } from './pages/CheckoutPage'
 import { ConfirmPage } from './pages/ConfirmPage'
+import { CustomerAuthPage } from './pages/CustomerAuthPage'
 import { HomePage } from './pages/HomePage'
 import { MenuPage } from './pages/MenuPage'
+import { MyOrdersPage } from './pages/MyOrdersPage'
 import { ProductPage } from './pages/ProductPage'
 import './App.css'
+
+function CustomerGate({ children }: { children: ReactNode }) {
+  const { customer, booting } = useCustomerAuth()
+  if (booting) {
+    return (
+      <div className="page">
+        <p className="empty">Cargando…</p>
+      </div>
+    )
+  }
+  if (!customer) return <CustomerAuthPage />
+  return <>{children}</>
+}
 
 function AppRoutes() {
   const location = useLocation()
@@ -20,14 +37,24 @@ function AppRoutes() {
     <div className={isAdmin ? 'admin-root' : 'app-shell'}>
       <ThemeToggle className={isAdmin ? 'theme-toggle--admin' : ''} />
       <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/menu" element={<MenuPage />} />
-        <Route path="/product/:id" element={<ProductPage />} />
-        <Route path="/cart" element={<CartPage />} />
-        <Route path="/checkout" element={<CheckoutPage />} />
-        <Route path="/confirm" element={<ConfirmPage />} />
         <Route path="/admin" element={<AdminPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route
+          path="/*"
+          element={
+            <CustomerGate>
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/menu" element={<MenuPage />} />
+                <Route path="/product/:id" element={<ProductPage />} />
+                <Route path="/cart" element={<CartPage />} />
+                <Route path="/checkout" element={<CheckoutPage />} />
+                <Route path="/confirm" element={<ConfirmPage />} />
+                <Route path="/mis-pedidos" element={<MyOrdersPage />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </CustomerGate>
+          }
+        />
       </Routes>
     </div>
   )
@@ -38,9 +65,11 @@ export default function App() {
     <ThemeProvider>
       <MenuProvider>
         <CartProvider>
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
+          <CustomerAuthProvider>
+            <BrowserRouter>
+              <AppRoutes />
+            </BrowserRouter>
+          </CustomerAuthProvider>
         </CartProvider>
       </MenuProvider>
     </ThemeProvider>

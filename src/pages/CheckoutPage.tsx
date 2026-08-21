@@ -4,6 +4,7 @@ import { Toast } from '../components/Toast'
 import { FulfillmentToggle } from '../components/FulfillmentToggle'
 import { MercadoPagoCardBrick } from '../components/MercadoPagoCardBrick'
 import { buildWhatsAppMessage, useCart } from '../context/CartContext'
+import { useCustomerAuth } from '../context/CustomerAuthContext'
 import { useMenu } from '../context/MenuContext'
 import {
   fetchPaymentConfig,
@@ -17,6 +18,7 @@ import type { CheckoutInfo } from '../types'
 export function CheckoutPage() {
   const navigate = useNavigate()
   const { menu } = useMenu()
+  const { customer, getToken } = useCustomerAuth()
   const {
     lines,
     subtotal,
@@ -41,6 +43,15 @@ export function CheckoutPage() {
     import.meta.env.DEV ||
     ['localhost', '127.0.0.1'].includes(window.location.hostname) ||
     /\.ngrok(-free)?\.(dev|app|io)$/i.test(window.location.hostname)
+
+  useEffect(() => {
+    if (!customer) return
+    setCheckout({
+      name: checkout.name || customer.name,
+      phone: checkout.phone || customer.phone || '',
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customer?.id])
 
   useEffect(() => {
     fetchPaymentConfig()
@@ -87,11 +98,17 @@ export function CheckoutPage() {
     setBusy(true)
 
     try {
-      await submitOrder(lines, r.currency, { ...checkout, fulfillment }, {
-        subtotal,
-        discount,
-        deliveryFee,
-      })
+      await submitOrder(
+        lines,
+        r.currency,
+        { ...checkout, fulfillment },
+        {
+          subtotal,
+          discount,
+          deliveryFee,
+        },
+        getToken(),
+      )
     } catch {
       // En local igual mostramos el popup de prueba
     }
@@ -140,6 +157,7 @@ export function CheckoutPage() {
         r.currency,
         { ...checkout, fulfillment, payment: 'mercadopago' },
         { subtotal, discount, deliveryFee },
+        getToken(),
       )
       if (!order?.id) throw new Error('No se pudo crear el pedido')
 

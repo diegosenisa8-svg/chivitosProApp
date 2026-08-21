@@ -95,6 +95,17 @@ model ModifierOption {
   @@unique([groupId, externalId])
 }
 
+model CustomerAccount {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  phone        String   @default("")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  orders       Order[]
+}
+
 model Customer {
   id           String   @id @default(cuid())
   phoneKey     String   @unique
@@ -107,25 +118,27 @@ model Customer {
 }
 
 model Order {
-  id             String      @id @default(cuid())
-  status         String      @default("pending")
-  customerName   String?
-  phone          String?
-  notes          String?
-  fulfillment    String      @default("delivery")
-  address        String?
-  payment        String      @default("efectivo")
-  schedule       String      @default("now")
-  scheduleTime   String?
-  subtotal       Float       @default(0)
-  discount       Float       @default(0)
-  deliveryFee    Float       @default(0)
-  total          Float
-  currency       String      @default("UYU")
-  payload        Json
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
-  items          OrderItem[]
+  id                String           @id @default(cuid())
+  status            String           @default("pending")
+  customerName      String?
+  phone             String?
+  notes             String?
+  fulfillment       String           @default("delivery")
+  address           String?
+  payment           String           @default("efectivo")
+  schedule          String           @default("now")
+  scheduleTime      String?
+  subtotal          Float            @default(0)
+  discount          Float            @default(0)
+  deliveryFee       Float            @default(0)
+  total             Float
+  currency          String           @default("UYU")
+  payload           Json
+  customerAccountId String?
+  customerAccount   CustomerAccount? @relation(fields: [customerAccountId], references: [id], onDelete: SetNull)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  items             OrderItem[]
 }
 
 model OrderItem {
