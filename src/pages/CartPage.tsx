@@ -114,7 +114,7 @@ export function CartPage() {
               Aplicar
             </button>
           </div>
-          <p className="hint">Probá CHIVITO10 o PRIMERA</p>
+          <p className="hint">Usá un cupón activo del admin (ej. PIZZA20) o CHIVITO10 / PRIMERA</p>
 
           <div className="totals">
             <div>

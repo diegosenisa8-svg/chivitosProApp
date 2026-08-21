@@ -60,6 +60,40 @@ export type Restaurant = {
   settings?: RestaurantSettings
 }
 
+export type DeliveryZone = {
+  id: string
+  name: string
+  color: string
+  fee: number
+  minOrder?: number
+  shape?: 'circle' | 'polygon'
+  feeByDistance?: boolean
+  active: boolean
+}
+
+export type Promotion = {
+  id: string
+  title: string
+  description?: string
+  code: string
+  type: 'percent' | 'fixed'
+  value: number
+  active: boolean
+  used: number
+  createdAt: string
+  associatedTo?: string
+  image?: string
+}
+
+export type ServiceFee = {
+  id: string
+  name: string
+  type: 'convenience' | 'cash_discount' | 'holiday' | 'other'
+  amount: number
+  percent?: boolean
+  active: boolean
+}
+
 export type RestaurantSettings = {
   alertPhone?: string
   orderAppEnabled?: boolean
@@ -67,8 +101,18 @@ export type RestaurantSettings = {
   scheduledOrdersEnabled?: boolean
   tableReservationEnabled?: boolean
   dineInEnabled?: boolean
+  dineInAnonymous?: boolean
+  pickupEnabled?: boolean
+  deliveryEnabled?: boolean
   servicesPaused?: boolean
   separatePickupDeliveryHours?: boolean
+  productType?: string
+  timezone?: string
+  country?: string
+  postalCode?: string
+  phoneExtra?: string
+  websiteUrl?: string
+  accountConfirmed?: boolean
   schedules?: {
     id: string
     label: string
@@ -77,21 +121,62 @@ export type RestaurantSettings = {
     service?: string
   }[]
   exceptions?: { id: string; date: string; label: string; closed?: boolean }[]
-  deliveryZones?: {
-    id: string
-    name: string
-    color: string
-    fee: number
-    active: boolean
-  }[]
+  deliveryZones?: DeliveryZone[]
   paymentMethods?: Record<string, boolean>
+  paymentByChannel?: Record<string, { delivery?: boolean; pickup?: boolean; dineIn?: boolean }>
   mercadoPago?: {
     blockedBins?: string[]
     blockedMessage?: string
   }
-  taxes?: { enabled: boolean; rate: number; label: string }
+  taxes?: {
+    enabled: boolean
+    rate: number
+    label: string
+    includedInPrice?: boolean
+    category?: string
+    deliveryTaxRate?: number
+    currency?: string
+  }
+  tips?: { enabled: boolean; askNoCutlery?: boolean; presets?: number[] }
+  reservationDeposit?: { enabled: boolean; amount: number }
+  orderDevice?: {
+    paired?: boolean
+    platform?: string
+    osVersion?: string
+    deviceId?: string
+    appVersion?: string
+    lastHeartbeatAt?: string | null
+  }
   marketing?: Record<string, boolean>
-  publish?: Record<string, boolean>
+  promotions?: Promotion[]
+  autopilotCampaigns?: {
+    id: string
+    name: string
+    status: string
+    channel: string
+    sent: number
+  }[]
+  publish?: Record<string, boolean | string>
+  orderWidget?: {
+    scheduledLimit?: number
+    autoAccept?: boolean
+    autoAcceptVia?: string
+    fulfillmentMode?: string
+    hcaptcha?: boolean
+    billingDetail?: string
+  }
+  serviceFees?: ServiceFee[]
+  printers?: { id: string; name: string; connected: boolean; type: string }[]
+  printTemplates?: { id: string; name: string; width: number }[]
+  printHistory?: { id: string; at: string; orderId: string; printer: string }[]
+  integrations?: { id: string; name: string; status: string }[]
+  notifications?: { staffEmails?: string[]; customerFromEmail?: string }
+  languages?: { default?: string; enabled?: string[] }
+  siteStats?: {
+    visitors7d?: number
+    visitorsPrev?: number
+    funnel?: { visit: number; cart: number; checkout: number; order: number }
+  }
 }
 
 export type MenuData = {

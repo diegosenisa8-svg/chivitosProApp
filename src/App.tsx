@@ -4,6 +4,7 @@ import { ThemeToggle } from './components/ThemeToggle'
 import { CartProvider } from './context/CartContext'
 import { CustomerAuthProvider, useCustomerAuth } from './context/CustomerAuthContext'
 import { MenuProvider } from './context/MenuContext'
+import { MenuCartBridge } from './context/MenuCartBridge'
 import { ThemeProvider } from './context/ThemeContext'
 import { AdminPage } from './pages/AdminPage'
 import { CartPage } from './pages/CartPage'
@@ -65,6 +66,7 @@ export default function App() {
     <ThemeProvider>
       <MenuProvider>
         <CartProvider>
+          <MenuCartBridge />
           <CustomerAuthProvider>
             <BrowserRouter>
               <AppRoutes />

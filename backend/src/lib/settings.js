@@ -2,11 +2,21 @@ export const DEFAULT_SETTINGS = {
   alertPhone: '',
   orderAppEnabled: true,
   alertCallEnabled: true,
-  scheduledOrdersEnabled: true,
+  scheduledOrdersEnabled: false,
   tableReservationEnabled: false,
-  dineInEnabled: false,
+  dineInEnabled: true,
+  dineInAnonymous: false,
+  pickupEnabled: true,
+  deliveryEnabled: true,
   servicesPaused: false,
   separatePickupDeliveryHours: false,
+  productType: 'Food',
+  timezone: 'America/Montevideo',
+  country: 'Uruguay',
+  postalCode: '',
+  phoneExtra: '',
+  websiteUrl: '',
+  accountConfirmed: true,
   schedules: [
     { id: 's1', label: 'Martes–Jueves', open: '19:00', close: '00:00', service: 'all' },
     { id: 's2', label: 'Viernes–Sábado', open: '19:00', close: '00:30', service: 'all' },
@@ -14,11 +24,56 @@ export const DEFAULT_SETTINGS = {
   ],
   exceptions: [],
   deliveryZones: [
-    { id: 'z1', name: 'Centro', color: '#e23b2e', fee: 80, active: true },
-    { id: 'z2', name: 'Cerro / Dos Naciones', color: '#f5a623', fee: 100, active: true },
-    { id: 'z3', name: 'Salto Nuevo / Ceibal', color: '#f7d046', fee: 120, active: true },
-    { id: 'z4', name: 'La Amarilla', color: '#2bbbad', fee: 110, active: true },
-    { id: 'z5', name: 'Este', color: '#4caf50', fee: 130, active: true },
+    {
+      id: 'z1',
+      name: 'Centro',
+      color: '#e23b2e',
+      fee: 80,
+      minOrder: 250,
+      shape: 'circle',
+      feeByDistance: false,
+      active: true,
+    },
+    {
+      id: 'z2',
+      name: 'Cerro / Dos Naciones',
+      color: '#f5a623',
+      fee: 100,
+      minOrder: 300,
+      shape: 'polygon',
+      feeByDistance: false,
+      active: true,
+    },
+    {
+      id: 'z3',
+      name: 'Salto Nuevo / Ceibal',
+      color: '#f7d046',
+      fee: 120,
+      minOrder: 350,
+      shape: 'polygon',
+      feeByDistance: false,
+      active: true,
+    },
+    {
+      id: 'z4',
+      name: 'La Amarilla',
+      color: '#2bbbad',
+      fee: 110,
+      minOrder: 300,
+      shape: 'circle',
+      feeByDistance: false,
+      active: true,
+    },
+    {
+      id: 'z5',
+      name: 'Este',
+      color: '#4caf50',
+      fee: 130,
+      minOrder: 400,
+      shape: 'polygon',
+      feeByDistance: false,
+      active: true,
+    },
   ],
   paymentMethods: {
     efectivo: true,
@@ -27,23 +82,126 @@ export const DEFAULT_SETTINGS = {
     mercadoPago: false,
     paypal: false,
   },
+  paymentByChannel: {
+    efectivo: { delivery: true, pickup: true, dineIn: true },
+    tarjeta: { delivery: false, pickup: true, dineIn: true },
+    online: { delivery: true, pickup: true, dineIn: false },
+  },
   mercadoPago: {
     blockedBins: [],
     blockedMessage:
       'Para pagar con BROU Recompensa y acceder al 20% de descuento, seleccioná pago con POS.',
   },
-  taxes: { enabled: false, rate: 0, label: 'IVA' },
+  taxes: {
+    enabled: false,
+    rate: 0,
+    label: 'Sales Tax',
+    includedInPrice: true,
+    category: 'Food',
+    deliveryTaxRate: 0,
+    currency: 'UYU',
+  },
+  tips: {
+    enabled: false,
+    askNoCutlery: true,
+    presets: [10, 15, 20],
+  },
+  reservationDeposit: {
+    enabled: false,
+    amount: 0,
+  },
+  orderDevice: {
+    paired: true,
+    platform: 'Android',
+    osVersion: '14',
+    deviceId: 'chivitos-device-001',
+    appVersion: '3.2.1',
+    lastHeartbeatAt: null,
+  },
   marketing: {
     firstOrderPromo: true,
-    kickstarter: false,
+    kickstarter: true,
     autopilot: false,
     googleBusiness: false,
+    inviteEnabled: true,
   },
+  promotions: [
+    {
+      id: 'p1',
+      title: '20% de descuento en pizza',
+      description: '',
+      code: 'PIZZA20',
+      type: 'percent',
+      value: 20,
+      active: true,
+      used: 28,
+      createdAt: '2026-07-01',
+      associatedTo: 'Web',
+      image: '',
+    },
+    {
+      id: 'p2',
+      title: 'EL SEGUNDO CHIVITO 50%OFF',
+      description: '',
+      code: 'CHIVITO50',
+      type: 'percent',
+      value: 50,
+      active: false,
+      used: 95,
+      createdAt: '2023-01-15',
+      associatedTo: 'Web',
+      image: '',
+    },
+  ],
+  autopilotCampaigns: [
+    {
+      id: 'c1',
+      name: 'Clientes inactivos 30 días',
+      status: 'paused',
+      channel: 'email',
+      sent: 0,
+    },
+  ],
   publish: {
     webMenu: true,
     qrFlyers: true,
     social: false,
+    privacyPolicy: 'Tus datos se usan solo para gestionar pedidos de ChivitosPro.',
+    facebookPage: '',
+    smartLink: '',
+    widgetEnabled: true,
+    whiteLabelApp: false,
   },
+  orderWidget: {
+    scheduledLimit: 20,
+    autoAccept: false,
+    autoAcceptVia: 'printer',
+    fulfillmentMode: 'default',
+    hcaptcha: false,
+    billingDetail: 'optional',
+  },
+  serviceFees: [],
+  printers: [{ id: 'pr1', name: 'Cocina 80mm', connected: true, type: 'thermal' }],
+  printTemplates: [{ id: 't1', name: 'Ticket 80mm', width: 80 }],
+  printHistory: [],
+  integrations: [],
+  notifications: {
+    staffEmails: ['admin@chivitospro.com'],
+    customerFromEmail: 'pedidos@chivitospro.com',
+  },
+  languages: {
+    default: 'es',
+    enabled: ['es', 'es-UY', 'en', 'pt-BR'],
+  },
+  siteStats: {
+    visitors7d: 420,
+    visitorsPrev: 380,
+    funnel: { visit: 1000, cart: 220, checkout: 140, order: 95 },
+  },
+}
+
+function mergeArray(incoming, fallback) {
+  return Array.isArray(incoming) ? incoming : fallback
 }
 
 export function mergeSettings(raw) {
@@ -54,6 +212,22 @@ export function mergeSettings(raw) {
     paymentMethods: {
       ...DEFAULT_SETTINGS.paymentMethods,
       ...(incoming.paymentMethods || {}),
+    },
+    paymentByChannel: {
+      ...DEFAULT_SETTINGS.paymentByChannel,
+      ...(incoming.paymentByChannel || {}),
+      efectivo: {
+        ...DEFAULT_SETTINGS.paymentByChannel.efectivo,
+        ...(incoming.paymentByChannel?.efectivo || {}),
+      },
+      tarjeta: {
+        ...DEFAULT_SETTINGS.paymentByChannel.tarjeta,
+        ...(incoming.paymentByChannel?.tarjeta || {}),
+      },
+      online: {
+        ...DEFAULT_SETTINGS.paymentByChannel.online,
+        ...(incoming.paymentByChannel?.online || {}),
+      },
     },
     mercadoPago: {
       ...DEFAULT_SETTINGS.mercadoPago,
@@ -70,17 +244,42 @@ export function mergeSettings(raw) {
           : DEFAULT_SETTINGS.mercadoPago.blockedMessage,
     },
     taxes: { ...DEFAULT_SETTINGS.taxes, ...(incoming.taxes || {}) },
+    tips: { ...DEFAULT_SETTINGS.tips, ...(incoming.tips || {}) },
+    reservationDeposit: {
+      ...DEFAULT_SETTINGS.reservationDeposit,
+      ...(incoming.reservationDeposit || {}),
+    },
+    orderDevice: { ...DEFAULT_SETTINGS.orderDevice, ...(incoming.orderDevice || {}) },
     marketing: { ...DEFAULT_SETTINGS.marketing, ...(incoming.marketing || {}) },
     publish: { ...DEFAULT_SETTINGS.publish, ...(incoming.publish || {}) },
-    schedules: Array.isArray(incoming.schedules)
-      ? incoming.schedules
-      : DEFAULT_SETTINGS.schedules,
-    exceptions: Array.isArray(incoming.exceptions)
-      ? incoming.exceptions
-      : DEFAULT_SETTINGS.exceptions,
-    deliveryZones: Array.isArray(incoming.deliveryZones)
-      ? incoming.deliveryZones
-      : DEFAULT_SETTINGS.deliveryZones,
+    orderWidget: { ...DEFAULT_SETTINGS.orderWidget, ...(incoming.orderWidget || {}) },
+    notifications: {
+      ...DEFAULT_SETTINGS.notifications,
+      ...(incoming.notifications || {}),
+      staffEmails: mergeArray(
+        incoming.notifications?.staffEmails,
+        DEFAULT_SETTINGS.notifications.staffEmails,
+      ),
+    },
+    languages: {
+      ...DEFAULT_SETTINGS.languages,
+      ...(incoming.languages || {}),
+      enabled: mergeArray(incoming.languages?.enabled, DEFAULT_SETTINGS.languages.enabled),
+    },
+    siteStats: { ...DEFAULT_SETTINGS.siteStats, ...(incoming.siteStats || {}) },
+    schedules: mergeArray(incoming.schedules, DEFAULT_SETTINGS.schedules),
+    exceptions: mergeArray(incoming.exceptions, DEFAULT_SETTINGS.exceptions),
+    deliveryZones: mergeArray(incoming.deliveryZones, DEFAULT_SETTINGS.deliveryZones),
+    promotions: mergeArray(incoming.promotions, DEFAULT_SETTINGS.promotions),
+    autopilotCampaigns: mergeArray(
+      incoming.autopilotCampaigns,
+      DEFAULT_SETTINGS.autopilotCampaigns,
+    ),
+    serviceFees: mergeArray(incoming.serviceFees, DEFAULT_SETTINGS.serviceFees),
+    printers: mergeArray(incoming.printers, DEFAULT_SETTINGS.printers),
+    printTemplates: mergeArray(incoming.printTemplates, DEFAULT_SETTINGS.printTemplates),
+    printHistory: mergeArray(incoming.printHistory, DEFAULT_SETTINGS.printHistory),
+    integrations: mergeArray(incoming.integrations, DEFAULT_SETTINGS.integrations),
   }
 }
 

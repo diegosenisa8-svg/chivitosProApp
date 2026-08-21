@@ -35,7 +35,31 @@ import { formatMoney } from '../lib/format'
 import type { MenuData, MenuItem, ModifierGroup, RestaurantSettings } from '../types'
 import '../admin.css'
 import { DevPopup } from './DevPopup'
-import { defaultSectionForRole, navForRole, type AdminSection } from './nav'
+import {
+  defaultSectionForRole,
+  LEGACY_SECTION_MAP,
+  moduleOfSection,
+  modulesForRole,
+  sectionAllowed,
+  type AdminSection,
+  type NavModule,
+} from './nav'
+import {
+  DeliveryZonesFullView,
+  ExtendedReportsView,
+  HoursFullView,
+  LanguagesView,
+  MarketingHubView,
+  NotificationsView,
+  OnlineOrderingConfigView,
+  OrderAppDeviceView,
+  PayMethodsChannelsView,
+  ProfileExtraViews,
+  PublishChannelView,
+  TaxesView,
+  TipsDepositView,
+  ToggleServiceView,
+} from './tumenuViews'
 
 export function AdminApp() {
   const navigate = useNavigate()
@@ -45,6 +69,8 @@ export function AdminApp() {
   const [password, setPassword] = useState('')
   const [loginError, setLoginError] = useState('')
   const [section, setSection] = useState<AdminSection>('dashboard')
+  const [activeModule, setActiveModule] = useState<NavModule['id']>('reports')
+  const [moduleArmed, setModuleArmed] = useState<NavModule['id'] | null>(null)
   const [dash, setDash] = useState<DashboardData | null>(null)
   const [orders, setOrders] = useState<AdminOrder[]>([])
   const [customers, setCustomers] = useState<AdminCustomer[]>([])
@@ -102,7 +128,9 @@ export function AdminApp() {
     adminMe()
       .then((user) => {
         setAdmin(user)
-        setSection(defaultSectionForRole(user.role))
+        const def = defaultSectionForRole(user.role)
+        setSection(def)
+        setActiveModule(moduleOfSection(def) || 'reports')
       })
       .catch(() => setAdminToken(null))
       .finally(() => setBooting(false))
@@ -144,27 +172,67 @@ export function AdminApp() {
     setError('')
     ;(async () => {
       try {
-        if (section === 'dashboard') await refreshDashboard()
-        if (section === 'orders' || section === 'take-orders') await refreshOrders()
-        if (section === 'clients') await refreshCustomers()
-        if (section === 'pagos') setMpStatus(await fetchMercadoPagoStatus())
+        if (
+          section === 'dashboard' ||
+          section.startsWith('sales-') ||
+          section.startsWith('menu-insights') ||
+          section === 'online-funnel' ||
+          section === 'report-clients-metrics' ||
+          section === 'website-visits' ||
+          section === 'promotions-stats'
+        ) {
+          await refreshDashboard()
+        }
+        if (
+          section === 'orders' ||
+          section === 'take-orders' ||
+          section === 'take-orders-app' ||
+          section === 'report-orders'
+        ) {
+          await refreshOrders()
+        }
+        if (section === 'clients' || section === 'report-clients') await refreshCustomers()
+        if (section === 'pagos' || section === 'pagos-providers') {
+          setMpStatus(await fetchMercadoPagoStatus())
+        }
         if (
           section === 'menu' ||
           section === 'modifiers' ||
-          section === 'profile' ||
-          section === 'schedules' ||
+          section === 'preview' ||
+          section.startsWith('profile') ||
+          section.startsWith('schedules') ||
+          section.startsWith('pay-') ||
+          section.startsWith('take-orders') ||
+          section.startsWith('publish') ||
+          section.startsWith('pagos') ||
+          section.startsWith('mkt-') ||
+          section.startsWith('widget-') ||
+          section.startsWith('print-') ||
+          section.startsWith('integrations') ||
+          section.startsWith('other-') ||
+          section === 'delivery-map' ||
+          section === 'connectivity-health' ||
+          section === 'promotions-stats' ||
+          section === 'online-funnel' ||
+          section === 'website-visits' ||
           section === 'delivery-zones' ||
           section === 'payments-taxes' ||
           section === 'alert-call' ||
           section === 'publish' ||
-          section === 'preview' ||
-          section === 'pagos'
+          section === 'schedules' ||
+          section === 'profile'
         ) {
           await refreshMenu()
         }
         if (section === 'modifiers') setLibrary(await fetchModifierLibrary())
-        if (section === 'reports') setReports(await fetchReports(30))
-        if (section === 'marketing') showDev('Marketing / Kickstarter')
+        if (
+          section === 'reports' ||
+          section.startsWith('sales-') ||
+          section.startsWith('menu-insights') ||
+          section === 'dashboard'
+        ) {
+          setReports(await fetchReports(30))
+        }
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Error')
       }
@@ -173,9 +241,12 @@ export function AdminApp() {
 
   useEffect(() => {
     if (!admin) return
-    // Empleado: siempre poll de pedidos para titilar "nuevo"
     const isEmployee = admin.role === 'empleado'
-    const onOrdersView = section === 'orders' || section === 'take-orders'
+    const onOrdersView =
+      section === 'orders' ||
+      section === 'take-orders' ||
+      section === 'take-orders-app' ||
+      section === 'report-orders'
     const onDashboard = section === 'dashboard' && !isEmployee
     const pollOrders = onOrdersView || isEmployee || section === 'dashboard'
     if (!pollOrders && !onDashboard) return
@@ -193,21 +264,47 @@ export function AdminApp() {
     try {
       const user = await adminLogin(email.trim(), password)
       setAdmin(user)
-      setSection(defaultSectionForRole(user.role))
+      const def = defaultSectionForRole(user.role)
+      setSection(def)
+      setActiveModule(moduleOfSection(def) || 'reports')
       setPassword('')
     } catch (err) {
       setLoginError(err instanceof Error ? err.message : 'Error de login')
     }
   }
 
-  const allowedNav = useMemo(() => navForRole(admin?.role || 'admin'), [admin?.role])
+  const modules = useMemo(() => modulesForRole(admin?.role || 'admin'), [admin?.role])
   const flashCount = flashOrderIds.length
+
+  function goSection(id: AdminSection) {
+    const mapped = (LEGACY_SECTION_MAP[id] || id) as AdminSection
+    setSection(mapped)
+    const mod = moduleOfSection(mapped)
+    if (mod) setActiveModule(mod)
+    setModuleArmed(null)
+  }
 
   useEffect(() => {
     if (!admin) return
-    const allowed = new Set(navForRole(admin.role).map((n) => n.id))
-    if (!allowed.has(section)) setSection(defaultSectionForRole(admin.role))
+    const mapped = (LEGACY_SECTION_MAP[section] || section) as AdminSection
+    if (mapped !== section) {
+      setSection(mapped)
+      return
+    }
+    if (!sectionAllowed(section, admin.role)) {
+      const def = defaultSectionForRole(admin.role)
+      setSection(def)
+      setActiveModule(moduleOfSection(def) || 'reports')
+    }
   }, [admin, section])
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', 'light')
+    document.documentElement.classList.add('admin-tm')
+    return () => {
+      document.documentElement.classList.remove('admin-tm')
+    }
+  }, [])
 
   const settings: RestaurantSettings = menu?.restaurant.settings || {}
   const maxSales = useMemo(
@@ -280,15 +377,43 @@ export function AdminApp() {
   }
 
   return (
-    <div className="admin-shell wide">
+    <div className="admin-shell wide tm-shell">
       <DevPopup open={devOpen} title={devTitle} onClose={() => setDevOpen(false)} />
       {toast && <div className="admin-toast">{toast}</div>}
 
-      <aside className="admin-sidebar scroll">
+      <aside className="tm-rail">
+        {modules.map((mod) => (
+          <button
+            key={mod.id}
+            type="button"
+            className={`tm-rail-btn ${activeModule === mod.id ? 'active' : ''} ${
+              mod.id === 'reports' && flashCount ? 'nav-flash' : ''
+            }`}
+            title={mod.label}
+            onClick={() => {
+              if (moduleArmed === mod.id || activeModule === mod.id) {
+                setActiveModule(mod.id)
+                setModuleArmed(null)
+                const first = mod.groups[0]?.items[0]?.id
+                if (first && activeModule !== mod.id) goSection(first)
+              } else {
+                setModuleArmed(mod.id)
+                window.setTimeout(() => setModuleArmed(null), 1800)
+                setActiveModule(mod.id)
+              }
+            }}
+          >
+            <span aria-hidden>{mod.icon}</span>
+            {moduleArmed === mod.id ? <em className="tm-tooltip">{mod.label}</em> : null}
+          </button>
+        ))}
+      </aside>
+
+      <aside className="admin-sidebar scroll tm-submenu">
         <div className="admin-brand compact">
           <img src="/logo.png" alt="ChivitosPro" className="admin-logo" />
           <div>
-            <strong>ChivitosPro</strong>
+            <strong>ChivitosPro ▾</strong>
             <small>
               {admin.name}
               {admin.role === 'empleado' ? ' · Empleado' : ''}
@@ -296,40 +421,30 @@ export function AdminApp() {
           </div>
         </div>
 
-        {(['ops', 'config', 'growth'] as const).map((group) => {
-          const items = allowedNav.filter((n) => n.group === group)
-          if (!items.length) return null
-          return (
-            <div key={group} className="nav-group">
-              <p className="nav-group-label">
-                {group === 'ops' ? 'Operaciones' : group === 'config' ? 'Configuración' : 'Crecimiento'}
-              </p>
-              {items.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={`${section === item.id ? 'active' : ''} ${
-                    item.id === 'orders' && flashCount ? 'nav-flash' : ''
-                  }`}
-                  onClick={() => {
-                    if (item.prodOnly) {
-                      setSection(item.id)
-                      showDev(item.label)
-                      return
-                    }
-                    setSection(item.id)
-                  }}
-                >
-                  {item.label}
-                  {item.id === 'orders' && flashCount > 0 ? (
-                    <em className="nav-new">{flashCount} nuevo{flashCount === 1 ? '' : 's'}</em>
-                  ) : null}
-                  {item.prodOnly ? <em className="nav-prod">prod</em> : null}
-                </button>
-              ))}
-            </div>
-          )
-        })}
+        {(modules.find((m) => m.id === activeModule)?.groups || []).map((group) => (
+          <div key={group.id} className="nav-group">
+            <p className="nav-group-label">{group.label}</p>
+            {group.items.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={`${section === item.id ? 'active' : ''} ${
+                  (item.id === 'report-orders' || item.id === 'take-orders-app') && flashCount
+                    ? 'nav-flash'
+                    : ''
+                }`}
+                onClick={() => goSection(item.id)}
+              >
+                {item.label}
+                {(item.id === 'report-orders' || item.id === 'take-orders-app') && flashCount > 0 ? (
+                  <em className="nav-new">
+                    {flashCount} nuevo{flashCount === 1 ? '' : 's'}
+                  </em>
+                ) : null}
+              </button>
+            ))}
+          </div>
+        ))}
 
         <div className="admin-sidebar-foot">
           <button type="button" className="admin-btn ghost" onClick={() => navigate('/')}>
@@ -355,9 +470,12 @@ export function AdminApp() {
           <DashboardView dash={dash} maxSales={maxSales} onRefresh={refreshDashboard} />
         )}
 
-        {(section === 'orders' || section === 'take-orders') && (
+        {(section === 'orders' ||
+          section === 'take-orders' ||
+          section === 'take-orders-app' ||
+          section === 'report-orders') && (
           <OrdersView
-            kiosk={section === 'take-orders'}
+            kiosk={section === 'take-orders' || section === 'take-orders-app'}
             orders={orders}
             selectedOrder={selectedOrder}
             setSelectedOrder={(o) => {
@@ -390,7 +508,7 @@ export function AdminApp() {
           />
         )}
 
-        {section === 'clients' && (
+        {(section === 'clients' || section === 'report-clients') && (
           <ClientsView
             customers={customers}
             query={customerQuery}
@@ -409,7 +527,7 @@ export function AdminApp() {
             setError={setError}
             setSaving={setSaving}
             refreshMenu={refreshMenu}
-            onPreview={() => setSection('preview')}
+            onPreview={() => goSection('preview')}
           />
         )}
 
@@ -453,7 +571,7 @@ export function AdminApp() {
           </section>
         )}
 
-        {section === 'profile' && menu && (
+        {(section === 'profile' || section === 'profile-address') && menu && (
           <ProfileView
             menu={menu}
             saving={saving}
@@ -472,32 +590,125 @@ export function AdminApp() {
           />
         )}
 
-        {section === 'schedules' && menu && (
-          <SchedulesView settings={settings} saving={saving} onSave={patchSettings} showDev={showDev} />
-        )}
+        {menu &&
+          (section === 'profile-location' ||
+            section === 'profile-website' ||
+            section === 'profile-product-type' ||
+            section === 'profile-confirm') && (
+            <ProfileExtraViews
+              section={section}
+              menu={menu}
+              settings={settings}
+              saving={saving}
+              onSaveRestaurant={async (patch) => {
+                await updateRestaurant(patch)
+                await refreshMenu()
+                notify('Guardado')
+              }}
+              onSaveSettings={patchSettings}
+            />
+          )}
 
-        {section === 'delivery-zones' && menu && (
-          <ZonesView settings={settings} saving={saving} onSave={patchSettings} />
-        )}
-
-        {section === 'payments-taxes' && menu && (
-          <PaymentsTaxesView
+        {section === 'schedules-pickup' && (
+          <ToggleServiceView
+            title="Recoger"
+            description="¿Ofrecen recogida desde su ubicación?"
+            flag="pickupEnabled"
             settings={settings}
             saving={saving}
             onSave={patchSettings}
-            showDev={showDev}
           />
         )}
 
-        {section === 'alert-call' && menu && (
+        {(section === 'schedules-delivery' || section === 'delivery-zones') && (
+          <DeliveryZonesFullView settings={settings} saving={saving} onSave={patchSettings} />
+        )}
+
+        {section === 'schedules-reservation' && (
+          <ToggleServiceView
+            title="Reserva de mesa"
+            description="Los clientes pueden reservar mesa desde el sitio"
+            flag="tableReservationEnabled"
+            settings={settings}
+            saving={saving}
+            onSave={patchSettings}
+          />
+        )}
+
+        {section === 'schedules-dinein' && (
+          <ToggleServiceView
+            title="Local"
+            description="¿Ofrecen servicios locales? (pedir desde la mesa)"
+            flag="dineInEnabled"
+            settings={settings}
+            saving={saving}
+            onSave={async (partial) => {
+              if ('dineInEnabled' in partial && !partial.dineInEnabled) {
+                await patchSettings({ ...partial, dineInAnonymous: false })
+              } else {
+                await patchSettings(partial)
+              }
+            }}
+          >
+            {settings.dineInEnabled !== false ? (
+              <label className="tm-switch">
+                <span>Allow guests to order anonymously</span>
+                <button
+                  type="button"
+                  role="switch"
+                  className={`tm-toggle ${settings.dineInAnonymous ? 'on' : 'off'}`}
+                  onClick={() => patchSettings({ dineInAnonymous: !settings.dineInAnonymous })}
+                >
+                  {settings.dineInAnonymous ? 'Sí' : 'No'}
+                </button>
+              </label>
+            ) : null}
+          </ToggleServiceView>
+        )}
+
+        {(section === 'schedules-hours' || section === 'schedules') && (
+          <HoursFullView settings={settings} saving={saving} onSave={patchSettings} />
+        )}
+
+        {section === 'schedules-scheduled' && (
+          <ToggleServiceView
+            title="Pedidos programados"
+            description="Permitir a los clientes solicitar un tiempo de cumplimiento específico"
+            flag="scheduledOrdersEnabled"
+            settings={settings}
+            saving={saving}
+            onSave={patchSettings}
+          />
+        )}
+
+        {(section === 'pay-taxes' || section === 'payments-taxes') && (
+          <TaxesView settings={settings} saving={saving} onSave={patchSettings} />
+        )}
+
+        {section === 'pay-methods' && (
+          <PayMethodsChannelsView settings={settings} saving={saving} onSave={patchSettings} />
+        )}
+
+        {section === 'take-orders-app' && menu && (
+          <>
+            <OrderAppDeviceView settings={settings} saving={saving} onSave={patchSettings} />
+          </>
+        )}
+
+        {(section === 'take-orders-alert' || section === 'alert-call') && (
           <AlertCallView settings={settings} saving={saving} onSave={patchSettings} showDev={showDev} />
         )}
 
-        {section === 'publish' && menu && (
-          <PublishView settings={settings} saving={saving} onSave={patchSettings} showDev={showDev} />
+        {section.startsWith('publish-') && (
+          <PublishChannelView
+            section={section}
+            settings={settings}
+            saving={saving}
+            onSave={patchSettings}
+          />
         )}
 
-        {section === 'pagos' && menu && (
+        {(section === 'pagos' || section === 'pagos-providers') && menu && (
           <PagosMpView
             settings={settings}
             mpStatus={mpStatus}
@@ -510,24 +721,55 @@ export function AdminApp() {
           />
         )}
 
-        {section === 'marketing' && (
-          <section className="admin-section">
-            <header className="admin-header">
-              <div>
-                <h2>Marketing</h2>
-                <p>Disponible al pasar a producción con credenciales reales</p>
-              </div>
-              <button type="button" className="admin-btn primary" onClick={() => showDev()}>
-                Ver aviso
-              </button>
-            </header>
-            <div className="admin-card settings-form">
-              <ProviderRow name="Kickstarter / 1ª compra" status="Demo" onClick={() => showDev('Kickstarter')} />
-              <ProviderRow name="Autopilot" status="Demo" onClick={() => showDev('Autopilot')} />
-              <ProviderRow name="Google Business" status="Demo" onClick={() => showDev('Google Business')} />
-              <ProviderRow name="Códigos QR y Flyers" status="Demo" onClick={() => showDev('QR y Flyers')} />
-            </div>
-          </section>
+        {(section === 'pagos-tips' || section === 'pagos-deposit') && (
+          <TipsDepositView section={section} settings={settings} saving={saving} onSave={patchSettings} />
+        )}
+
+        {section.startsWith('mkt-') && (
+          <MarketingHubView
+            section={section}
+            settings={settings}
+            saving={saving}
+            onSave={patchSettings}
+            menu={menu}
+          />
+        )}
+
+        {(section.startsWith('sales-') ||
+          section.startsWith('menu-insights') ||
+          section === 'online-funnel' ||
+          section === 'report-clients-metrics' ||
+          section === 'report-reservations' ||
+          section === 'google-ranking' ||
+          section === 'website-visits' ||
+          section === 'delivery-map' ||
+          section === 'connectivity-health' ||
+          section === 'promotions-stats') && (
+          <ExtendedReportsView
+            section={section}
+            dash={dash}
+            reports={reports}
+            settings={settings}
+          />
+        )}
+
+        {(section.startsWith('print-') ||
+          section.startsWith('widget-') ||
+          section.startsWith('integrations')) && (
+          <OnlineOrderingConfigView
+            section={section}
+            settings={settings}
+            saving={saving}
+            onSave={patchSettings}
+          />
+        )}
+
+        {section === 'other-notifications' && (
+          <NotificationsView settings={settings} saving={saving} onSave={patchSettings} />
+        )}
+
+        {section === 'other-languages' && (
+          <LanguagesView settings={settings} saving={saving} onSave={patchSettings} />
         )}
 
         {section === 'reports' && reports && <ReportsView reports={reports} />}

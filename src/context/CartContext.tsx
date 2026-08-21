@@ -22,6 +22,10 @@ type CartContextValue = {
   setFulfillment: (f: Fulfillment) => void
   setCoupon: (code: string) => void
   applyCoupon: (code: string) => boolean
+  setDeliveryFeeBase: (fee: number) => void
+  registerPromotions: (
+    promos: { code: string; type: 'percent' | 'fixed'; value: number; active: boolean }[],
+  ) => void
   addLine: (line: Omit<CartLine, 'key'>) => void
   removeLine: (key: string) => void
   setQuantity: (key: string, quantity: number) => void
@@ -66,6 +70,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [fulfillment, setFulfillment] = useState<Fulfillment>('delivery')
   const [coupon, setCoupon] = useState('')
   const [discountRate, setDiscountRate] = useState(0)
+  const [discountFixed, setDiscountFixed] = useState(0)
+  const [deliveryFeeBase, setDeliveryFeeBase] = useState(80)
+  const [promos, setPromos] = useState<
+    { code: string; type: 'percent' | 'fixed'; value: number; active: boolean }[]
+  >([])
   const [checkout, setCheckoutState] = useState<CheckoutInfo>(defaultCheckout)
 
   useEffect(() => {
@@ -75,8 +84,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const value = useMemo<CartContextValue>(() => {
     const count = lines.reduce((s, l) => s + l.quantity, 0)
     const subtotal = lines.reduce((s, l) => s + lineTotal(l), 0)
-    const discount = Math.round(subtotal * discountRate * 100) / 100
-    const deliveryFee = fulfillment === 'delivery' && subtotal > 0 ? 80 : 0
+    const discount =
+      Math.round((subtotal * discountRate + discountFixed) * 100) / 100
+    const deliveryFee = fulfillment === 'delivery' && subtotal > 0 ? deliveryFeeBase : 0
 
     return {
       lines,
@@ -92,10 +102,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
         setCheckoutState((c) => ({ ...c, fulfillment: f }))
       },
       setCoupon,
+      setDeliveryFeeBase,
+      registerPromotions: (list) => setPromos(list),
       applyCoupon: (code) => {
         const normalized = code.trim().toUpperCase()
+        const fromAdmin = promos.find((p) => p.active && p.code.toUpperCase() === normalized)
+        if (fromAdmin) {
+          if (fromAdmin.type === 'percent') {
+            setDiscountRate(fromAdmin.value / 100)
+            setDiscountFixed(0)
+          } else {
+            setDiscountRate(0)
+            setDiscountFixed(fromAdmin.value)
+          }
+          setCoupon(normalized)
+          setToast(`Cupón aplicado: ${fromAdmin.code}`)
+          window.setTimeout(() => setToast(null), 2200)
+          return true
+        }
         if (normalized === 'CHIVITO10') {
           setDiscountRate(0.1)
+          setDiscountFixed(0)
           setCoupon(normalized)
           setToast('Cupón aplicado: 10% OFF')
           window.setTimeout(() => setToast(null), 2200)
@@ -103,12 +130,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
         }
         if (normalized === 'PRIMERA') {
           setDiscountRate(0.15)
+          setDiscountFixed(0)
           setCoupon(normalized)
           setToast('Cupón primera compra: 15% OFF')
           window.setTimeout(() => setToast(null), 2200)
           return true
         }
         setDiscountRate(0)
+        setDiscountFixed(0)
         setToast('Cupón inválido')
         window.setTimeout(() => setToast(null), 2200)
         return false
@@ -130,6 +159,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       clear: () => {
         setLines([])
         setDiscountRate(0)
+        setDiscountFixed(0)
         setCoupon('')
       },
       showToast: (msg) => {
@@ -139,7 +169,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       checkout: { ...checkout, fulfillment },
       setCheckout: (patch) => setCheckoutState((c) => ({ ...c, ...patch })),
     }
-  }, [lines, toast, fulfillment, coupon, discountRate, checkout])
+  }, [lines, toast, fulfillment, coupon, discountRate, discountFixed, deliveryFeeBase, checkout, promos])
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
 }
