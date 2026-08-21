@@ -9,6 +9,15 @@ import type {
 import type { DashboardData } from '../lib/adminApi'
 import type { AdminSection } from './nav'
 
+type ReportsPayload = {
+  days: number
+  totals: { sales: number; orders: number; avgTicket: number }
+  byFulfillment: { delivery: number; pickup: number }
+  byPayment: Record<string, number>
+  byDay: { date: string; sales: number; orders: number }[]
+  topProducts: { name: string; qty: number; revenue: number }[]
+}
+
 type SaveFn = (partial: Partial<RestaurantSettings>) => Promise<void>
 
 function Switch({
@@ -1038,13 +1047,7 @@ export function ExtendedReportsView({
 }: {
   section: AdminSection
   dash: DashboardData | null
-  reports: {
-    salesTotal: number
-    ordersCount: number
-    avgTicket: number
-    byFulfillment: Record<string, number>
-    topItems: { name: string; qty: number; sales: number }[]
-  } | null
+  reports: ReportsPayload | null
   settings: RestaurantSettings
 }) {
   const funnel = settings.siteStats?.funnel || { visit: 0, cart: 0, checkout: 0, order: 0 }
@@ -1062,29 +1065,33 @@ export function ExtendedReportsView({
         <div className="kpi-grid">
           <div className="kpi">
             <span>Ventas</span>
-            <strong>{formatMoney(reports?.salesTotal || dash?.salesToday || 0)}</strong>
+            <strong>
+              {formatMoney(reports?.totals.sales || dash?.kpis.salesToday || 0)}
+            </strong>
           </div>
           <div className="kpi">
             <span>Pedidos</span>
-            <strong>{reports?.ordersCount || dash?.ordersToday || 0}</strong>
+            <strong>{reports?.totals.orders || dash?.kpis.ordersToday || 0}</strong>
           </div>
           <div className="kpi">
             <span>Ticket promedio</span>
-            <strong>{formatMoney(reports?.avgTicket || 0)}</strong>
+            <strong>
+              {formatMoney(reports?.totals.avgTicket || dash?.kpis.avgTicket || 0)}
+            </strong>
           </div>
         </div>
         {dash && (
           <div className="admin-card">
             <div className="bars">
               {dash.salesByDay.map((d) => (
-                <div key={d.day} className="bar-col">
+                <div key={d.date} className="bar-col">
                   <div
                     className="bar"
                     style={{
                       height: `${Math.max(8, (d.sales / Math.max(1, ...dash.salesByDay.map((x) => x.sales))) * 120)}px`,
                     }}
                   />
-                  <small>{d.day.slice(5)}</small>
+                  <small>{d.date.slice(5)}</small>
                 </div>
               ))}
             </div>
@@ -1095,6 +1102,7 @@ export function ExtendedReportsView({
   }
 
   if (section === 'menu-insights-categories' || section === 'menu-insights-items') {
+    const items = reports?.topProducts || dash?.topProducts || []
     return (
       <section className="admin-section">
         <header className="admin-header">
@@ -1105,13 +1113,13 @@ export function ExtendedReportsView({
           </div>
         </header>
         <ul className="rank-list admin-card">
-          {(reports?.topItems || []).map((it) => (
+          {items.map((it) => (
             <li key={it.name}>
               <span>
                 <strong>{it.name}</strong>
                 <small className="admin-muted"> · {it.qty} uds</small>
               </span>
-              <strong>{formatMoney(it.sales)}</strong>
+              <strong>{formatMoney(it.revenue)}</strong>
             </li>
           ))}
         </ul>
@@ -1254,11 +1262,11 @@ export function ExtendedReportsView({
         <div className="kpi-grid">
           <div className="kpi">
             <span>Pedidos hoy</span>
-            <strong>{dash?.ordersToday ?? '—'}</strong>
+            <strong>{dash?.kpis.ordersToday ?? '—'}</strong>
           </div>
           <div className="kpi">
             <span>Ventas hoy</span>
-            <strong>{formatMoney(dash?.salesToday || 0)}</strong>
+            <strong>{formatMoney(dash?.kpis.salesToday || 0)}</strong>
           </div>
         </div>
       </div>
@@ -1858,14 +1866,12 @@ export function ProfileExtraViews({
   menu,
   settings,
   saving,
-  onSaveRestaurant,
   onSaveSettings,
 }: {
   section: AdminSection
   menu: MenuData
   settings: RestaurantSettings
   saving: boolean
-  onSaveRestaurant: (patch: Record<string, unknown>) => Promise<void>
   onSaveSettings: SaveFn
 }) {
   const r = menu.restaurant
