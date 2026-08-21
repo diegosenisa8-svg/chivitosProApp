@@ -14,7 +14,7 @@ const icons = ['settings', 'marketing', 'reports', 'online', 'other']
 const iconOk = icons.every((i) => nav.includes(`icon: '${i}'`))
 const railSvg = app.includes('RailIcon') && fs.existsSync('src/admin/RailIcon.tsx')
 const topbar = app.includes('tm-topbar') && app.includes('tm-user') && css.includes('.tm-topbar')
-const dblClick = app.includes('moduleArmed') && app.includes('primer clic')
+const railNav = app.includes('Un clic navega') && app.includes('goSection(first)')
 const wizard = views.includes('tm-wizard') && views.includes('tm-card-header') && views.includes('Siguiente')
 const switches = views.includes('tm-ios') && css.includes('.tm-ios.on')
 const orange = css.includes('--accent-icon') && css.includes('--accent-button')
@@ -51,11 +51,11 @@ const wires = {
   langs: views.includes('LanguagesView'),
 }
 
-console.log('PASS1_structure', { modOk, iconOk, railSvg, topbar, dblClick, sections: required.length, missing })
+console.log('PASS1_structure', { modOk, iconOk, railSvg, topbar, railNav, sections: required.length, missing })
 console.log('PASS2_aesthetics', { wizard, switches, orange, sans, warmGray, utf8 })
 console.log('PASS3_wiring', wires)
 const all = [
-  modOk, iconOk, railSvg, topbar, dblClick, missing.length === 0,
+  modOk, iconOk, railSvg, topbar, railNav, missing.length === 0,
   wizard, switches, orange, sans, warmGray, utf8,
   ...Object.values(wires),
 ]
