@@ -1,26 +1,9 @@
 import 'dotenv/config'
-import { PrismaClient } from '@prisma/client'
-import { existsSync, readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
 import bcrypt from 'bcryptjs'
+import { prisma } from '../src/lib/prisma.js'
+import { loadBundledMenu, replaceMenuCatalog } from '../src/lib/replaceMenu.js'
 
-const prisma = new PrismaClient()
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const force = process.argv.includes('--force')
-
-function loadMenu() {
-  const candidates = [
-    join(__dirname, '../data/menu.json'),
-    join(__dirname, '../../src/data/menu.json'),
-  ]
-  for (const path of candidates) {
-    if (existsSync(path)) {
-      return JSON.parse(readFileSync(path, 'utf8'))
-    }
-  }
-  throw new Error('menu.json not found')
-}
+const force = process.argv.includes('--force') || process.env.FORCE_MENU_SEED === '1'
 
 async function ensureAdmin() {
   const email = (process.env.ADMIN_EMAIL || 'admin@chivitospro.com').toLowerCase()
@@ -29,107 +12,39 @@ async function ensureAdmin() {
   const passwordHash = await bcrypt.hash(password, 10)
   await prisma.adminUser.upsert({
     where: { email },
-    update: { name, passwordHash },
-    create: { email, name, passwordHash },
+    update: { name, passwordHash, role: 'admin' },
+    create: { email, name, passwordHash, role: 'admin' },
   })
   console.log(`Admin OK: ${email} / ${password}`)
 }
 
+async function ensureEmployee() {
+  const email = (process.env.EMPLOYEE_EMAIL || 'empleado@chivitospro.com').toLowerCase()
+  const password = process.env.EMPLOYEE_PASSWORD || 'empleado2026'
+  const name = process.env.EMPLOYEE_NAME || 'Empleado ChivitosPro'
+  const passwordHash = await bcrypt.hash(password, 10)
+  await prisma.adminUser.upsert({
+    where: { email },
+    update: { name, passwordHash, role: 'empleado' },
+    create: { email, name, passwordHash, role: 'empleado' },
+  })
+  console.log(`Empleado OK: ${email}`)
+}
+
 async function main() {
   await ensureAdmin()
+  await ensureEmployee()
 
   const existing = await prisma.category.count()
   if (existing > 0 && !force) {
-    console.log('Seed skipped (menu already present). Use --force to reset.')
+    console.log('Seed skipped (menu already present). Use --force or FORCE_MENU_SEED=1 to reset.')
     return
   }
 
-  const menu = loadMenu()
-  const r = menu.restaurant
-
-  if (force) {
-    await prisma.orderItem.deleteMany()
-    await prisma.order.deleteMany()
-    await prisma.modifierOption.deleteMany()
-    await prisma.modifierGroup.deleteMany()
-    await prisma.product.deleteMany()
-    await prisma.category.deleteMany()
-  }
-
-  const restaurantData = {
-    name: r.name,
-    address: r.address,
-    city: r.city,
-    country: r.country,
-    open: r.open,
-    distanceKm: r.distanceKm,
-    delivery: r.delivery,
-    takeaway: r.takeaway,
-    currency: r.currency,
-    whatsapp: r.whatsapp,
-    logo: r.logo,
-    hero: r.hero,
-    mapEmbed: r.mapEmbed,
-    lat: r.lat,
-    lng: r.lng,
-    hoursLabel: r.hoursLabel || 'Lun–Dom 11:30 a 00:00',
-    etaMin: r.etaMin || 35,
-    etaMax: r.etaMax || 55,
-    deliveryFee: r.deliveryFee || 80,
-    minOrder: r.minOrder || 250,
-    phone: r.phone || '',
-  }
-
-  await prisma.restaurant.upsert({
-    where: { id: 1 },
-    update: restaurantData,
-    create: { id: 1, ...restaurantData },
-  })
-
-  for (let ci = 0; ci < menu.categories.length; ci++) {
-    const cat = menu.categories[ci]
-    await prisma.category.create({
-      data: {
-        id: cat.id,
-        name: cat.name,
-        subtitle: cat.subtitle || '',
-        banner: cat.banner,
-        sortOrder: ci,
-        items: {
-          create: cat.items.map((item, pi) => ({
-            id: item.id,
-            name: item.name,
-            description: item.description || '',
-            price: item.price,
-            priceMax: item.priceMax ?? null,
-            image: item.image,
-            sortOrder: pi,
-            modifiers: item.modifiers
-              ? {
-                  create: item.modifiers.map((g) => ({
-                    externalId: g.id,
-                    name: g.name,
-                    required: !!g.required,
-                    min: g.min ?? 0,
-                    max: g.max ?? 1,
-                    allowQuantity: !!g.allowQuantity,
-                    options: {
-                      create: g.options.map((o) => ({
-                        externalId: o.id,
-                        name: o.name,
-                        price: o.price,
-                      })),
-                    },
-                  })),
-                }
-              : undefined,
-          })),
-        },
-      },
-    })
-  }
-
-  console.log(`Seed OK: ${menu.categories.length} categorías`)
+  const { path, menu } = loadBundledMenu()
+  console.log(`Loading menu from ${path}`)
+  const result = await replaceMenuCatalog(menu, { wipeOrders: true })
+  console.log(`Seed OK: ${result.categories} categorías, ${result.products} productos`)
 }
 
 main()

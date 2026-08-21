@@ -10,6 +10,7 @@ import { mapMenu } from '../lib/menu.js'
 import { mergeSettings, slugify } from '../lib/settings.js'
 import { syncCustomersFromOrders, whatsappUrlForPhone } from '../lib/customers.js'
 import { getMpCredentials } from '../lib/mercadopago.js'
+import { loadBundledMenu, replaceMenuCatalog } from '../lib/replaceMenu.js'
 
 const router = Router()
 
@@ -419,6 +420,30 @@ router.delete('/categories/:id', requireAdmin, async (req, res) => {
     if (err?.code === 'P2025') return res.status(404).json({ error: 'Categoría no encontrada' })
     console.error(err)
     res.status(500).json({ error: 'No se pudo eliminar la categoría' })
+  }
+})
+
+/** Reemplaza todo el menú con el catálogo embebido (TuMenuWeb). Borra pedidos. */
+router.post('/menu/replace-catalog', requireFullAdmin, async (req, res) => {
+  try {
+    const confirm = String(req.body?.confirm || '')
+    if (confirm !== 'REEMPLAZAR') {
+      return res.status(400).json({
+        error: 'Confirmá enviando { "confirm": "REEMPLAZAR" }. Esto borra menú y pedidos.',
+      })
+    }
+    const { path, menu } = loadBundledMenu()
+    const result = await replaceMenuCatalog(menu, { wipeOrders: true })
+    const mapped = await mapMenu()
+    res.json({
+      ok: true,
+      source: path,
+      ...result,
+      menu: mapped,
+    })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: err.message || 'No se pudo reemplazar el menú' })
   }
 })
 

@@ -181,6 +181,18 @@ export async function deleteCategory(id: string) {
   return adminFetch<{ ok: boolean }>(`/categories/${id}`, { method: 'DELETE' })
 }
 
+export async function replaceMenuCatalog() {
+  return adminFetch<{
+    ok: boolean
+    source: string
+    categories: number
+    products: number
+  }>('/menu/replace-catalog', {
+    method: 'POST',
+    body: JSON.stringify({ confirm: 'REEMPLAZAR' }),
+  })
+}
+
 export async function reorderMenu(body: {
   categories?: { id: string; sortOrder: number }[]
   products?: { id: string; sortOrder: number; categoryId?: string }[]

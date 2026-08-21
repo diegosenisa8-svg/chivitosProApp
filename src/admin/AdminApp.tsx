@@ -18,6 +18,7 @@ import {
   ORDER_STATUS_FLOW,
   ORDER_STATUS_LABELS,
   reorderMenu,
+  replaceMenuCatalog,
   saveProductModifiers,
   setAdminToken,
   updateOrder,
@@ -1391,6 +1392,34 @@ function MenuConfigView({
           </button>
           <button type="button" className="admin-btn" onClick={() => refreshMenu()}>
             Actualizar
+          </button>
+          <button
+            type="button"
+            className="admin-btn danger"
+            disabled={saving}
+            onClick={async () => {
+              if (
+                !confirm(
+                  '¿Seguro que deseas ELIMINAR todo el menú actual y cargar el catálogo TuMenuWeb (18 categorías / ~82 productos)? También se borran los pedidos.',
+                )
+              ) {
+                return
+              }
+              if (!confirm('Última confirmación: esta acción no se puede deshacer. ¿Continuar?')) return
+              setSaving(true)
+              try {
+                const result = await replaceMenuCatalog()
+                await refreshMenu()
+                setEditing(null)
+                notify(`Menú reemplazado: ${result.categories} categorías, ${result.products} productos`)
+              } catch (e) {
+                setError(e instanceof Error ? e.message : 'Error al reemplazar menú')
+              } finally {
+                setSaving(false)
+              }
+            }}
+          >
+            Cargar catálogo TuMenuWeb
           </button>
         </div>
       </header>
