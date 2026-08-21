@@ -34,7 +34,6 @@ import { mediaUrl } from '../lib/apiBase'
 import { formatMoney } from '../lib/format'
 import type { MenuData, MenuItem, ModifierGroup, RestaurantSettings } from '../types'
 import '../admin.css'
-import { ChatAssistant } from '../components/ChatAssistant'
 import { DevPopup } from './DevPopup'
 import { NAV, type AdminSection } from './nav'
 
@@ -257,7 +256,6 @@ export function AdminApp() {
     <div className="admin-shell wide">
       <DevPopup open={devOpen} title={devTitle} onClose={() => setDevOpen(false)} />
       {toast && <div className="admin-toast">{toast}</div>}
-      <ChatAssistant />
 
       <aside className="admin-sidebar scroll">
         <div className="admin-brand compact">
@@ -793,93 +791,185 @@ function OrderDetail({
   kiosk?: boolean
   onUpdate: (patch: Record<string, unknown>) => Promise<void>
 }) {
+  const when = new Date(order.createdAt).toLocaleString('es-UY', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  })
+
+  function modifierLines(raw: unknown): string[] {
+    if (!Array.isArray(raw) || !raw.length) return []
+    return raw.map((m) => {
+      const row = m as {
+        quantity?: number
+        groupName?: string
+        optionName?: string
+        name?: string
+        price?: number
+      }
+      const qty = row.quantity && row.quantity > 1 ? `${row.quantity}x ` : ''
+      const label = row.optionName || row.name || 'extra'
+      const group = row.groupName ? `${row.groupName}: ` : ''
+      return `  + ${qty}${group}${label}`
+    })
+  }
+
   return (
-    <div className="order-detail" id="print-order">
-      <div className="order-detail-top">
-        <div>
-          <h3>{order.customerName || 'Cliente'}</h3>
-          <p>{order.phone || 'Sin teléfono'}</p>
-          <small>#{order.id.slice(0, 8)}</small>
+    <div className="order-detail">
+      <div className="order-detail-screen no-print">
+        <div className="order-detail-top">
+          <div>
+            <h3>{order.customerName || 'Cliente'}</h3>
+            <p>{order.phone || 'Sin teléfono'}</p>
+            <small>#{order.id.slice(0, 8)}</small>
+          </div>
+          <span className={`status-pill status-${order.status}`}>
+            {ORDER_STATUS_LABELS[order.status]}
+          </span>
         </div>
-        <span className={`status-pill status-${order.status}`}>
-          {ORDER_STATUS_LABELS[order.status]}
-        </span>
-      </div>
-      <div className="meta-grid">
-        <div>
-          <span>Tipo</span>
-          <strong>{order.fulfillment === 'delivery' ? 'Delivery' : 'Retiro'}</strong>
+        <div className="meta-grid">
+          <div>
+            <span>Tipo</span>
+            <strong>{order.fulfillment === 'delivery' ? 'Delivery' : 'Retiro'}</strong>
+          </div>
+          <div>
+            <span>Pago</span>
+            <strong>{order.payment}</strong>
+          </div>
+          <div>
+            <span>Horario</span>
+            <strong>{order.schedule === 'now' ? 'Ahora' : order.scheduleTime || 'Programado'}</strong>
+          </div>
+          <div>
+            <span>Total</span>
+            <strong>{formatMoney(order.total)}</strong>
+          </div>
         </div>
-        <div>
-          <span>Pago</span>
-          <strong>{order.payment}</strong>
-        </div>
-        <div>
-          <span>Horario</span>
-          <strong>{order.schedule === 'now' ? 'Ahora' : order.scheduleTime || 'Programado'}</strong>
-        </div>
-        <div>
-          <span>Total</span>
-          <strong>{formatMoney(order.total)}</strong>
-        </div>
-      </div>
-      {order.address && (
-        <p>
-          <strong>Dirección:</strong> {order.address}
-        </p>
-      )}
-      {order.notes && (
-        <p>
-          <strong>Notas:</strong> {order.notes}
-        </p>
-      )}
-      <h4>Ítems</h4>
-      <ul className="items-list">
-        {order.items.map((i) => (
-          <li key={i.id}>
-            <span>
-              {i.quantity}x {i.name}
-              {i.sizeLabel ? ` (${i.sizeLabel})` : ''}
-            </span>
-            <strong>{formatMoney(i.lineTotal)}</strong>
-          </li>
-        ))}
-      </ul>
-      <div className="status-actions">
-        {kiosk && order.status === 'pending' && (
-          <>
-            <button
-              type="button"
-              className="admin-btn primary"
-              disabled={saving}
-              onClick={() => onUpdate({ status: 'confirmed' })}
-            >
-              Aceptar
-            </button>
-            <button
-              type="button"
-              className="admin-btn danger"
-              disabled={saving}
-              onClick={() => onUpdate({ status: 'cancelled' })}
-            >
-              Rechazar
-            </button>
-          </>
+        {order.address && (
+          <p>
+            <strong>Dirección:</strong> {order.address}
+          </p>
         )}
-        {ORDER_STATUS_FLOW.map((s) => (
-          <button
-            key={s}
-            type="button"
-            disabled={saving || order.status === s}
-            className={`admin-btn ${order.status === s ? 'primary' : ''}`}
-            onClick={() => onUpdate({ status: s })}
-          >
-            {ORDER_STATUS_LABELS[s]}
+        {order.notes && (
+          <p>
+            <strong>Notas:</strong> {order.notes}
+          </p>
+        )}
+        <h4>Ítems</h4>
+        <ul className="items-list">
+          {order.items.map((i) => (
+            <li key={i.id}>
+              <span>
+                {i.quantity}x {i.name}
+                {i.sizeLabel ? ` (${i.sizeLabel})` : ''}
+              </span>
+              <strong>{formatMoney(i.lineTotal)}</strong>
+            </li>
+          ))}
+        </ul>
+        <div className="status-actions">
+          {kiosk && order.status === 'pending' && (
+            <>
+              <button
+                type="button"
+                className="admin-btn primary"
+                disabled={saving}
+                onClick={() => onUpdate({ status: 'confirmed' })}
+              >
+                Aceptar
+              </button>
+              <button
+                type="button"
+                className="admin-btn danger"
+                disabled={saving}
+                onClick={() => onUpdate({ status: 'cancelled' })}
+              >
+                Rechazar
+              </button>
+            </>
+          )}
+          {ORDER_STATUS_FLOW.map((s) => (
+            <button
+              key={s}
+              type="button"
+              disabled={saving || order.status === s}
+              className={`admin-btn ${order.status === s ? 'primary' : ''}`}
+              onClick={() => onUpdate({ status: s })}
+            >
+              {ORDER_STATUS_LABELS[s]}
+            </button>
+          ))}
+          <button type="button" className="admin-btn" onClick={() => window.print()}>
+            Imprimir ticket 80mm
           </button>
-        ))}
-        <button type="button" className="admin-btn" onClick={() => window.print()}>
-          Imprimir ticket
-        </button>
+        </div>
+      </div>
+
+      <div className="pos-ticket" id="print-order" aria-hidden="true">
+        <div className="pos-ticket-inner">
+          <p className="pos-brand">CHIVITOSPRO</p>
+          <p className="pos-line">Salto, Uruguay</p>
+          <p className="pos-sep">--------------------------------</p>
+          <p>
+            <strong>PEDIDO #{order.id.slice(0, 8).toUpperCase()}</strong>
+          </p>
+          <p>{when}</p>
+          <p>{ORDER_STATUS_LABELS[order.status] || order.status}</p>
+          <p className="pos-sep">--------------------------------</p>
+          <p>Cliente: {order.customerName || '—'}</p>
+          <p>Tel: {order.phone || '—'}</p>
+          <p>Tipo: {order.fulfillment === 'delivery' ? 'DELIVERY' : 'RETIRO'}</p>
+          <p>
+            Horario:{' '}
+            {order.schedule === 'now' ? 'Lo antes posible' : order.scheduleTime || 'Programado'}
+          </p>
+          <p>Pago: {order.payment}</p>
+          {order.address ? <p>Dir: {order.address}</p> : null}
+          {order.notes ? <p>Notas: {order.notes}</p> : null}
+          <p className="pos-sep">--------------------------------</p>
+          {order.items.map((i) => (
+            <div key={i.id} className="pos-item">
+              <div className="pos-item-row">
+                <span>
+                  {i.quantity}x {i.name}
+                  {i.sizeLabel ? ` (${i.sizeLabel})` : ''}
+                </span>
+                <span>{formatMoney(i.lineTotal)}</span>
+              </div>
+              {modifierLines(i.modifiers).map((line, idx) => (
+                <p key={`${i.id}-m-${idx}`} className="pos-mod">
+                  {line}
+                </p>
+              ))}
+              {i.notes ? <p className="pos-mod">  * {i.notes}</p> : null}
+            </div>
+          ))}
+          <p className="pos-sep">--------------------------------</p>
+          {order.subtotal != null && (
+            <div className="pos-item-row">
+              <span>Subtotal</span>
+              <span>{formatMoney(order.subtotal)}</span>
+            </div>
+          )}
+          {order.discount > 0 && (
+            <div className="pos-item-row">
+              <span>Descuento</span>
+              <span>-{formatMoney(order.discount)}</span>
+            </div>
+          )}
+          {order.deliveryFee > 0 && (
+            <div className="pos-item-row">
+              <span>Envío</span>
+              <span>{formatMoney(order.deliveryFee)}</span>
+            </div>
+          )}
+          <div className="pos-item-row pos-total">
+            <span>TOTAL</span>
+            <span>{formatMoney(order.total)}</span>
+          </div>
+          <p className="pos-sep">--------------------------------</p>
+          <p className="pos-thanks">Gracias por tu pedido</p>
+          <p className="pos-line">www — ChivitosPro</p>
+        </div>
       </div>
     </div>
   )
