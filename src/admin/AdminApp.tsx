@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   adminLogin,
@@ -60,6 +60,7 @@ import {
   TipsDepositView,
   ToggleServiceView,
 } from './tumenuViews'
+import { RailIcon } from './RailIcon'
 
 export function AdminApp() {
   const navigate = useNavigate()
@@ -87,7 +88,7 @@ export function AdminApp() {
   const [toast, setToast] = useState('')
   const [error, setError] = useState('')
   const [devOpen, setDevOpen] = useState(false)
-  const [devTitle, setDevTitle] = useState('SecciÃ³n en desarrollo')
+  const [devTitle, setDevTitle] = useState('Sección en desarrollo')
   const knownOrderIds = useRef<Set<string>>(new Set())
   const [flashOrderIds, setFlashOrderIds] = useState<string[]>([])
   const audioCtx = useRef<AudioContext | null>(null)
@@ -98,7 +99,7 @@ export function AdminApp() {
   }
 
   const showDev = (title?: string) => {
-    setDevTitle(title || 'SecciÃ³n en desarrollo')
+    setDevTitle(title || 'Sección en desarrollo')
     setDevOpen(true)
   }
 
@@ -317,7 +318,7 @@ export function AdminApp() {
     try {
       await updateRestaurant({ settings: { ...settings, ...partial } })
       await refreshMenu()
-      notify('ConfiguraciÃ³n guardada')
+      notify('Configuración guardada')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error')
     } finally {
@@ -328,7 +329,7 @@ export function AdminApp() {
   if (booting) {
     return (
       <div className="admin-shell">
-        <p className="admin-muted">Cargando panelâ€¦</p>
+        <p className="admin-muted">Cargando panel…</p>
       </div>
     )
   }
@@ -341,7 +342,7 @@ export function AdminApp() {
             <img src="/logo.png" alt="ChivitosPro" className="admin-logo" />
             <div>
               <h1>ChivitosPro Admin</h1>
-              <p>Admin u empleado Â· panel de operaciones</p>
+              <p>Admin u empleado · panel de operaciones</p>
             </div>
           </div>
           <label>
@@ -355,7 +356,7 @@ export function AdminApp() {
             />
           </label>
           <label>
-            ContraseÃ±a
+            Contraseña
             <input
               type="password"
               value={password}
@@ -382,42 +383,69 @@ export function AdminApp() {
       {toast && <div className="admin-toast">{toast}</div>}
 
       <aside className="tm-rail">
+        <img src="/logo.png" alt="" className="tm-rail-logo" />
         {modules.map((mod) => (
           <button
             key={mod.id}
             type="button"
             className={`tm-rail-btn ${activeModule === mod.id ? 'active' : ''} ${
-              mod.id === 'reports' && flashCount ? 'nav-flash' : ''
-            }`}
+              moduleArmed === mod.id ? 'armed' : ''
+            } ${mod.id === 'reports' && flashCount ? 'nav-flash' : ''}`}
             title={mod.label}
+            aria-label={mod.label}
             onClick={() => {
-              if (moduleArmed === mod.id || activeModule === mod.id) {
+              // PDF: primer clic = tooltip; segundo clic = navegar
+              if (moduleArmed === mod.id) {
                 setActiveModule(mod.id)
                 setModuleArmed(null)
                 const first = mod.groups[0]?.items[0]?.id
-                if (first && activeModule !== mod.id) goSection(first)
-              } else {
-                setModuleArmed(mod.id)
-                window.setTimeout(() => setModuleArmed(null), 1800)
-                setActiveModule(mod.id)
+                if (first) goSection(first)
+                return
               }
+              if (activeModule === mod.id) {
+                setModuleArmed(null)
+                return
+              }
+              setModuleArmed(mod.id)
+              window.setTimeout(() => {
+                setModuleArmed((cur) => (cur === mod.id ? null : cur))
+              }, 2000)
             }}
           >
-            <span aria-hidden>{mod.icon}</span>
-            {moduleArmed === mod.id ? <em className="tm-tooltip">{mod.label}</em> : null}
+            <RailIcon name={mod.icon} />
+            <em className="tm-tooltip">{mod.label}</em>
           </button>
         ))}
       </aside>
 
+      <header className="tm-topbar">
+        <div className="tm-topbar-brand">
+          ChivitosPro
+          <small>▾</small>
+          {admin.role === 'empleado' ? <small>· Empleado</small> : null}
+        </div>
+        <div className="tm-topbar-actions">
+          {flashCount > 0 ? (
+            <button type="button" className="tm-help-btn" onClick={() => goSection('report-orders')}>
+              {flashCount} pedido{flashCount === 1 ? '' : 's'} nuevo{flashCount === 1 ? '' : 's'}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="tm-help-btn"
+            onClick={() => showDev('Estamos encantados de ayudarte')}
+          >
+            Ayuda
+          </button>
+        </div>
+      </header>
+
       <aside className="admin-sidebar scroll tm-submenu">
-        <div className="admin-brand compact">
-          <img src="/logo.png" alt="ChivitosPro" className="admin-logo" />
+        <div className="tm-brand">
+          <img src="/logo.png" alt="ChivitosPro" />
           <div>
-            <strong>ChivitosPro â–¾</strong>
-            <small>
-              {admin.name}
-              {admin.role === 'empleado' ? ' Â· Empleado' : ''}
-            </small>
+            <strong>{modules.find((m) => m.id === activeModule)?.label || 'Panel'}</strong>
+            <small>{admin.name}</small>
           </div>
         </div>
 
@@ -435,7 +463,7 @@ export function AdminApp() {
                 }`}
                 onClick={() => goSection(item.id)}
               >
-                {item.label}
+                <span>{item.label}</span>
                 {(item.id === 'report-orders' || item.id === 'take-orders-app') && flashCount > 0 ? (
                   <em className="nav-new">
                     {flashCount} nuevo{flashCount === 1 ? '' : 's'}
@@ -551,17 +579,17 @@ export function AdminApp() {
             <header className="admin-header">
               <div>
                 <h2>Vista previa & Pedido de prueba</h2>
-                <p>AbrÃ­ la app cliente para validar el menÃº publicado</p>
+                <p>Abrí la app cliente para validar el menú publicado</p>
               </div>
             </header>
             <div className="admin-card settings-form">
               <p className="admin-muted">
-                El menÃº pÃºblico usa los mismos datos que editÃ¡s acÃ¡. PodÃ©s hacer un pedido de prueba
-                desde la app; en local/ngrok verÃ¡s el popup de pedido de prueba (sin WhatsApp real).
+                El menú público usa los mismos datos que editás acá. Podés hacer un pedido de prueba
+                desde la app; en local/ngrok verás el popup de pedido de prueba (sin WhatsApp real).
               </p>
               <div className="row-2">
                 <button type="button" className="admin-btn primary" onClick={() => navigate('/menu')}>
-                  Abrir menÃº cliente
+                  Abrir menú cliente
                 </button>
                 <button type="button" className="admin-btn" onClick={() => navigate('/checkout')}>
                   Ir a checkout de prueba
@@ -600,6 +628,11 @@ export function AdminApp() {
               menu={menu}
               settings={settings}
               saving={saving}
+              onSaveRestaurant={async (patch) => {
+                await updateRestaurant(patch)
+                await refreshMenu()
+                notify('Guardado')
+              }}
               onSaveSettings={patchSettings}
             />
           )}
@@ -607,7 +640,7 @@ export function AdminApp() {
         {section === 'schedules-pickup' && (
           <ToggleServiceView
             title="Recoger"
-            description="Â¿Ofrecen recogida desde su ubicaciÃ³n?"
+            description="¿Ofrecen recogida desde su ubicación?"
             flag="pickupEnabled"
             settings={settings}
             saving={saving}
@@ -633,7 +666,7 @@ export function AdminApp() {
         {section === 'schedules-dinein' && (
           <ToggleServiceView
             title="Local"
-            description="Â¿Ofrecen servicios locales? (pedir desde la mesa)"
+            description="¿Ofrecen servicios locales? (pedir desde la mesa)"
             flag="dineInEnabled"
             settings={settings}
             saving={saving}
@@ -654,7 +687,7 @@ export function AdminApp() {
                   className={`tm-toggle ${settings.dineInAnonymous ? 'on' : 'off'}`}
                   onClick={() => patchSettings({ dineInAnonymous: !settings.dineInAnonymous })}
                 >
-                  {settings.dineInAnonymous ? 'SÃ­' : 'No'}
+                  {settings.dineInAnonymous ? 'Sí' : 'No'}
                 </button>
               </label>
             ) : null}
@@ -668,7 +701,7 @@ export function AdminApp() {
         {section === 'schedules-scheduled' && (
           <ToggleServiceView
             title="Pedidos programados"
-            description="Permitir a los clientes solicitar un tiempo de cumplimiento especÃ­fico"
+            description="Permitir a los clientes solicitar un tiempo de cumplimiento específico"
             flag="scheduledOrdersEnabled"
             settings={settings}
             saving={saving}
@@ -787,7 +820,7 @@ function DashboardView({
       <header className="admin-header">
         <div>
           <h2>Dashboard</h2>
-          <p>Rendimiento en vivo Â· auto-actualiza</p>
+          <p>Rendimiento en vivo · auto-actualiza</p>
         </div>
         <button type="button" className="admin-btn" onClick={onRefresh}>
           Actualizar
@@ -803,7 +836,7 @@ function DashboardView({
           <strong>{dash.kpis.ordersToday}</strong>
         </div>
         <div className="kpi">
-          <span>Ventas 7 dÃ­as</span>
+          <span>Ventas 7 días</span>
           <strong>{formatMoney(dash.kpis.salesWeek)}</strong>
         </div>
         <div className="kpi">
@@ -821,7 +854,7 @@ function DashboardView({
       </div>
       <div className="admin-grid-2">
         <div className="admin-card">
-          <h3>Ventas Ãºltimos 7 dÃ­as</h3>
+          <h3>Ventas últimos 7 días</h3>
           <div className="bars">
             {dash.salesByDay.map((d) => (
               <div key={d.date} className="bar-col">
@@ -832,7 +865,7 @@ function DashboardView({
           </div>
         </div>
         <div className="admin-card">
-          <h3>MÃ¡s vendidos</h3>
+          <h3>Más vendidos</h3>
           <ul className="rank-list">
             {dash.topProducts.map((p, i) => (
               <li key={p.name}>
@@ -840,7 +873,7 @@ function DashboardView({
                   <em>{i + 1}</em> {p.name}
                 </span>
                 <strong>
-                  {p.qty} Â· {formatMoney(p.revenue)}
+                  {p.qty} · {formatMoney(p.revenue)}
                 </strong>
               </li>
             ))}
@@ -878,7 +911,7 @@ function ClientsView({
       <header className="admin-header">
         <div>
           <h2>Clientes</h2>
-          <p>Quienes pidieron desde la app Â· nombre, Ãºltima compra y WhatsApp</p>
+          <p>Quienes pidieron desde la app · nombre, última compra y WhatsApp</p>
         </div>
         <button type="button" className="admin-btn" onClick={onRefresh}>
           Actualizar
@@ -887,7 +920,7 @@ function ClientsView({
 
       <div className="filters">
         <input
-          placeholder="Buscar por nombre o telÃ©fono"
+          placeholder="Buscar por nombre o teléfono"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && onRefresh()}
@@ -900,7 +933,7 @@ function ClientsView({
       <div className="admin-card list clients-list">
         {customers.length === 0 ? (
           <p className="admin-muted" style={{ padding: 16 }}>
-            TodavÃ­a no hay clientes. Cuando alguien finalice un pedido en la app, aparece acÃ¡.
+            Todavía no hay clientes. Cuando alguien finalice un pedido en la app, aparece acá.
           </p>
         ) : (
           customers.map((c) => (
@@ -909,9 +942,9 @@ function ClientsView({
                 <strong>{c.name}</strong>
                 <span>
                   {c.phone}
-                  {c.orderCount > 1 ? ` Â· ${c.orderCount} pedidos` : ' Â· 1 pedido'}
+                  {c.orderCount > 1 ? ` · ${c.orderCount} pedidos` : ' · 1 pedido'}
                 </span>
-                <span className="client-last">Ãšltima vez: {formatLastOrder(c.lastOrderAt)}</span>
+                <span className="client-last">Última vez: {formatLastOrder(c.lastOrderAt)}</span>
               </div>
               {c.whatsappUrl ? (
                 <a
@@ -972,9 +1005,9 @@ function OrdersView({
           <h2>{kiosk ? 'App de toma de pedidos' : 'Pedidos'}</h2>
           <p>
             {kiosk
-              ? 'Vista cocina / mostrador Â· sonido al llegar pedido nuevo'
-              : 'GestiÃ³n completa Â· auto-refresh 8s'}
-            {flashSet.size > 0 ? ` Â· ${flashSet.size} nuevo(s) sin ver` : ''}
+              ? 'Vista cocina / mostrador · sonido al llegar pedido nuevo'
+              : 'Gestión completa · auto-refresh 8s'}
+            {flashSet.size > 0 ? ` · ${flashSet.size} nuevo(s) sin ver` : ''}
           </p>
         </div>
         <button type="button" className="admin-btn" onClick={onRefresh}>
@@ -984,7 +1017,7 @@ function OrdersView({
       {!kiosk && (
         <div className="filters">
           <input
-            placeholder="Buscar cliente, telÃ©fono o ID"
+            placeholder="Buscar cliente, teléfono o ID"
             value={orderQuery}
             onChange={(e) => setOrderQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && onRefresh()}
@@ -1016,11 +1049,11 @@ function OrdersView({
             >
               <div>
                 <strong>
-                  {flashSet.has(o.id) ? 'â— NUEVO Â· ' : ''}
+                  {flashSet.has(o.id) ? '● NUEVO · ' : ''}
                   {o.customerName || 'Cliente'}
                 </strong>
                 <span>
-                  {o.fulfillment === 'delivery' ? 'Delivery' : 'Retiro'} Â·{' '}
+                  {o.fulfillment === 'delivery' ? 'Delivery' : 'Retiro'} ·{' '}
                   {new Date(o.createdAt).toLocaleString('es-UY')}
                 </span>
               </div>
@@ -1035,7 +1068,7 @@ function OrdersView({
         </div>
         <div className="admin-card detail">
           {!selectedOrder ? (
-            <p className="admin-muted">SeleccionÃ¡ un pedido</p>
+            <p className="admin-muted">Seleccioná un pedido</p>
           ) : (
             <OrderDetail
               order={selectedOrder}
@@ -1089,7 +1122,7 @@ function OrderDetail({
         <div className="order-detail-top">
           <div>
             <h3>{order.customerName || 'Cliente'}</h3>
-            <p>{order.phone || 'Sin telÃ©fono'}</p>
+            <p>{order.phone || 'Sin teléfono'}</p>
             <small>#{order.id.slice(0, 8)}</small>
           </div>
           <span className={`status-pill status-${order.status}`}>
@@ -1116,7 +1149,7 @@ function OrderDetail({
         </div>
         {order.address && (
           <p>
-            <strong>DirecciÃ³n:</strong> {order.address}
+            <strong>Dirección:</strong> {order.address}
           </p>
         )}
         {order.notes && (
@@ -1124,7 +1157,7 @@ function OrderDetail({
             <strong>Notas:</strong> {order.notes}
           </p>
         )}
-        <h4>Ãtems</h4>
+        <h4>Ítems</h4>
         <ul className="items-list">
           {order.items.map((i) => (
             <li key={i.id}>
@@ -1185,8 +1218,8 @@ function OrderDetail({
           <p>{when}</p>
           <p>{ORDER_STATUS_LABELS[order.status] || order.status}</p>
           <p className="pos-sep">--------------------------------</p>
-          <p>Cliente: {order.customerName || 'â€”'}</p>
-          <p>Tel: {order.phone || 'â€”'}</p>
+          <p>Cliente: {order.customerName || '—'}</p>
+          <p>Tel: {order.phone || '—'}</p>
           <p>Tipo: {order.fulfillment === 'delivery' ? 'DELIVERY' : 'RETIRO'}</p>
           <p>
             Horario:{' '}
@@ -1228,7 +1261,7 @@ function OrderDetail({
           )}
           {order.deliveryFee > 0 && (
             <div className="pos-item-row">
-              <span>EnvÃ­o</span>
+              <span>Envío</span>
               <span>{formatMoney(order.deliveryFee)}</span>
             </div>
           )}
@@ -1238,7 +1271,7 @@ function OrderDetail({
           </div>
           <p className="pos-sep">--------------------------------</p>
           <p className="pos-thanks">Gracias por tu pedido</p>
-          <p className="pos-line">www â€” ChivitosPro</p>
+          <p className="pos-line">www — ChivitosPro</p>
         </div>
       </div>
     </div>
@@ -1348,13 +1381,13 @@ function MenuConfigView({
     <section className="admin-section">
       <header className="admin-header">
         <div>
-          <h2>ConfiguraciÃ³n del menÃº</h2>
+          <h2>Configuración del menú</h2>
           <p>
             {editing
               ? 'Editando producto'
               : openCat
                 ? `Productos en ${openCat.name}`
-                : 'Todas las categorÃ­as Â· tocÃ¡ una para ver sus productos'}
+                : 'Todas las categorías · tocá una para ver sus productos'}
           </p>
         </div>
         <div className="header-actions">
@@ -1374,7 +1407,7 @@ function MenuConfigView({
             className="admin-btn ghost menu-back-btn"
             onClick={() => setEditing(null)}
           >
-            â† Volver a {openCat?.name || 'categorÃ­a'}
+            ← Volver a {openCat?.name || 'categoría'}
           </button>
           <ProductEditor
             item={editing}
@@ -1385,7 +1418,7 @@ function MenuConfigView({
                 setEditing(null)
                 return
               }
-              if (!confirm(`Â¿Seguro que deseas eliminar el producto "${editing.name}"?`)) return
+              if (!confirm(`¿Seguro que deseas eliminar el producto "${editing.name}"?`)) return
               setSaving(true)
               try {
                 await deleteProduct(editing.id)
@@ -1409,7 +1442,7 @@ function MenuConfigView({
               className="admin-btn ghost menu-back-btn"
               onClick={() => setOpenCatId(null)}
             >
-              â† Todas las categorÃ­as
+              ← Todas las categorías
             </button>
             <div className="menu-drill-title">
               <img
@@ -1420,7 +1453,7 @@ function MenuConfigView({
                 <h3>{openCat.name}</h3>
                 <span>
                   {openCat.items.length} producto{openCat.items.length === 1 ? '' : 's'}
-                  {openCat.subtitle ? ` Â· ${openCat.subtitle}` : ''}
+                  {openCat.subtitle ? ` · ${openCat.subtitle}` : ''}
                 </span>
               </div>
             </div>
@@ -1435,7 +1468,7 @@ function MenuConfigView({
 
           {openCat.items.length === 0 ? (
             <p className="admin-muted" style={{ padding: 16 }}>
-              Esta categorÃ­a todavÃ­a no tiene productos. AgregÃ¡ el primero.
+              Esta categoría todavía no tiene productos. Agregá el primero.
             </p>
           ) : (
             openCat.items.map((item, itemIndex) => (
@@ -1445,8 +1478,8 @@ function MenuConfigView({
                   <strong>{item.name}</strong>
                   <span>
                     {formatMoney(item.price)}
-                    {item.modifiers?.length ? ` Â· ${item.modifiers.length} extras` : ''}
-                    {item.description ? ` Â· ${item.description}` : ''}
+                    {item.modifiers?.length ? ` · ${item.modifiers.length} extras` : ''}
+                    {item.description ? ` · ${item.description}` : ''}
                   </span>
                 </div>
                 <div className="product-row-actions">
@@ -1468,7 +1501,7 @@ function MenuConfigView({
                       await refreshMenu()
                     }}
                   >
-                    â†‘
+                    ↑
                   </button>
                   <button
                     type="button"
@@ -1488,7 +1521,7 @@ function MenuConfigView({
                       await refreshMenu()
                     }}
                   >
-                    â†“
+                    ↓
                   </button>
                   <span className={`pill ${item.available === false ? 'off' : 'on'}`}>
                     {item.available === false ? 'Off' : 'On'}
@@ -1510,7 +1543,7 @@ function MenuConfigView({
           <div className="admin-card settings-form" style={{ marginBottom: 16 }}>
             <div className="row-2">
               <input
-                placeholder="Nueva categorÃ­a"
+                placeholder="Nueva categoría"
                 value={newCatName}
                 onChange={(e) => setNewCatName(e.target.value)}
               />
@@ -1524,7 +1557,7 @@ function MenuConfigView({
                     await createCategory({ name: newCatName.trim() })
                     setNewCatName('')
                     await refreshMenu()
-                    notify('CategorÃ­a creada')
+                    notify('Categoría creada')
                   } catch (e) {
                     setError(e instanceof Error ? e.message : 'Error')
                   } finally {
@@ -1532,7 +1565,7 @@ function MenuConfigView({
                   }
                 }}
               >
-                + CategorÃ­a
+                + Categoría
               </button>
             </div>
           </div>
@@ -1548,7 +1581,7 @@ function MenuConfigView({
                     onClick={() => setOpenCatId(cat.id)}
                   >
                     <span className="menu-cat-handle" aria-hidden>
-                      â˜°
+                      ☰
                     </span>
                     <img src={mediaUrl(thumb)} alt="" />
                     <span className="menu-cat-card-text">
@@ -1559,7 +1592,7 @@ function MenuConfigView({
                       </span>
                     </span>
                     <span className="menu-cat-chevron" aria-hidden>
-                      â€º
+                      ›
                     </span>
                   </button>
                   <div className="cat-actions menu-cat-card-actions">
@@ -1577,7 +1610,7 @@ function MenuConfigView({
                         await refreshMenu()
                       }}
                     >
-                      â†‘
+                      ↑
                     </button>
                     <button
                       type="button"
@@ -1593,20 +1626,20 @@ function MenuConfigView({
                         await refreshMenu()
                       }}
                     >
-                      â†“
+                      ↓
                     </button>
                     <button
                       type="button"
                       className="admin-btn danger"
                       title="Eliminar"
                       onClick={async () => {
-                        if (!confirm(`Â¿Seguro que deseas eliminar la categorÃ­a "${cat.name}"?`)) return
+                        if (!confirm(`¿Seguro que deseas eliminar la categoría "${cat.name}"?`)) return
                         await deleteCategory(cat.id)
                         await refreshMenu()
-                        notify('CategorÃ­a eliminada')
+                        notify('Categoría eliminada')
                       }}
                     >
-                      Ã—
+                      ×
                     </button>
                   </div>
                 </div>
@@ -1732,7 +1765,7 @@ function ProductEditor({
           onChange={(e) => onPickFile(e.target.files?.[0] || null)}
         />
       </label>
-      {uploading && <p className="admin-muted">Subiendo imagenâ€¦</p>}
+      {uploading && <p className="admin-muted">Subiendo imagen…</p>}
       {uploadError && <p className="admin-error">{uploadError}</p>}
 
       <label>
@@ -1750,7 +1783,7 @@ function ProductEditor({
         />
       </label>
       <label>
-        DescripciÃ³n
+        Descripción
         <textarea
           rows={3}
           value={form.description}
@@ -1800,7 +1833,7 @@ function ProductEditor({
       </div>
 
       <h4>Subproductos / extras</h4>
-      <p className="admin-muted">Grupos tipo guarniciÃ³n, dips, carnes extrasâ€¦</p>
+      <p className="admin-muted">Grupos tipo guarnición, dips, carnes extras…</p>
       {groups.map((g, gi) => (
         <div key={g.id} className="mod-group-edit">
           <div className="mod-group-head">
@@ -1830,7 +1863,7 @@ function ProductEditor({
             <div key={o.id} className="mod-option-row">
               <input
                 value={o.name}
-                placeholder="OpciÃ³n"
+                placeholder="Opción"
                 onChange={(e) => {
                   const next = [...groups]
                   const opts = [...g.options]
@@ -1856,17 +1889,17 @@ function ProductEditor({
               <button
                 type="button"
                 className="admin-btn ghost icon-del"
-                title="Eliminar opciÃ³n"
-                aria-label={`Eliminar ${o.name || 'opciÃ³n'}`}
+                title="Eliminar opción"
+                aria-label={`Eliminar ${o.name || 'opción'}`}
                 onClick={() => {
-                  const label = o.name.trim() || 'esta opciÃ³n'
-                  if (!confirm(`Â¿Seguro que deseas eliminar "${label}"?`)) return
+                  const label = o.name.trim() || 'esta opción'
+                  if (!confirm(`¿Seguro que deseas eliminar "${label}"?`)) return
                   const next = [...groups]
                   next[gi] = { ...g, options: g.options.filter((_, i) => i !== oi) }
                   setGroups(next)
                 }}
               >
-                Ã—
+                ×
               </button>
             </div>
           ))}
@@ -1878,19 +1911,19 @@ function ProductEditor({
                 const next = [...groups]
                 next[gi] = {
                   ...g,
-                  options: [...g.options, { id: `opt-${Date.now()}`, name: 'Nueva opciÃ³n', price: 0 }],
+                  options: [...g.options, { id: `opt-${Date.now()}`, name: 'Nueva opción', price: 0 }],
                 }
                 setGroups(next)
               }}
             >
-              + OpciÃ³n
+              + Opción
             </button>
             <button
               type="button"
               className="admin-btn danger"
               onClick={() => {
                 const label = g.name.trim() || 'este grupo'
-                if (!confirm(`Â¿Seguro que deseas eliminar el grupo "${label}"?`)) return
+                if (!confirm(`¿Seguro que deseas eliminar el grupo "${label}"?`)) return
                 setGroups(groups.filter((_, i) => i !== gi))
               }}
             >
@@ -1911,7 +1944,7 @@ function ProductEditor({
               required: false,
               min: 0,
               max: 1,
-              options: [{ id: `opt-${Date.now()}`, name: 'OpciÃ³n', price: 0 }],
+              options: [{ id: `opt-${Date.now()}`, name: 'Opción', price: 0 }],
             },
           ])
         }
@@ -1921,7 +1954,7 @@ function ProductEditor({
 
       <div className="product-editor-actions">
         <button type="submit" className="admin-btn primary" disabled={saving || uploading || !form.name.trim()}>
-          {saving ? 'Guardandoâ€¦' : isNew ? 'Crear producto' : 'Guardar cambios'}
+          {saving ? 'Guardando…' : isNew ? 'Crear producto' : 'Guardar cambios'}
         </button>
         <button type="button" className="admin-btn ghost" disabled={saving} onClick={onCancel}>
           Cancelar
@@ -1967,7 +2000,7 @@ function ModifiersView({
       <header className="admin-header">
         <div>
           <h2>Opcionales y agregados</h2>
-          <p>Biblioteca de extras y asignaciÃ³n por producto (como TuMenuWeb)</p>
+          <p>Biblioteca de extras y asignación por producto (como TuMenuWeb)</p>
         </div>
       </header>
       <div className="admin-grid-2">
@@ -1978,7 +2011,7 @@ function ModifiersView({
               <li key={g.id}>
                 <span>
                   <strong>{g.name}</strong>
-                  <small className="admin-muted"> Â· {g.usedBy.length} productos</small>
+                  <small className="admin-muted"> · {g.usedBy.length} productos</small>
                 </span>
                 <strong>{g.options.length} opts</strong>
               </li>
@@ -1991,7 +2024,7 @@ function ModifiersView({
             <select value={productId} onChange={(e) => setProductId(e.target.value)}>
               {products.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.category} Â· {p.name}
+                  {p.category} · {p.name}
                 </option>
               ))}
             </select>
@@ -2048,17 +2081,17 @@ function ModifiersView({
                   <button
                     type="button"
                     className="admin-btn ghost icon-del"
-                    title="Eliminar opciÃ³n"
-                    aria-label={`Eliminar ${o.name || 'opciÃ³n'}`}
+                    title="Eliminar opción"
+                    aria-label={`Eliminar ${o.name || 'opción'}`}
                     onClick={() => {
-                      const label = o.name.trim() || 'esta opciÃ³n'
-                      if (!confirm(`Â¿Seguro que deseas eliminar "${label}"?`)) return
+                      const label = o.name.trim() || 'esta opción'
+                      if (!confirm(`¿Seguro que deseas eliminar "${label}"?`)) return
                       const next = [...groups]
                       next[gi] = { ...g, options: g.options.filter((_, i) => i !== oi) }
                       setGroups(next)
                     }}
                   >
-                    Ã—
+                    ×
                   </button>
                 </div>
               ))}
@@ -2072,20 +2105,20 @@ function ModifiersView({
                       ...g,
                       options: [
                         ...g.options,
-                        { id: `opt-${Date.now()}`, name: 'Nueva opciÃ³n', price: 0 },
+                        { id: `opt-${Date.now()}`, name: 'Nueva opción', price: 0 },
                       ],
                     }
                     setGroups(next)
                   }}
                 >
-                  + OpciÃ³n
+                  + Opción
                 </button>
                 <button
                   type="button"
                   className="admin-btn danger"
                   onClick={() => {
                     const label = g.name.trim() || 'este grupo'
-                    if (!confirm(`Â¿Seguro que deseas eliminar el grupo "${label}"?`)) return
+                    if (!confirm(`¿Seguro que deseas eliminar el grupo "${label}"?`)) return
                     setGroups(groups.filter((_, i) => i !== gi))
                   }}
                 >
@@ -2106,7 +2139,7 @@ function ModifiersView({
                   required: false,
                   min: 0,
                   max: 1,
-                  options: [{ id: `opt-${Date.now()}`, name: 'OpciÃ³n', price: 0 }],
+                  options: [{ id: `opt-${Date.now()}`, name: 'Opción', price: 0 }],
                 },
               ])
             }
@@ -2206,7 +2239,7 @@ function ProfileView({
           <input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
         </label>
         <label>
-          DirecciÃ³n
+          Dirección
           <input
             value={form.address}
             onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
@@ -2214,7 +2247,7 @@ function ProfileView({
         </label>
         <div className="row-2">
           <label>
-            TelÃ©fono
+            Teléfono
             <input
               value={form.phone}
               onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
@@ -2427,7 +2460,7 @@ function AlertCallView({
           App de toma de pedidos
         </label>
         <label>
-          NÃºmero del supervisor
+          Número del supervisor
           <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+598 ..." />
         </label>
         <div className="row-2">
@@ -2437,10 +2470,10 @@ function AlertCallView({
             disabled={saving}
             onClick={() => onSave({ alertPhone: phone })}
           >
-            Guardar nÃºmero
+            Guardar número
           </button>
-          <button type="button" className="admin-btn" onClick={() => showDev('Escuchar notificaciÃ³n / llamada')}>
-            Escuchar notificaciÃ³nâ€¦
+          <button type="button" className="admin-btn" onClick={() => showDev('Escuchar notificación / llamada')}>
+            Escuchar notificación…
           </button>
         </div>
       </div>
@@ -2454,7 +2487,7 @@ function ReportsView({ reports }: { reports: Awaited<ReturnType<typeof fetchRepo
       <header className="admin-header">
         <div>
           <h2>Reportes</h2>
-          <p>Ãšltimos {reports.days} dÃ­as</p>
+          <p>Últimos {reports.days} días</p>
         </div>
       </header>
       <div className="kpi-grid">
@@ -2488,7 +2521,7 @@ function ReportsView({ reports }: { reports: Awaited<ReturnType<typeof fetchRepo
                 <em>{i + 1}</em> {p.name}
               </span>
               <strong>
-                {p.qty} Â· {formatMoney(p.revenue)}
+                {p.qty} · {formatMoney(p.revenue)}
               </strong>
             </li>
           ))}

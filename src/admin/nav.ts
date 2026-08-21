@@ -117,7 +117,7 @@ export const MODULES: NavModule[] = [
   {
     id: 'config',
     label: 'Configuración',
-    icon: '⚙',
+    icon: 'settings',
     groups: [
       {
         id: 'perfil',
@@ -193,7 +193,7 @@ export const MODULES: NavModule[] = [
   {
     id: 'marketing',
     label: 'Herramientas de marketing',
-    icon: '◎',
+    icon: 'marketing',
     groups: [
       {
         id: 'kickstarter',
@@ -241,7 +241,7 @@ export const MODULES: NavModule[] = [
   {
     id: 'reports',
     label: 'Reportes',
-    icon: '▤',
+    icon: 'reports',
     groups: [
       {
         id: 'dash',
@@ -295,7 +295,7 @@ export const MODULES: NavModule[] = [
   {
     id: 'online',
     label: 'Pedidos en línea',
-    icon: '◉',
+    icon: 'online',
     groups: [
       {
         id: 'print',
@@ -332,7 +332,7 @@ export const MODULES: NavModule[] = [
   {
     id: 'other',
     label: 'Otro',
-    icon: '⋯',
+    icon: 'other',
     groups: [
       {
         id: 'general',

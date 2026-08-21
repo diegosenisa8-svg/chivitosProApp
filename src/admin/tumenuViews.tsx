@@ -69,7 +69,7 @@ function WizardCard({
         </div>
         {onNext ? (
           <button type="button" className="admin-btn primary tm-next" disabled={saving} onClick={onNext}>
-            {saving ? 'Guardando…' : nextLabel}
+            {saving ? 'Guardando…' : nextLabel === 'Siguiente' ? 'Siguiente →' : nextLabel}
           </button>
         ) : null}
       </header>
