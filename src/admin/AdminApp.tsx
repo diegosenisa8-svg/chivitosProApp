@@ -174,14 +174,14 @@ export function AdminApp() {
   useEffect(() => {
     if (!admin) return
     // Empleado: siempre poll de pedidos para titilar "nuevo"
-    const pollOrders =
-      section === 'orders' ||
-      section === 'take-orders' ||
-      section === 'dashboard' ||
-      admin.role === 'empleado'
-    if (!pollOrders && section !== 'dashboard') return
+    const isEmployee = admin.role === 'empleado'
+    const onOrdersView = section === 'orders' || section === 'take-orders'
+    const onDashboard = section === 'dashboard' && !isEmployee
+    const pollOrders = onOrdersView || isEmployee || section === 'dashboard'
+    if (!pollOrders && !onDashboard) return
+
     const id = window.setInterval(() => {
-      if (section === 'dashboard' && admin.role !== 'empleado') refreshDashboard().catch(() => {})
+      if (onDashboard) refreshDashboard().catch(() => {})
       if (pollOrders) refreshOrders().catch(() => {})
     }, 8000)
     return () => window.clearInterval(id)
