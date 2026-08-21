@@ -37,7 +37,7 @@ export const NAV: NavItem[] = [
   { id: 'payments-taxes', label: 'Payment methods & taxes', group: 'config' },
   { id: 'alert-call', label: 'Llamada de alerta', group: 'config' },
   { id: 'publish', label: 'Publicar en', group: 'config' },
-  { id: 'pagos', label: 'Pagos (MP / PayPal)', group: 'config', prodOnly: true },
+  { id: 'pagos', label: 'Pagos (Mercado Pago)', group: 'config' },
   { id: 'reports', label: 'Reportes', group: 'growth' },
   { id: 'marketing', label: 'Marketing / Kickstarter', group: 'growth', prodOnly: true },
 ]

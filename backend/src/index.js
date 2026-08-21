@@ -9,6 +9,14 @@ import { mapMenu } from './lib/menu.js'
 import { hashPassword } from './lib/auth.js'
 import { upsertCustomerFromOrder } from './lib/customers.js'
 import { askAssistant } from './lib/assistant.js'
+import {
+  createMercadoPagoPayment,
+  getMpCredentials,
+  getPublicPaymentConfig,
+  isBinBlocked,
+  normalizeBin,
+} from './lib/mercadopago.js'
+import { mergeSettings } from './lib/settings.js'
 import adminRoutes from './routes/admin.js'
 
 const app = express()
@@ -54,6 +62,7 @@ app.get('/', (_req, res) => {
     health: '/health',
     menu: '/api/menu',
     orders: '/api/orders',
+    payments: '/api/payments',
     assistant: '/api/assistant/chat',
     admin: '/api/admin',
   })
@@ -174,6 +183,123 @@ app.post('/api/orders', async (req, res) => {
     }
     console.error(err)
     res.status(500).json({ error: 'Failed to create order' })
+  }
+})
+
+app.get('/api/payments/config', async (_req, res) => {
+  try {
+    const restaurant = await prisma.restaurant.findUnique({ where: { id: 1 } })
+    if (!restaurant) return res.status(404).json({ error: 'Restaurant not found' })
+    res.json(getPublicPaymentConfig(restaurant.settings))
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'No se pudo cargar config de pagos' })
+  }
+})
+
+app.post('/api/payments/mercadopago', async (req, res) => {
+  try {
+    const body = z
+      .object({
+        orderId: z.string().min(1),
+        token: z.string().min(1),
+        paymentMethodId: z.string().min(1),
+        issuerId: z.union([z.string(), z.number()]).optional(),
+        installments: z.number().int().positive().default(1),
+        bin: z.string().optional(),
+        payerEmail: z.string().email().optional(),
+      })
+      .parse(req.body)
+
+    const restaurant = await prisma.restaurant.findUnique({ where: { id: 1 } })
+    if (!restaurant) return res.status(404).json({ error: 'Restaurant not found' })
+
+    const settings = mergeSettings(restaurant.settings)
+    const { configured } = getMpCredentials()
+    if (!settings.paymentMethods?.mercadoPago || !configured) {
+      return res.status(503).json({ error: 'Mercado Pago no está habilitado' })
+    }
+
+    const bin = normalizeBin(body.bin)
+    if (isBinBlocked(bin, settings.mercadoPago.blockedBins)) {
+      return res.status(403).json({
+        error: 'BIN_BLOCKED',
+        message: settings.mercadoPago.blockedMessage,
+      })
+    }
+
+    const order = await prisma.order.findUnique({
+      where: { id: body.orderId },
+      include: { items: true },
+    })
+    if (!order) return res.status(404).json({ error: 'Pedido no encontrado' })
+    if (order.status === 'cancelled') {
+      return res.status(400).json({ error: 'El pedido está cancelado' })
+    }
+
+    const payment = await createMercadoPagoPayment({
+      token: body.token,
+      transactionAmount: order.total,
+      installments: body.installments,
+      paymentMethodId: body.paymentMethodId,
+      issuerId: body.issuerId,
+      payerEmail: body.payerEmail || undefined,
+      description: `Pedido ${order.id.slice(0, 8)} — ChivitosPro`,
+      externalReference: order.id,
+      bin,
+    })
+
+    const mpStatus = String(payment.status || '')
+    const approved = mpStatus === 'approved'
+    const pending = ['pending', 'in_process', 'in_mediation'].includes(mpStatus)
+
+    const prevPayload =
+      order.payload && typeof order.payload === 'object' && !Array.isArray(order.payload)
+        ? order.payload
+        : {}
+
+    const updated = await prisma.order.update({
+      where: { id: order.id },
+      data: {
+        payment: 'mercadopago',
+        status: approved ? 'confirmed' : pending ? 'pending' : order.status,
+        payload: {
+          ...prevPayload,
+          mercadoPago: {
+            paymentId: payment.id,
+            status: mpStatus,
+            statusDetail: payment.status_detail,
+            paymentMethodId: body.paymentMethodId,
+            bin: bin || null,
+          },
+        },
+      },
+    })
+
+    if (!approved && !pending) {
+      return res.status(402).json({
+        error: 'Pago rechazado',
+        status: mpStatus,
+        statusDetail: payment.status_detail,
+        orderId: order.id,
+        mpPaymentId: payment.id,
+      })
+    }
+
+    res.json({
+      orderId: updated.id,
+      status: updated.status,
+      mpPaymentId: payment.id,
+      mpStatus,
+      approved,
+      pending,
+    })
+  } catch (err) {
+    if (err?.name === 'ZodError') {
+      return res.status(400).json({ error: 'Datos de pago inválidos', details: err.issues })
+    }
+    console.error('MP payment error', err)
+    res.status(500).json({ error: err?.message || 'No se pudo procesar el pago' })
   }
 })
 

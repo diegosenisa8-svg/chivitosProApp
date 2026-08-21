@@ -269,6 +269,19 @@ export async function fetchCustomers(q = '') {
   return adminFetch<AdminCustomer[]>(`/customers${qs}`)
 }
 
+export type MercadoPagoAdminStatus = {
+  enabled: boolean
+  configured: boolean
+  hasPublicKey: boolean
+  hasAccessToken: boolean
+  blockedBins: string[]
+  blockedMessage: string
+}
+
+export async function fetchMercadoPagoStatus() {
+  return adminFetch<MercadoPagoAdminStatus>('/payments/mercadopago-status')
+}
+
 export const ORDER_STATUS_LABELS: Record<string, string> = {
   pending: 'Pendiente',
   confirmed: 'Confirmado',

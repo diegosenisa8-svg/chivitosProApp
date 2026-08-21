@@ -9,6 +9,7 @@ import { requireAdmin } from '../middleware/auth.js'
 import { mapMenu } from '../lib/menu.js'
 import { mergeSettings, slugify } from '../lib/settings.js'
 import { syncCustomersFromOrders, whatsappUrlForPhone } from '../lib/customers.js'
+import { getMpCredentials } from '../lib/mercadopago.js'
 
 const router = Router()
 
@@ -230,6 +231,10 @@ router.patch('/restaurant', requireAdmin, async (req, res) => {
           ...mergeSettings(current?.settings).paymentMethods,
           ...(body.settings.paymentMethods || {}),
         },
+        mercadoPago: {
+          ...mergeSettings(current?.settings).mercadoPago,
+          ...(body.settings.mercadoPago || {}),
+        },
         taxes: {
           ...mergeSettings(current?.settings).taxes,
           ...(body.settings.taxes || {}),
@@ -266,6 +271,21 @@ router.get('/settings', requireAdmin, async (_req, res) => {
   const restaurant = await prisma.restaurant.findUnique({ where: { id: 1 } })
   if (!restaurant) return res.status(404).json({ error: 'Restaurant not found' })
   res.json(mergeSettings(restaurant.settings))
+})
+
+router.get('/payments/mercadopago-status', requireAdmin, async (_req, res) => {
+  const restaurant = await prisma.restaurant.findUnique({ where: { id: 1 } })
+  if (!restaurant) return res.status(404).json({ error: 'Restaurant not found' })
+  const settings = mergeSettings(restaurant.settings)
+  const creds = getMpCredentials()
+  res.json({
+    enabled: Boolean(settings.paymentMethods?.mercadoPago),
+    configured: creds.configured,
+    hasPublicKey: Boolean(creds.publicKey),
+    hasAccessToken: Boolean(creds.accessToken),
+    blockedBins: settings.mercadoPago?.blockedBins || [],
+    blockedMessage: settings.mercadoPago?.blockedMessage || '',
+  })
 })
 
 router.patch('/products/:id', requireAdmin, async (req, res) => {

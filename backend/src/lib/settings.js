@@ -27,6 +27,11 @@ export const DEFAULT_SETTINGS = {
     mercadoPago: false,
     paypal: false,
   },
+  mercadoPago: {
+    blockedBins: [],
+    blockedMessage:
+      'Para pagar con BROU Recompensa y acceder al 20% de descuento, seleccioná pago con POS.',
+  },
   taxes: { enabled: false, rate: 0, label: 'IVA' },
   marketing: {
     firstOrderPromo: true,
@@ -49,6 +54,20 @@ export function mergeSettings(raw) {
     paymentMethods: {
       ...DEFAULT_SETTINGS.paymentMethods,
       ...(incoming.paymentMethods || {}),
+    },
+    mercadoPago: {
+      ...DEFAULT_SETTINGS.mercadoPago,
+      ...(incoming.mercadoPago || {}),
+      blockedBins: Array.isArray(incoming.mercadoPago?.blockedBins)
+        ? incoming.mercadoPago.blockedBins
+            .map((b) => String(b).replace(/\D/g, ''))
+            .filter((b) => b.length >= 4 && b.length <= 8)
+        : DEFAULT_SETTINGS.mercadoPago.blockedBins,
+      blockedMessage:
+        typeof incoming.mercadoPago?.blockedMessage === 'string' &&
+        incoming.mercadoPago.blockedMessage.trim()
+          ? incoming.mercadoPago.blockedMessage.trim()
+          : DEFAULT_SETTINGS.mercadoPago.blockedMessage,
     },
     taxes: { ...DEFAULT_SETTINGS.taxes, ...(incoming.taxes || {}) },
     marketing: { ...DEFAULT_SETTINGS.marketing, ...(incoming.marketing || {}) },

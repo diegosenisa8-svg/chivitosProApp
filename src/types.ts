@@ -85,6 +85,10 @@ export type RestaurantSettings = {
     active: boolean
   }[]
   paymentMethods?: Record<string, boolean>
+  mercadoPago?: {
+    blockedBins?: string[]
+    blockedMessage?: string
+  }
   taxes?: { enabled: boolean; rate: number; label: string }
   marketing?: Record<string, boolean>
   publish?: Record<string, boolean>
@@ -124,6 +128,6 @@ export type CheckoutInfo = {
   address: string
   schedule: 'now' | 'later'
   scheduleTime: string
-  payment: 'efectivo' | 'pos' | 'transferencia'
+  payment: 'efectivo' | 'pos' | 'transferencia' | 'mercadopago'
   notes: string
 }

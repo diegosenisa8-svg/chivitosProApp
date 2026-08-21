@@ -12,6 +12,7 @@ import {
   fetchCustomers,
   fetchDashboard,
   fetchModifierLibrary,
+  fetchMercadoPagoStatus,
   fetchReports,
   getAdminToken,
   ORDER_STATUS_FLOW,
@@ -27,6 +28,7 @@ import {
   type AdminOrder,
   type AdminUser,
   type DashboardData,
+  type MercadoPagoAdminStatus,
 } from '../lib/adminApi'
 import { mediaUrl } from '../lib/apiBase'
 import { formatMoney } from '../lib/format'
@@ -48,6 +50,7 @@ export function AdminApp() {
   const [orders, setOrders] = useState<AdminOrder[]>([])
   const [customers, setCustomers] = useState<AdminCustomer[]>([])
   const [customerQuery, setCustomerQuery] = useState('')
+  const [mpStatus, setMpStatus] = useState<MercadoPagoAdminStatus | null>(null)
   const [menu, setMenu] = useState<MenuData | null>(null)
   const [library, setLibrary] = useState<Awaited<ReturnType<typeof fetchModifierLibrary>>>([])
   const [reports, setReports] = useState<Awaited<ReturnType<typeof fetchReports>> | null>(null)
@@ -136,6 +139,7 @@ export function AdminApp() {
         if (section === 'dashboard') await refreshDashboard()
         if (section === 'orders' || section === 'take-orders') await refreshOrders()
         if (section === 'clients') await refreshCustomers()
+        if (section === 'pagos') setMpStatus(await fetchMercadoPagoStatus())
         if (
           section === 'menu' ||
           section === 'modifiers' ||
@@ -145,15 +149,14 @@ export function AdminApp() {
           section === 'payments-taxes' ||
           section === 'alert-call' ||
           section === 'publish' ||
-          section === 'preview'
+          section === 'preview' ||
+          section === 'pagos'
         ) {
           await refreshMenu()
         }
         if (section === 'modifiers') setLibrary(await fetchModifierLibrary())
         if (section === 'reports') setReports(await fetchReports(30))
-        if (section === 'pagos' || section === 'marketing') showDev(
-          section === 'pagos' ? 'Mercado Pago / PayPal' : 'Marketing / Kickstarter',
-        )
+        if (section === 'marketing') showDev('Marketing / Kickstarter')
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Error')
       }
@@ -450,11 +453,24 @@ export function AdminApp() {
           <PublishView settings={settings} saving={saving} onSave={patchSettings} showDev={showDev} />
         )}
 
-        {(section === 'pagos' || section === 'marketing') && (
+        {section === 'pagos' && menu && (
+          <PagosMpView
+            settings={settings}
+            mpStatus={mpStatus}
+            saving={saving}
+            onSave={async (partial) => {
+              await patchSettings(partial)
+              setMpStatus(await fetchMercadoPagoStatus())
+            }}
+            onRefreshStatus={async () => setMpStatus(await fetchMercadoPagoStatus())}
+          />
+        )}
+
+        {section === 'marketing' && (
           <section className="admin-section">
             <header className="admin-header">
               <div>
-                <h2>{section === 'pagos' ? 'Pagos' : 'Marketing'}</h2>
+                <h2>Marketing</h2>
                 <p>Disponible al pasar a producción con credenciales reales</p>
               </div>
               <button type="button" className="admin-btn primary" onClick={() => showDev()}>
@@ -462,19 +478,10 @@ export function AdminApp() {
               </button>
             </header>
             <div className="admin-card settings-form">
-              {section === 'pagos' ? (
-                <>
-                  <ProviderRow name="Mercado Pago" status="Pendiente" onClick={() => showDev('Mercado Pago')} />
-                  <ProviderRow name="PayPal" status="Pendiente" onClick={() => showDev('PayPal')} />
-                </>
-              ) : (
-                <>
-                  <ProviderRow name="Kickstarter / 1ª compra" status="Demo" onClick={() => showDev('Kickstarter')} />
-                  <ProviderRow name="Autopilot" status="Demo" onClick={() => showDev('Autopilot')} />
-                  <ProviderRow name="Google Business" status="Demo" onClick={() => showDev('Google Business')} />
-                  <ProviderRow name="Códigos QR y Flyers" status="Demo" onClick={() => showDev('QR y Flyers')} />
-                </>
-              )}
+              <ProviderRow name="Kickstarter / 1ª compra" status="Demo" onClick={() => showDev('Kickstarter')} />
+              <ProviderRow name="Autopilot" status="Demo" onClick={() => showDev('Autopilot')} />
+              <ProviderRow name="Google Business" status="Demo" onClick={() => showDev('Google Business')} />
+              <ProviderRow name="Códigos QR y Flyers" status="Demo" onClick={() => showDev('QR y Flyers')} />
             </div>
           </section>
         )}
@@ -2094,8 +2101,14 @@ function PaymentsTaxesView({
           </label>
         ))}
         <label className="check">
-          <input type="checkbox" checked={false} onChange={() => showDev('Mercado Pago')} />
-          Mercado Pago (producción)
+          <input
+            type="checkbox"
+            checked={!!pm.mercadoPago}
+            onChange={(e) =>
+              onSave({ paymentMethods: { ...pm, mercadoPago: e.target.checked } })
+            }
+          />
+          Mercado Pago (configurá BINs en Pagos)
         </label>
         <label className="check">
           <input type="checkbox" checked={false} onChange={() => showDev('PayPal')} />
@@ -2106,13 +2119,188 @@ function PaymentsTaxesView({
             type="checkbox"
             checked={!!settings.taxes?.enabled}
             onChange={(e) =>
-              onSave({ taxes: { ...(settings.taxes || { rate: 0, label: 'IVA' }), enabled: e.target.checked } })
+              onSave({
+                taxes: {
+                  enabled: e.target.checked,
+                  rate: settings.taxes?.rate || 0,
+                  label: settings.taxes?.label || 'IVA',
+                },
+              })
             }
           />
-          Impuestos habilitados
+          Impuestos
         </label>
-        <button type="button" className="admin-btn primary" disabled={saving} onClick={() => onSave({})}>
-          Guardado automático al marcar
+        {settings.taxes?.enabled && (
+          <div className="row-2">
+            <label className="field">
+              <span>Label</span>
+              <input
+                value={settings.taxes.label || 'IVA'}
+                onChange={(e) =>
+                  onSave({
+                    taxes: { ...settings.taxes!, label: e.target.value },
+                  })
+                }
+              />
+            </label>
+            <label className="field">
+              <span>Tasa %</span>
+              <input
+                type="number"
+                value={settings.taxes.rate || 0}
+                onChange={(e) =>
+                  onSave({
+                    taxes: { ...settings.taxes!, rate: Number(e.target.value) || 0 },
+                  })
+                }
+              />
+            </label>
+          </div>
+        )}
+        <button type="button" className="admin-btn primary" disabled={saving}>
+          {saving ? 'Guardando…' : 'Guardado automático'}
+        </button>
+      </div>
+    </section>
+  )
+}
+
+function PagosMpView({
+  settings,
+  mpStatus,
+  saving,
+  onSave,
+  onRefreshStatus,
+}: {
+  settings: RestaurantSettings
+  mpStatus: MercadoPagoAdminStatus | null
+  saving: boolean
+  onSave: (p: Partial<RestaurantSettings>) => Promise<void>
+  onRefreshStatus: () => Promise<void>
+}) {
+  const pm = settings.paymentMethods || {}
+  const mp = settings.mercadoPago || { blockedBins: [], blockedMessage: '' }
+  const [binInput, setBinInput] = useState('')
+  const [bins, setBins] = useState<string[]>(mp.blockedBins || [])
+  const [message, setMessage] = useState(
+    mp.blockedMessage ||
+      'Para pagar con BROU Recompensa y acceder al 20% de descuento, seleccioná pago con POS.',
+  )
+
+  useEffect(() => {
+    setBins(mp.blockedBins || [])
+    setMessage(
+      mp.blockedMessage ||
+        'Para pagar con BROU Recompensa y acceder al 20% de descuento, seleccioná pago con POS.',
+    )
+  }, [mp.blockedBins, mp.blockedMessage])
+
+  function addBin() {
+    const digits = binInput.replace(/\D/g, '')
+    if (digits.length < 4 || digits.length > 8) {
+      alert('Ingresá un BIN de 4 a 8 dígitos (ideal 6 u 8, los que te dé BROU).')
+      return
+    }
+    if (bins.includes(digits)) return
+    setBins((prev) => [...prev, digits])
+    setBinInput('')
+  }
+
+  return (
+    <section className="admin-section">
+      <header className="admin-header">
+        <div>
+          <h2>Pagos — Mercado Pago</h2>
+          <p>Checkout Bricks + bloqueo de BIN BROU Recompensa</p>
+        </div>
+        <button type="button" className="admin-btn" onClick={() => void onRefreshStatus()}>
+          Actualizar estado
+        </button>
+      </header>
+
+      <div className="admin-card settings-form" style={{ marginBottom: 16 }}>
+        <p className="admin-muted">
+          Credenciales en Railway (servicio API): <code>MP_PUBLIC_KEY</code> y{' '}
+          <code>MP_ACCESS_TOKEN</code>. No van en el front.
+        </p>
+        <div className="meta-grid">
+          <div>
+            <span>Public Key</span>
+            <strong>{mpStatus?.hasPublicKey ? 'OK' : 'Falta'}</strong>
+          </div>
+          <div>
+            <span>Access Token</span>
+            <strong>{mpStatus?.hasAccessToken ? 'OK' : 'Falta'}</strong>
+          </div>
+        </div>
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={!!pm.mercadoPago}
+            disabled={saving}
+            onChange={(e) =>
+              onSave({ paymentMethods: { ...pm, mercadoPago: e.target.checked } })
+            }
+          />
+          Habilitar Mercado Pago en el checkout
+        </label>
+        {!mpStatus?.configured && (
+          <p className="admin-error">Faltan keys: el checkout no mostrará tarjeta hasta configurarlas.</p>
+        )}
+      </div>
+
+      <div className="admin-card settings-form">
+        <h3>BINs bloqueados (BROU Recompensa)</h3>
+        <p className="admin-muted">
+          Pedile a BROU los BIN completos (6 u 8 dígitos), crédito y débito. No uses solo 4 dígitos.
+        </p>
+        <div className="row-2">
+          <input
+            placeholder="Ej: 548742"
+            value={binInput}
+            onChange={(e) => setBinInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addBin())}
+          />
+          <button type="button" className="admin-btn" onClick={addBin}>
+            + Agregar BIN
+          </button>
+        </div>
+        <div className="bin-list">
+          {bins.length === 0 ? (
+            <p className="admin-muted">Ningún BIN bloqueado todavía.</p>
+          ) : (
+            bins.map((b) => (
+              <div key={b} className="bin-chip">
+                <code>{b}</code>
+                <button
+                  type="button"
+                  className="admin-btn danger"
+                  onClick={() => setBins((prev) => prev.filter((x) => x !== b))}
+                >
+                  ×
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+        <label className="field">
+          <span>Mensaje al bloquear</span>
+          <textarea rows={3} value={message} onChange={(e) => setMessage(e.target.value)} />
+        </label>
+        <button
+          type="button"
+          className="admin-btn primary"
+          disabled={saving}
+          onClick={() =>
+            onSave({
+              mercadoPago: {
+                blockedBins: bins,
+                blockedMessage: message.trim(),
+              },
+            })
+          }
+        >
+          Guardar BINs y mensaje
         </button>
       </div>
     </section>

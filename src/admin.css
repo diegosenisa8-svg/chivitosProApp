@@ -897,6 +897,27 @@ th {
   border-radius: 999px;
 }
 
+.bin-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 12px;
+}
+
+.bin-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: var(--admin-input);
+  border: 1px solid var(--admin-line);
+}
+
+.bin-chip code {
+  font-size: 13px;
+}
+
 .zone-row {
   display: grid;
   grid-template-columns: 48px 1fr 100px auto;

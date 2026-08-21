@@ -958,6 +958,47 @@ img {
 .hint,
 .eta-line,
 .field em,
+.checkout-body .field-hint {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.mp-checkout-block {
+  margin: 8px 0 16px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg-elev);
+}
+
+.mp-bin-block {
+  margin-bottom: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, #e23b2e 12%, var(--bg));
+  border: 1px solid color-mix(in srgb, #e23b2e 35%, var(--line));
+}
+
+.mp-bin-block strong {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.mp-bin-block p {
+  margin: 0 0 6px;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.mp-bin-hint {
+  color: var(--muted);
+}
+
+.mp-brick-wrap.blocked {
+  opacity: 0.92;
+}
+
 .error-inline {
   margin: 0;
   color: var(--muted);

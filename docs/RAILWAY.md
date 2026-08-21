@@ -37,6 +37,8 @@ Vas a crear **3 cosas** en un mismo proyecto Railway:
 | `ADMIN_PASSWORD` | `chivitos2026` |
 | `ADMIN_NAME` | `Admin ChivitosPro` |
 | `GEMINI_API_KEY` | tu API key de Google AI Studio (asistente del chat) |
+| `MP_PUBLIC_KEY` | Public Key de Mercado Pago (Checkout Bricks) |
+| `MP_ACCESS_TOKEN` | Access Token de Mercado Pago (solo API, nunca en el front) |
 
 5. **Settings → Networking → Generate Domain**
 6. Deploy (automático al conectar el repo)
@@ -168,3 +170,4 @@ railway domain
 - El Web sirve `dist` con `serve -s` (SPA OK).
 - No hace falta Cloudflare Pages si usás Railway para el front.
 - Las imágenes subidas van a `/uploads` en el disco del API. Sin un **Volume** en Railway se pierden al redeploy; montá un volume en `/app/uploads` (o la ruta del contenedor) si querés persistencia.
+- Mercado Pago: seteá `MP_PUBLIC_KEY` + `MP_ACCESS_TOKEN` en el API, activá el medio en admin → Pagos, y cargá los BIN BROU Recompensa. El front solo recibe la public key vía `/api/payments/config`.

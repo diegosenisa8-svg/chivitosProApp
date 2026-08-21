@@ -169,7 +169,7 @@ export function buildWhatsAppMessage(
       .map((m: SelectedModifier) => {
         const qty = m.quantity > 1 ? `${m.quantity}x ` : ''
         const price = m.price > 0 ? ` (+${m.price.toFixed(2)})` : ''
-        return `  · ${qty}${m.groupName}: ${m.optionName}${price}`
+        return `  · ${qty}${m.groupName}: ${m.optionName}${price}` 
       })
       .join('\n')
     const size = line.sizeLabel ? ` (${line.sizeLabel})` : ''
