@@ -628,11 +628,6 @@ export function AdminApp() {
               menu={menu}
               settings={settings}
               saving={saving}
-              onSaveRestaurant={async (patch) => {
-                await updateRestaurant(patch)
-                await refreshMenu()
-                notify('Guardado')
-              }}
               onSaveSettings={patchSettings}
             />
           )}
