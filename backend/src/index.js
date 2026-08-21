@@ -343,14 +343,27 @@ async function ensureAdmin() {
   const passwordHash = await hashPassword(password)
   await prisma.adminUser.upsert({
     where: { email },
-    update: { name, passwordHash },
-    create: { email, name, passwordHash },
+    update: { name, passwordHash, role: 'admin' },
+    create: { email, name, passwordHash, role: 'admin' },
   })
   console.log(`Admin sync OK: ${email}`)
 }
 
-ensureAdmin()
-  .catch((err) => console.error('Admin bootstrap error', err))
+async function ensureEmployee() {
+  const email = (process.env.EMPLOYEE_EMAIL || 'empleado@chivitospro.com').toLowerCase()
+  const password = process.env.EMPLOYEE_PASSWORD || 'empleado2026'
+  const name = process.env.EMPLOYEE_NAME || 'Empleado ChivitosPro'
+  const passwordHash = await hashPassword(password)
+  await prisma.adminUser.upsert({
+    where: { email },
+    update: { name, passwordHash, role: 'empleado' },
+    create: { email, name, passwordHash, role: 'empleado' },
+  })
+  console.log(`Employee sync OK: ${email}`)
+}
+
+Promise.all([ensureAdmin(), ensureEmployee()])
+  .catch((err) => console.error('User bootstrap error', err))
   .finally(() => {
     app.listen(port, '0.0.0.0', () => {
       console.log(`ChivitosPro API listening on 0.0.0.0:${port}`)

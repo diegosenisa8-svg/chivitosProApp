@@ -925,6 +925,43 @@ th {
   align-items: center;
 }
 
+.order-row.order-flash {
+  animation: orderPulse 1s ease-in-out infinite;
+  border-color: #e8a317 !important;
+  background: color-mix(in srgb, #e8a317 18%, transparent);
+}
+
+.order-row.order-flash strong {
+  color: #ffd666;
+}
+
+@keyframes orderPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(232, 163, 23, 0.55);
+    opacity: 1;
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(232, 163, 23, 0);
+    opacity: 0.88;
+  }
+}
+
+.nav-flash {
+  animation: orderPulse 1s ease-in-out infinite;
+}
+
+.nav-new {
+  margin-left: 6px;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 700;
+  color: #1a1208;
+  background: #e8a317;
+  border-radius: 999px;
+  padding: 2px 7px;
+}
+
 .orders-layout.kiosk .order-row {
   min-height: 72px;
 }

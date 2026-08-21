@@ -5,7 +5,7 @@ import path from 'node:path'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { hashPassword, signToken, verifyPassword } from '../lib/auth.js'
-import { requireAdmin } from '../middleware/auth.js'
+import { requireAdmin, requireFullAdmin } from '../middleware/auth.js'
 import { mapMenu } from '../lib/menu.js'
 import { mergeSettings, slugify } from '../lib/settings.js'
 import { syncCustomersFromOrders, whatsappUrlForPhone } from '../lib/customers.js'
@@ -92,7 +92,7 @@ router.get('/me', requireAdmin, async (req, res) => {
   res.json({ id: admin.id, email: admin.email, name: admin.name, role: admin.role })
 })
 
-router.get('/dashboard', requireAdmin, async (_req, res) => {
+router.get('/dashboard', requireFullAdmin, async (_req, res) => {
   try {
     const now = new Date()
     const startOfDay = new Date(now)
@@ -201,7 +201,7 @@ router.get('/menu', requireAdmin, async (_req, res) => {
   }
 })
 
-router.patch('/restaurant', requireAdmin, async (req, res) => {
+router.patch('/restaurant', requireFullAdmin, async (req, res) => {
   try {
     const body = z
       .object({
@@ -267,13 +267,13 @@ router.patch('/restaurant', requireAdmin, async (req, res) => {
   }
 })
 
-router.get('/settings', requireAdmin, async (_req, res) => {
+router.get('/settings', requireFullAdmin, async (_req, res) => {
   const restaurant = await prisma.restaurant.findUnique({ where: { id: 1 } })
   if (!restaurant) return res.status(404).json({ error: 'Restaurant not found' })
   res.json(mergeSettings(restaurant.settings))
 })
 
-router.get('/payments/mercadopago-status', requireAdmin, async (_req, res) => {
+router.get('/payments/mercadopago-status', requireFullAdmin, async (_req, res) => {
   const restaurant = await prisma.restaurant.findUnique({ where: { id: 1 } })
   if (!restaurant) return res.status(404).json({ error: 'Restaurant not found' })
   const settings = mergeSettings(restaurant.settings)
@@ -552,7 +552,7 @@ router.get('/modifier-library', requireAdmin, async (_req, res) => {
   }
 })
 
-router.get('/reports', requireAdmin, async (req, res) => {
+router.get('/reports', requireFullAdmin, async (req, res) => {
   try {
     const days = Math.min(Number(req.query.days) || 30, 90)
     const since = new Date()
@@ -612,7 +612,7 @@ router.get('/reports', requireAdmin, async (req, res) => {
   }
 })
 
-router.get('/customers', requireAdmin, async (req, res) => {
+router.get('/customers', requireFullAdmin, async (req, res) => {
   try {
     const q = String(req.query.q || '').trim()
     await syncCustomersFromOrders().catch((e) => console.warn('customer sync', e))

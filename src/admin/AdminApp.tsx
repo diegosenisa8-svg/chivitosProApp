@@ -35,7 +35,7 @@ import { formatMoney } from '../lib/format'
 import type { MenuData, MenuItem, ModifierGroup, RestaurantSettings } from '../types'
 import '../admin.css'
 import { DevPopup } from './DevPopup'
-import { NAV, type AdminSection } from './nav'
+import { defaultSectionForRole, navForRole, type AdminSection } from './nav'
 
 export function AdminApp() {
   const navigate = useNavigate()
@@ -63,6 +63,7 @@ export function AdminApp() {
   const [devOpen, setDevOpen] = useState(false)
   const [devTitle, setDevTitle] = useState('Sección en desarrollo')
   const knownOrderIds = useRef<Set<string>>(new Set())
+  const [flashOrderIds, setFlashOrderIds] = useState<string[]>([])
   const audioCtx = useRef<AudioContext | null>(null)
 
   const notify = (msg: string) => {
@@ -99,7 +100,10 @@ export function AdminApp() {
       return
     }
     adminMe()
-      .then(setAdmin)
+      .then((user) => {
+        setAdmin(user)
+        setSection(defaultSectionForRole(user.role))
+      })
       .catch(() => setAdminToken(null))
       .finally(() => setBooting(false))
   }, [])
@@ -120,6 +124,11 @@ export function AdminApp() {
         beep()
         notify(`${fresh.length} pedido(s) nuevo(s)`)
         fresh.forEach((o) => knownOrderIds.current.add(o.id))
+        setFlashOrderIds((prev) => {
+          const next = new Set(prev)
+          fresh.forEach((o) => next.add(o.id))
+          return [...next]
+        })
       }
       list.forEach((o) => knownOrderIds.current.add(o.id))
     }
@@ -163,10 +172,17 @@ export function AdminApp() {
   }, [admin, section, refreshDashboard, refreshOrders, refreshMenu, refreshCustomers])
 
   useEffect(() => {
-    if (!admin || (section !== 'orders' && section !== 'take-orders' && section !== 'dashboard')) return
+    if (!admin) return
+    // Empleado: siempre poll de pedidos para titilar "nuevo"
+    const pollOrders =
+      section === 'orders' ||
+      section === 'take-orders' ||
+      section === 'dashboard' ||
+      admin.role === 'empleado'
+    if (!pollOrders && section !== 'dashboard') return
     const id = window.setInterval(() => {
-      if (section === 'dashboard') refreshDashboard().catch(() => {})
-      else refreshOrders().catch(() => {})
+      if (section === 'dashboard' && admin.role !== 'empleado') refreshDashboard().catch(() => {})
+      if (pollOrders) refreshOrders().catch(() => {})
     }, 8000)
     return () => window.clearInterval(id)
   }, [admin, section, refreshDashboard, refreshOrders])
@@ -175,12 +191,23 @@ export function AdminApp() {
     e.preventDefault()
     setLoginError('')
     try {
-      setAdmin(await adminLogin(email.trim(), password))
+      const user = await adminLogin(email.trim(), password)
+      setAdmin(user)
+      setSection(defaultSectionForRole(user.role))
       setPassword('')
     } catch (err) {
       setLoginError(err instanceof Error ? err.message : 'Error de login')
     }
   }
+
+  const allowedNav = useMemo(() => navForRole(admin?.role || 'admin'), [admin?.role])
+  const flashCount = flashOrderIds.length
+
+  useEffect(() => {
+    if (!admin) return
+    const allowed = new Set(navForRole(admin.role).map((n) => n.id))
+    if (!allowed.has(section)) setSection(defaultSectionForRole(admin.role))
+  }, [admin, section])
 
   const settings: RestaurantSettings = menu?.restaurant.settings || {}
   const maxSales = useMemo(
@@ -217,7 +244,7 @@ export function AdminApp() {
             <img src="/logo.png" alt="ChivitosPro" className="admin-logo" />
             <div>
               <h1>ChivitosPro Admin</h1>
-              <p>Panel completo de operaciones</p>
+              <p>Admin u empleado · panel de operaciones</p>
             </div>
           </div>
           <label>
@@ -262,35 +289,47 @@ export function AdminApp() {
           <img src="/logo.png" alt="ChivitosPro" className="admin-logo" />
           <div>
             <strong>ChivitosPro</strong>
-            <small>{admin.name}</small>
+            <small>
+              {admin.name}
+              {admin.role === 'empleado' ? ' · Empleado' : ''}
+            </small>
           </div>
         </div>
 
-        {(['ops', 'config', 'growth'] as const).map((group) => (
-          <div key={group} className="nav-group">
-            <p className="nav-group-label">
-              {group === 'ops' ? 'Operaciones' : group === 'config' ? 'Configuración' : 'Crecimiento'}
-            </p>
-            {NAV.filter((n) => n.group === group).map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className={section === item.id ? 'active' : ''}
-                onClick={() => {
-                  if (item.prodOnly) {
+        {(['ops', 'config', 'growth'] as const).map((group) => {
+          const items = allowedNav.filter((n) => n.group === group)
+          if (!items.length) return null
+          return (
+            <div key={group} className="nav-group">
+              <p className="nav-group-label">
+                {group === 'ops' ? 'Operaciones' : group === 'config' ? 'Configuración' : 'Crecimiento'}
+              </p>
+              {items.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`${section === item.id ? 'active' : ''} ${
+                    item.id === 'orders' && flashCount ? 'nav-flash' : ''
+                  }`}
+                  onClick={() => {
+                    if (item.prodOnly) {
+                      setSection(item.id)
+                      showDev(item.label)
+                      return
+                    }
                     setSection(item.id)
-                    showDev(item.label)
-                    return
-                  }
-                  setSection(item.id)
-                }}
-              >
-                {item.label}
-                {item.prodOnly ? <em className="nav-prod">prod</em> : null}
-              </button>
-            ))}
-          </div>
-        ))}
+                  }}
+                >
+                  {item.label}
+                  {item.id === 'orders' && flashCount > 0 ? (
+                    <em className="nav-new">{flashCount} nuevo{flashCount === 1 ? '' : 's'}</em>
+                  ) : null}
+                  {item.prodOnly ? <em className="nav-prod">prod</em> : null}
+                </button>
+              ))}
+            </div>
+          )
+        })}
 
         <div className="admin-sidebar-foot">
           <button type="button" className="admin-btn ghost" onClick={() => navigate('/')}>
@@ -321,7 +360,13 @@ export function AdminApp() {
             kiosk={section === 'take-orders'}
             orders={orders}
             selectedOrder={selectedOrder}
-            setSelectedOrder={setSelectedOrder}
+            setSelectedOrder={(o) => {
+              setSelectedOrder(o)
+              if (o) {
+                setFlashOrderIds((prev) => prev.filter((id) => id !== o.id))
+              }
+            }}
+            flashOrderIds={flashOrderIds}
             orderFilter={orderFilter}
             setOrderFilter={setOrderFilter}
             orderQuery={orderQuery}
@@ -333,6 +378,7 @@ export function AdminApp() {
               try {
                 const updated = await updateOrder(id, patch)
                 setSelectedOrder(updated)
+                setFlashOrderIds((prev) => prev.filter((x) => x !== id))
                 await refreshOrders()
                 notify('Pedido actualizado')
               } catch (e) {
@@ -677,6 +723,7 @@ function OrdersView({
   orders,
   selectedOrder,
   setSelectedOrder,
+  flashOrderIds,
   orderFilter,
   setOrderFilter,
   orderQuery,
@@ -689,6 +736,7 @@ function OrdersView({
   orders: AdminOrder[]
   selectedOrder: AdminOrder | null
   setSelectedOrder: (o: AdminOrder | null) => void
+  flashOrderIds: string[]
   orderFilter: string
   setOrderFilter: (v: string) => void
   orderQuery: string
@@ -700,6 +748,7 @@ function OrdersView({
   const list = kiosk
     ? orders.filter((o) => ['pending', 'confirmed', 'preparing', 'ready'].includes(o.status))
     : orders
+  const flashSet = useMemo(() => new Set(flashOrderIds), [flashOrderIds])
 
   return (
     <section className="admin-section">
@@ -710,6 +759,7 @@ function OrdersView({
             {kiosk
               ? 'Vista cocina / mostrador · sonido al llegar pedido nuevo'
               : 'Gestión completa · auto-refresh 8s'}
+            {flashSet.size > 0 ? ` · ${flashSet.size} nuevo(s) sin ver` : ''}
           </p>
         </div>
         <button type="button" className="admin-btn" onClick={onRefresh}>
@@ -744,11 +794,16 @@ function OrdersView({
             <button
               key={o.id}
               type="button"
-              className={`order-row ${selectedOrder?.id === o.id ? 'active' : ''}`}
+              className={`order-row ${selectedOrder?.id === o.id ? 'active' : ''} ${
+                flashSet.has(o.id) ? 'order-flash' : ''
+              }`}
               onClick={() => setSelectedOrder(o)}
             >
               <div>
-                <strong>{o.customerName || 'Cliente'}</strong>
+                <strong>
+                  {flashSet.has(o.id) ? '● NUEVO · ' : ''}
+                  {o.customerName || 'Cliente'}
+                </strong>
                 <span>
                   {o.fulfillment === 'delivery' ? 'Delivery' : 'Retiro'} ·{' '}
                   {new Date(o.createdAt).toLocaleString('es-UY')}

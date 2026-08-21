@@ -36,6 +36,9 @@ Vas a crear **3 cosas** en un mismo proyecto Railway:
 | `ADMIN_EMAIL` | `admin@chivitospro.com` |
 | `ADMIN_PASSWORD` | `chivitos2026` |
 | `ADMIN_NAME` | `Admin ChivitosPro` |
+| `EMPLOYEE_EMAIL` | `empleado@chivitospro.com` |
+| `EMPLOYEE_PASSWORD` | `empleado2026` |
+| `EMPLOYEE_NAME` | `Empleado ChivitosPro` |
 | `GEMINI_API_KEY` | tu API key de Google AI Studio (asistente del chat) |
 | `MP_PUBLIC_KEY` | Public Key de Mercado Pago (Checkout Bricks) |
 | `MP_ACCESS_TOKEN` | Access Token de Mercado Pago (solo API, nunca en el front) |

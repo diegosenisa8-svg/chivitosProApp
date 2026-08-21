@@ -13,3 +13,14 @@ export function requireAdmin(req, res, next) {
     return res.status(401).json({ error: 'Sesión inválida o expirada' })
   }
 }
+
+/** Solo rol admin (no empleado). */
+export function requireFullAdmin(req, res, next) {
+  requireAdmin(req, res, () => {
+    const role = String(req.admin?.role || 'admin')
+    if (role !== 'admin') {
+      return res.status(403).json({ error: 'Sin permiso para esta sección' })
+    }
+    next()
+  })
+}
