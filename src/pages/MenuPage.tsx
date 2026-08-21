@@ -91,19 +91,21 @@ export function MenuPage() {
           <FulfillmentToggle compact />
         </div>
         {!query && (
-          <div className="cat-tabs" role="tablist">
-            {menu.categories.map((cat) => (
-              <button
-                key={cat.id}
-                type="button"
-                role="tab"
-                aria-selected={active === cat.id}
-                className={active === cat.id ? 'active' : ''}
-                onClick={() => scrollToCat(cat.id)}
-              >
-                {cat.name}
-              </button>
-            ))}
+          <div className="cat-tabs-wrap">
+            <div className="cat-tabs" role="tablist">
+              {menu.categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active === cat.id}
+                  className={active === cat.id ? 'active' : ''}
+                  onClick={() => scrollToCat(cat.id)}
+                >
+                  {cat.name}
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>

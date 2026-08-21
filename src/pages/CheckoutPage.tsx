@@ -39,6 +39,7 @@ export function CheckoutPage() {
   const total = Math.max(0, subtotal - discount + deliveryFee)
   const r = menu.restaurant
   const pm = r.settings?.paymentMethods || {}
+  const transfer = r.settings?.transferPayment || {}
   const isLocal =
     import.meta.env.DEV ||
     ['localhost', '127.0.0.1'].includes(window.location.hostname) ||
@@ -267,7 +268,18 @@ export function CheckoutPage() {
             <span>Dirección</span>
             <input
               value={checkout.address}
-              onChange={(e) => setCheckout({ address: e.target.value })}
+              onChange={(e) => {
+                const address = e.target.value
+                setCheckout({ address })
+                if (address.trim()) {
+                  setErrors((prev) => {
+                    if (!prev.address) return prev
+                    const next = { ...prev }
+                    delete next.address
+                    return next
+                  })
+                }
+              }}
               placeholder="Calle, número, referencia"
             />
             {errors.address && <em>{errors.address}</em>}
@@ -323,6 +335,20 @@ export function CheckoutPage() {
               ))}
           </select>
         </label>
+
+        {checkout.payment === 'transferencia' && (
+          <div className="transfer-box">
+            <strong>Datos para transferir</strong>
+            {transfer.bank ? <p>Banco: {transfer.bank}</p> : null}
+            {transfer.holder ? <p>Titular: {transfer.holder}</p> : null}
+            {transfer.alias ? <p>Alias: <code>{transfer.alias}</code></p> : null}
+            {transfer.cbu ? <p>CBU/cuenta: <code>{transfer.cbu}</code></p> : null}
+            <p className="field-hint">
+              {transfer.instructions ||
+                'Transferí el total y enviá el comprobante por WhatsApp al confirmar.'}
+            </p>
+          </div>
+        )}
 
         {checkout.payment === 'mercadopago' && mpAvailable && payConfig && (
           <div className="mp-checkout-block">

@@ -17,6 +17,7 @@ export function MyOrdersPage() {
   const [orders, setOrders] = useState<CustomerOrder[]>([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -119,7 +120,19 @@ export function MyOrdersPage() {
           <section className="orders-section">
             <h2>En curso</h2>
             {active.map((o) => (
-              <article key={o.id} className={`order-status-card status-${o.status}`}>
+              <article
+                key={o.id}
+                className={`order-status-card status-${o.status}`}
+                role="button"
+                tabIndex={0}
+                onClick={() => setExpandedId((cur) => (cur === o.id ? null : o.id))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    setExpandedId((cur) => (cur === o.id ? null : o.id))
+                  }
+                }}
+              >
                 <div className="order-status-top">
                   <strong>#{o.id.slice(0, 8).toUpperCase()}</strong>
                   <span className="order-status-pill">{o.statusLabel}</span>
@@ -132,12 +145,33 @@ export function MyOrdersPage() {
                   {o.fulfillment === 'delivery' ? 'Delivery' : 'Retiro'} · {formatMoney(o.total)}
                 </p>
                 <ul>
-                  {o.items.map((i) => (
-                    <li key={i.id}>
-                      {i.quantity}x {i.name}
-                    </li>
-                  ))}
+                  {o.items.map((i) => {
+                    const mods = Array.isArray(i.modifiers) ? (i.modifiers as SelectedModifier[]) : []
+                    return (
+                      <li key={i.id}>
+                        {i.quantity}x {i.name}
+                        {expandedId === o.id && mods.length > 0 ? (
+                          <ul className="order-mods">
+                            {mods.map((m) => (
+                              <li key={`${m.groupId}-${m.optionId}`}>
+                                {m.quantity > 1 ? `${m.quantity}x ` : ''}
+                                {m.groupName}: {m.optionName}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : null}
+                      </li>
+                    )
+                  })}
                 </ul>
+                {expandedId === o.id ? (
+                  <p className="order-status-meta">
+                    Tocá de nuevo para contraer · estados: Pendiente → Aceptado → En preparación →
+                    Listo → En camino → Entregado
+                  </p>
+                ) : (
+                  <p className="order-status-meta">Tocá para ver detalle / extras</p>
+                )}
               </article>
             ))}
           </section>

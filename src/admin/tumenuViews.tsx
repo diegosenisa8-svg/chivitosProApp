@@ -1087,50 +1087,110 @@ export function ExtendedReportsView({
   const funnel = settings.siteStats?.funnel || { visit: 0, cart: 0, checkout: 0, order: 0 }
   const promos = settings.promotions || []
 
-  if (section === 'sales-trend' || section === 'sales-summary') {
+  if (section === 'sales-trend') {
+    const days = reports?.byDay?.length
+      ? reports.byDay
+      : dash?.salesByDay || []
+    const maxSales = Math.max(1, ...days.map((d) => d.sales))
     return (
       <section className="admin-section">
         <header className="admin-header">
           <div>
-            <h2>{section === 'sales-trend' ? 'Sales · Trend' : 'Sales · Summary'}</h2>
-            <p>Evolución y resumen de ventas</p>
+            <h2>Sales · Trend</h2>
+            <p>Evolución diaria de ventas (últimos días)</p>
+          </div>
+        </header>
+        <div className="admin-card">
+          <div className="bars">
+            {days.map((d) => (
+              <div key={d.date} className="bar-col">
+                <div
+                  className="bar"
+                  style={{ height: `${Math.max(8, (d.sales / maxSales) * 140)}px` }}
+                  title={`${d.date}: ${formatMoney(d.sales)} · ${d.orders} pedidos`}
+                />
+                <small>{d.date.slice(5)}</small>
+              </div>
+            ))}
+          </div>
+        </div>
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Ventas</th>
+              <th>Pedidos</th>
+            </tr>
+          </thead>
+          <tbody>
+            {days.map((d) => (
+              <tr key={d.date}>
+                <td>{d.date}</td>
+                <td>{formatMoney(d.sales)}</td>
+                <td>{d.orders}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+    )
+  }
+
+  if (section === 'sales-summary') {
+    const totals = reports?.totals || {
+      sales: dash?.kpis.salesToday || 0,
+      orders: dash?.kpis.ordersToday || 0,
+      avgTicket: dash?.kpis.avgTicket || 0,
+    }
+    const byF = reports?.byFulfillment || { delivery: 0, pickup: 0 }
+    const byPay = reports?.byPayment || {}
+    return (
+      <section className="admin-section">
+        <header className="admin-header">
+          <div>
+            <h2>Sales · Summary</h2>
+            <p>Foto del período: totales, canal y método de pago</p>
           </div>
         </header>
         <div className="kpi-grid">
           <div className="kpi">
             <span>Ventas</span>
-            <strong>
-              {formatMoney(reports?.totals.sales || dash?.kpis.salesToday || 0)}
-            </strong>
+            <strong>{formatMoney(totals.sales)}</strong>
           </div>
           <div className="kpi">
             <span>Pedidos</span>
-            <strong>{reports?.totals.orders || dash?.kpis.ordersToday || 0}</strong>
+            <strong>{totals.orders}</strong>
           </div>
           <div className="kpi">
             <span>Ticket promedio</span>
-            <strong>
-              {formatMoney(reports?.totals.avgTicket || dash?.kpis.avgTicket || 0)}
-            </strong>
+            <strong>{formatMoney(totals.avgTicket)}</strong>
           </div>
         </div>
-        {dash && (
-          <div className="admin-card">
-            <div className="bars">
-              {dash.salesByDay.map((d) => (
-                <div key={d.date} className="bar-col">
-                  <div
-                    className="bar"
-                    style={{
-                      height: `${Math.max(8, (d.sales / Math.max(1, ...dash.salesByDay.map((x) => x.sales))) * 120)}px`,
-                    }}
-                  />
-                  <small>{d.date.slice(5)}</small>
-                </div>
-              ))}
-            </div>
+        <div className="kpi-grid">
+          <div className="kpi">
+            <span>Delivery</span>
+            <strong>{formatMoney(byF.delivery)}</strong>
           </div>
-        )}
+          <div className="kpi">
+            <span>Retiro</span>
+            <strong>{formatMoney(byF.pickup)}</strong>
+          </div>
+        </div>
+        <ul className="rank-list admin-card">
+          {Object.entries(byPay).map(([method, amount]) => (
+            <li key={method}>
+              <span>
+                <strong>{method}</strong>
+              </span>
+              <strong>{formatMoney(amount as number)}</strong>
+            </li>
+          ))}
+          {!Object.keys(byPay).length ? (
+            <li>
+              <span className="admin-muted">Sin desglose de pagos en el período</span>
+            </li>
+          ) : null}
+        </ul>
       </section>
     )
   }

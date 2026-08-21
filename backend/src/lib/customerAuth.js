@@ -13,12 +13,10 @@ export function signCustomerToken(account) {
   return jwt.sign(
     {
       sub: account.id,
-      email: account.email,
-      name: account.name,
       typ: 'customer',
     },
     JWT_SECRET,
-    { expiresIn: '30d' },
+    { expiresIn: '7d' },
   )
 }
 

@@ -496,6 +496,21 @@ img {
   color: var(--text);
 }
 
+.cat-tabs-wrap {
+  position: relative;
+}
+
+.cat-tabs-wrap::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 28px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--bg));
+}
+
 .cat-tabs {
   display: flex;
   gap: 8px;
@@ -1307,4 +1322,32 @@ fieldset.field {
   margin-top: 8px;
   display: block;
   text-align: center;
+}
+
+.transfer-box {
+  margin: 12px 0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.transfer-box code {
+  font-weight: 700;
+  color: var(--accent, #e85d04);
+}
+
+.order-mods {
+  margin: 4px 0 8px 12px;
+  padding: 0;
+  list-style: disc;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.order-status-card {
+  cursor: pointer;
 }

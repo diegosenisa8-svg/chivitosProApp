@@ -94,12 +94,12 @@ export function ProductPage() {
     })
   }
 
-  function changeQty(groupId: string, optionId: string, delta: number) {
+  function changeQty(groupId: string, optionId: string, delta: number, maxPerOption = 5) {
     setSel((prev) => {
       const group = { ...(prev[groupId] || {}) }
       const next = (group[optionId] || 0) + delta
       if (next <= 0) delete group[optionId]
-      else group[optionId] = next
+      else group[optionId] = Math.min(maxPerOption, next)
       return { ...prev, [groupId]: group }
     })
   }
@@ -196,11 +196,13 @@ export function ProductPage() {
                 {group.options.map((opt) => {
                   const q = chosen[opt.id] || 0
                   const checked = q > 0
+                  const single = group.max === 1 && !group.allowQuantity
                   return (
                     <li key={opt.id} className="mod-row">
                       <label>
                         <input
-                          type="checkbox"
+                          type={single ? 'radio' : 'checkbox'}
+                          name={single ? `mod-${group.id}` : undefined}
                           checked={checked}
                           onChange={() =>
                             toggleOption(group.id, opt.id, group.max, group.allowQuantity)
@@ -215,7 +217,11 @@ export function ProductPage() {
                             <button type="button" onClick={() => changeQty(group.id, opt.id, -1)}>
                               −
                             </button>
-                            <button type="button" onClick={() => changeQty(group.id, opt.id, 1)}>
+                            <button
+                              type="button"
+                              disabled={q >= 5}
+                              onClick={() => changeQty(group.id, opt.id, 1)}
+                            >
                               +
                             </button>
                           </div>

@@ -82,6 +82,13 @@ export const DEFAULT_SETTINGS = {
     mercadoPago: false,
     paypal: false,
   },
+  transferPayment: {
+    bank: 'BROU',
+    holder: 'ChivitosPro',
+    alias: 'chivitos.pro.mp',
+    cbu: '',
+    instructions: 'Transferí el total y enviá el comprobante por WhatsApp al local.',
+  },
   paymentByChannel: {
     efectivo: { delivery: true, pickup: true, dineIn: true },
     tarjeta: { delivery: false, pickup: true, dineIn: true },
@@ -212,6 +219,10 @@ export function mergeSettings(raw) {
     paymentMethods: {
       ...DEFAULT_SETTINGS.paymentMethods,
       ...(incoming.paymentMethods || {}),
+    },
+    transferPayment: {
+      ...DEFAULT_SETTINGS.transferPayment,
+      ...(incoming.transferPayment || {}),
     },
     paymentByChannel: {
       ...DEFAULT_SETTINGS.paymentByChannel,

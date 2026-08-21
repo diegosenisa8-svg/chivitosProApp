@@ -123,6 +123,13 @@ export type RestaurantSettings = {
   exceptions?: { id: string; date: string; label: string; closed?: boolean }[]
   deliveryZones?: DeliveryZone[]
   paymentMethods?: Record<string, boolean>
+  transferPayment?: {
+    bank?: string
+    holder?: string
+    alias?: string
+    cbu?: string
+    instructions?: string
+  }
   paymentByChannel?: Record<string, { delivery?: boolean; pickup?: boolean; dineIn?: boolean }>
   mercadoPago?: {
     blockedBins?: string[]

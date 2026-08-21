@@ -1838,3 +1838,46 @@ html.admin-tm body {
     padding-top: 8px;
   }
 }
+
+.tm-user-menu {
+  position: relative;
+}
+
+.tm-user-toggle {
+  border: 0;
+  background: transparent;
+  text-align: right;
+  cursor: pointer;
+  padding: 0;
+}
+
+.tm-user-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-shadow: 0 1px 6px rgba(0,0,0,.2);
+  min-width: 160px;
+  z-index: 20;
+}
+
+.tm-user-dropdown button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #424242;
+}
+
+.tm-user-dropdown button:hover {
+  background: #f5f3f0;
+}

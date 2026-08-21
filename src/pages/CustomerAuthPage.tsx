@@ -39,7 +39,7 @@ export function CustomerAuthPage() {
         <img src="/logo.png" alt="ChivitosPro" className="auth-logo" />
         <h1>{mode === 'login' ? 'Ingresá' : 'Creá tu cuenta'}</h1>
         <p className="auth-sub">
-          Para pedir y seguir el estado de tu pedido en tiempo real
+          Creá tu cuenta para pedir y ver el estado de tus pedidos
         </p>
 
         <form onSubmit={onSubmit} className="auth-form">

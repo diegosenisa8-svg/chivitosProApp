@@ -4,12 +4,15 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
 import type { CartLine, CheckoutInfo, Fulfillment, SelectedModifier } from '../types'
+import { useCustomerAuth } from './CustomerAuthContext'
 
-const CART_KEY = 'chivitos-cart-v1'
+const CART_PREFIX = 'chivitos-cart-v2:'
+const LEGACY_CART_KEY = 'chivitos-cart-v1'
 
 type CartContextValue = {
   lines: CartLine[]
@@ -54,18 +57,35 @@ function lineTotal(line: CartLine) {
   return (line.unitPrice + mods) * line.quantity
 }
 
-function loadCart(): CartLine[] {
+function cartKeyFor(userId: string | null | undefined) {
+  return `${CART_PREFIX}${userId || 'guest'}`
+}
+
+function loadCart(userId: string | null | undefined): CartLine[] {
   try {
-    const raw = localStorage.getItem(CART_KEY)
-    return raw ? (JSON.parse(raw) as CartLine[]) : []
+    const key = cartKeyFor(userId)
+    const raw = localStorage.getItem(key)
+    if (raw) return JSON.parse(raw) as CartLine[]
+    if (userId) {
+      const legacy = localStorage.getItem(LEGACY_CART_KEY)
+      if (legacy) {
+        localStorage.removeItem(LEGACY_CART_KEY)
+        localStorage.setItem(key, legacy)
+        return JSON.parse(legacy) as CartLine[]
+      }
+    }
+    return []
   } catch {
     return []
   }
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {
+  const { customer } = useCustomerAuth()
+  const userId = customer?.id || null
+  const userIdRef = useRef(userId)
   const [lines, setLines] = useState<CartLine[]>(() =>
-    typeof window === 'undefined' ? [] : loadCart(),
+    typeof window === 'undefined' ? [] : loadCart(null),
   )
   const [toast, setToast] = useState<string | null>(null)
   const [fulfillment, setFulfillment] = useState<Fulfillment>('delivery')
@@ -78,6 +98,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
   >([])
   const [checkout, setCheckoutState] = useState<CheckoutInfo>(defaultCheckout)
 
+  useEffect(() => {
+    if (userIdRef.current === userId) return
+    userIdRef.current = userId
+    setLines(loadCart(userId))
+    setCoupon('')
+    setDiscountRate(0)
+    setDiscountFixed(0)
+    if (customer) {
+      setCheckoutState((c) => ({
+        ...c,
+        name: customer.name || c.name,
+        phone: customer.phone || c.phone,
+      }))
+    }
+  }, [userId, customer])
+
   const registerPromotions = useCallback(
     (list: { code: string; type: 'percent' | 'fixed'; value: number; active: boolean }[]) => {
       setPromos(list)
@@ -86,14 +122,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
   )
 
   useEffect(() => {
-    localStorage.setItem(CART_KEY, JSON.stringify(lines))
-  }, [lines])
+    try {
+      localStorage.setItem(cartKeyFor(userId), JSON.stringify(lines))
+    } catch {
+      /* ignore */
+    }
+  }, [lines, userId])
 
   const value = useMemo<CartContextValue>(() => {
     const count = lines.reduce((s, l) => s + l.quantity, 0)
     const subtotal = lines.reduce((s, l) => s + lineTotal(l), 0)
-    const discount =
-      Math.round((subtotal * discountRate + discountFixed) * 100) / 100
+    const discount = Math.round((subtotal * discountRate + discountFixed) * 100) / 100
     const deliveryFee = fulfillment === 'delivery' && subtotal > 0 ? deliveryFeeBase : 0
 
     return {
@@ -177,7 +216,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
       checkout: { ...checkout, fulfillment },
       setCheckout: (patch) => setCheckoutState((c) => ({ ...c, ...patch })),
     }
-  }, [lines, toast, fulfillment, coupon, discountRate, discountFixed, deliveryFeeBase, checkout, promos, registerPromotions])
+  }, [
+    lines,
+    toast,
+    fulfillment,
+    coupon,
+    discountRate,
+    discountFixed,
+    deliveryFeeBase,
+    checkout,
+    promos,
+    registerPromotions,
+  ])
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
 }
@@ -207,7 +257,7 @@ export function buildWhatsAppMessage(
       .map((m: SelectedModifier) => {
         const qty = m.quantity > 1 ? `${m.quantity}x ` : ''
         const price = m.price > 0 ? ` (+${m.price.toFixed(2)})` : ''
-        return `  · ${qty}${m.groupName}: ${m.optionName}${price}` 
+        return `  · ${qty}${m.groupName}: ${m.optionName}${price}`
       })
       .join('\n')
     const size = line.sizeLabel ? ` (${line.sizeLabel})` : ''
@@ -219,9 +269,7 @@ export function buildWhatsAppMessage(
   if (checkout?.name) header.push(`Cliente: ${checkout.name}`)
   if (checkout?.phone) header.push(`Tel: ${checkout.phone}`)
   if (checkout) {
-    header.push(
-      `Tipo: ${checkout.fulfillment === 'delivery' ? 'Delivery' : 'Retiro'}`,
-    )
+    header.push(`Tipo: ${checkout.fulfillment === 'delivery' ? 'Delivery' : 'Retiro'}`)
     if (checkout.fulfillment === 'delivery' && checkout.address) {
       header.push(`Dirección: ${checkout.address}`)
     }

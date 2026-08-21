@@ -90,6 +90,7 @@ export function AdminApp() {
   const [error, setError] = useState('')
   const [devOpen, setDevOpen] = useState(false)
   const [devTitle, setDevTitle] = useState('Sección en desarrollo')
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
   const knownOrderIds = useRef<Set<string>>(new Set())
   const [flashOrderIds, setFlashOrderIds] = useState<string[]>([])
   const audioCtx = useRef<AudioContext | null>(null)
@@ -394,23 +395,16 @@ export function AdminApp() {
             title={mod.label}
             aria-label={mod.label}
             onClick={() => {
-              // PDF: primer clic = tooltip; segundo clic = navegar
-              if (moduleArmed === mod.id) {
-                setActiveModule(mod.id)
-                setModuleArmed(null)
-                const first = mod.groups[0]?.items[0]?.id
-                if (first) goSection(first)
-                return
-              }
-              if (activeModule === mod.id) {
-                setModuleArmed(null)
-                return
-              }
-              setModuleArmed(mod.id)
-              window.setTimeout(() => {
-                setModuleArmed((cur) => (cur === mod.id ? null : cur))
-              }, 2000)
+              // Un clic navega (A-01: el doble clic dejaba el riel “muerto”)
+              setActiveModule(mod.id)
+              setModuleArmed(null)
+              const first = mod.groups[0]?.items[0]?.id
+              if (first) goSection(first)
             }}
+            onMouseEnter={() => setModuleArmed(mod.id)}
+            onMouseLeave={() =>
+              setModuleArmed((cur) => (cur === mod.id ? null : cur))
+            }
           >
             <RailIcon name={mod.icon} />
             <em className="tm-tooltip">{mod.label}</em>
@@ -436,13 +430,40 @@ export function AdminApp() {
             type="button"
             className="tm-help-btn"
             title="Estamos encantados de ayudarte"
-            onClick={() => showDev('Estamos encantados de ayudarte')}
+            onClick={() =>
+              showDev(
+                'Estamos encantados de ayudarte — Ambiente de desarrollo, sección se mostrará al pasar a producción',
+              )
+            }
           >
             Ayuda
           </button>
-          <div className="tm-user">
-            <div className="tm-user-name">{admin.name}</div>
-            <div className="tm-user-email">{admin.email}</div>
+          <div className="tm-user tm-user-menu">
+            <button
+              type="button"
+              className="tm-user-toggle"
+              onClick={() => setUserMenuOpen((v) => !v)}
+              aria-expanded={userMenuOpen}
+            >
+              <div className="tm-user-name">{admin.name}</div>
+              <div className="tm-user-email">{admin.email}</div>
+            </button>
+            {userMenuOpen ? (
+              <ul className="tm-user-dropdown">
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUserMenuOpen(false)
+                      setAdminToken(null)
+                      setAdmin(null)
+                    }}
+                  >
+                    Cerrar sesión
+                  </button>
+                </li>
+              </ul>
+            ) : null}
           </div>
         </div>
       </header>

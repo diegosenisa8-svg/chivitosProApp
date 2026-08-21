@@ -36,7 +36,7 @@ function AppRoutes() {
 
   return (
     <div className={isAdmin ? 'admin-root' : 'app-shell'}>
-      <ThemeToggle className={isAdmin ? 'theme-toggle--admin' : ''} />
+      {!isAdmin ? <ThemeToggle /> : null}
       <Routes>
         <Route path="/admin" element={<AdminPage />} />
         <Route
@@ -65,14 +65,14 @@ export default function App() {
   return (
     <ThemeProvider>
       <MenuProvider>
-        <CartProvider>
-          <MenuCartBridge />
-          <CustomerAuthProvider>
+        <CustomerAuthProvider>
+          <CartProvider>
+            <MenuCartBridge />
             <BrowserRouter>
               <AppRoutes />
             </BrowserRouter>
-          </CustomerAuthProvider>
-        </CartProvider>
+          </CartProvider>
+        </CustomerAuthProvider>
       </MenuProvider>
     </ThemeProvider>
   )
