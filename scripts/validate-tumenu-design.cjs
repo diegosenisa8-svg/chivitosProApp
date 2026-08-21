@@ -44,7 +44,7 @@ ok('rail_no_logo', !/tm-rail[\s\S]{0,200}tm-rail-logo/.test(app), 'logo not in r
 ok('rail_light', !css.includes('.tm-rail') || !/#0f172a|#1e293b/.test(css.match(/\.tm-rail\s*\{[^}]+\}/)?.[0] || ''), 'rail not dark slate')
 ok('rail_active_white', /\.tm-rail-btn\.active\s*\{[^}]*background:\s*#fff/.test(css), 'active rail white bg')
 ok('module_title', app.includes('tm-module-title'), 'uppercase module title')
-ok('dbl_click', app.includes('moduleArmed') && app.includes('primer clic'), 'two-click rail')
+ok('rail_nav', app.includes('Un clic navega') && app.includes('goSection(first)'), 'single-click rail')
 ok('tooltip', css.includes('.tm-tooltip') && app.includes('tm-tooltip'), 'dark tooltip')
 
 // —— Modules (§2.2)
