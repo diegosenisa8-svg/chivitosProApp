@@ -15,6 +15,7 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
       <span className="theme-toggle-icon" aria-hidden="true">
         {isDark ? '☀️' : '🌙'}
       </span>
+      <span className="sr-only">{isDark ? 'Modo día' : 'Modo noche'}</span>
     </button>
   )
 }

@@ -1077,6 +1077,25 @@ function OrdersView({
                   {o.fulfillment === 'delivery' ? 'Delivery' : 'Retiro'} ·{' '}
                   {new Date(o.createdAt).toLocaleString('es-UY')}
                 </span>
+                <span className="order-row-items">
+                  {o.items
+                    .map((i) => {
+                      const mods = Array.isArray(i.modifiers) ? i.modifiers : []
+                      const extras = mods
+                        .map((m) => {
+                          const row = m as { optionName?: string; name?: string }
+                          return row.optionName || row.name || ''
+                        })
+                        .filter(Boolean)
+                        .join(', ')
+                      return extras
+                        ? `${i.quantity}x ${i.name} (${extras})`
+                        : `${i.quantity}x ${i.name}`
+                    })
+                    .slice(0, 2)
+                    .join(' · ')}
+                  {o.items.length > 2 ? '…' : ''}
+                </span>
               </div>
               <div className="order-row-right">
                 <span className={`status-pill status-${o.status}`}>
@@ -1126,14 +1145,19 @@ function OrderDetail({
       const row = m as {
         quantity?: number
         groupName?: string
+        groupLabel?: string
         optionName?: string
         name?: string
         price?: number
       }
       const qty = row.quantity && row.quantity > 1 ? `${row.quantity}x ` : ''
       const label = row.optionName || row.name || 'extra'
-      const group = row.groupName ? `${row.groupName}: ` : ''
-      return `  + ${qty}${group}${label}`
+      const group = row.groupName || row.groupLabel ? `${row.groupName || row.groupLabel}: ` : ''
+      const price =
+        typeof row.price === 'number' && row.price > 0
+          ? ` (+${formatMoney(row.price * (row.quantity || 1))})`
+          : ''
+      return `+ ${qty}${group}${label}${price}`
     })
   }
 
@@ -1182,11 +1206,19 @@ function OrderDetail({
         <ul className="items-list">
           {order.items.map((i) => (
             <li key={i.id}>
-              <span>
-                {i.quantity}x {i.name}
-                {i.sizeLabel ? ` (${i.sizeLabel})` : ''}
-              </span>
-              <strong>{formatMoney(i.lineTotal)}</strong>
+              <div className="item-main">
+                <span>
+                  {i.quantity}x {i.name}
+                  {i.sizeLabel ? ` (${i.sizeLabel})` : ''}
+                </span>
+                <strong>{formatMoney(i.lineTotal)}</strong>
+              </div>
+              {modifierLines(i.modifiers).map((line, idx) => (
+                <div key={`${i.id}-m-${idx}`} className="item-mod">
+                  {line}
+                </div>
+              ))}
+              {i.notes ? <div className="item-mod">* {i.notes}</div> : null}
             </li>
           ))}
         </ul>
@@ -1222,6 +1254,20 @@ function OrderDetail({
               {ORDER_STATUS_LABELS[s]}
             </button>
           ))}
+          {order.status !== 'cancelled' ? (
+            <button
+              type="button"
+              className="admin-btn danger"
+              disabled={saving}
+              onClick={() => {
+                if (window.confirm('¿Cancelar este pedido? Se excluye de las ventas del dashboard.')) {
+                  onUpdate({ status: 'cancelled' })
+                }
+              }}
+            >
+              Cancelar pedido
+            </button>
+          ) : null}
           <button type="button" className="admin-btn" onClick={() => window.print()}>
             Imprimir ticket 80mm
           </button>

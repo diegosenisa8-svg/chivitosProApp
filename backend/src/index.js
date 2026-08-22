@@ -24,6 +24,7 @@ import {
   verifyCustomerPassword,
 } from './lib/customerAuth.js'
 import { optionalCustomer, requireCustomer } from './middleware/customerAuth.js'
+import { checkRateLimit, resetRateLimit } from './lib/rateLimit.js'
 import adminRoutes from './routes/admin.js'
 
 const app = express()
@@ -198,6 +199,15 @@ app.post('/api/auth/login', async (req, res) => {
       .parse(req.body)
 
     const email = body.email.trim().toLowerCase()
+    const ip = req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim() || req.ip || 'unknown'
+    const rl = checkRateLimit(`customer-login:${ip}:${email}`, { limit: 5, windowMs: 15 * 60 * 1000 })
+    if (!rl.ok) {
+      res.setHeader('Retry-After', String(rl.retryAfterSec))
+      return res.status(429).json({
+        error: `Demasiados intentos. Probá de nuevo en ${rl.retryAfterSec}s`,
+      })
+    }
+
     const account = await prisma.customerAccount.findUnique({ where: { email } })
     if (!account) {
       return res.status(401).json({ error: 'Email o contraseña incorrectos' })
@@ -207,6 +217,7 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Email o contraseña incorrectos' })
     }
 
+    resetRateLimit(`customer-login:${ip}:${email}`)
     const token = signCustomerToken(account)
     res.json({
       token,

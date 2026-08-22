@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Toast } from '../components/Toast'
 import { FulfillmentToggle } from '../components/FulfillmentToggle'
 import { MercadoPagoCardBrick } from '../components/MercadoPagoCardBrick'
-import { buildWhatsAppMessage, useCart } from '../context/CartContext'
+import { useCart } from '../context/CartContext'
 import { useCustomerAuth } from '../context/CustomerAuthContext'
 import { useMenu } from '../context/MenuContext'
 import {
@@ -120,17 +120,6 @@ export function CheckoutPage() {
       return
     }
 
-    const msg = buildWhatsAppMessage(
-      r.name,
-      lines,
-      total,
-      r.currency,
-      { ...checkout, fulfillment },
-      deliveryFee,
-      discount,
-    )
-    const url = `https://wa.me/${r.whatsapp}?text=${encodeURIComponent(msg)}`
-    window.open(url, '_blank')
     clear()
     setBusy(false)
     navigate('/confirm', { state: { total, eta: `${r.etaMin}–${r.etaMax}` } })
@@ -224,7 +213,7 @@ export function CheckoutPage() {
           <div className="modal sheet test-order-modal" onClick={(e) => e.stopPropagation()}>
             <div className="confirm-check">✓</div>
             <h2>Pedido de prueba enviado</h2>
-            <p>Modo local: no se abre WhatsApp. El pedido quedó registrado en el admin.</p>
+            <p>Modo local: el pedido quedó registrado en el admin.</p>
             <button type="button" className="btn btn-primary" onClick={closeTestPopup}>
               Entendido
             </button>
@@ -345,7 +334,7 @@ export function CheckoutPage() {
             {transfer.cbu ? <p>CBU/cuenta: <code>{transfer.cbu}</code></p> : null}
             <p className="field-hint">
               {transfer.instructions ||
-                'Transferí el total y enviá el comprobante por WhatsApp al confirmar.'}
+                'Transferí el total y guardá el comprobante. El local te contactará si hace falta.'}
             </p>
           </div>
         )}

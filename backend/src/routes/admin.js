@@ -11,6 +11,7 @@ import { mergeSettings, slugify } from '../lib/settings.js'
 import { syncCustomersFromOrders, whatsappUrlForPhone } from '../lib/customers.js'
 import { getMpCredentials } from '../lib/mercadopago.js'
 import { loadBundledMenu, replaceMenuCatalog } from '../lib/replaceMenu.js'
+import { checkRateLimit, resetRateLimit } from '../lib/rateLimit.js'
 
 const router = Router()
 
@@ -60,6 +61,15 @@ router.post('/login', async (req, res) => {
       .parse(req.body)
 
     const email = body.email.trim().toLowerCase()
+    const ip = req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim() || req.ip || 'unknown'
+    const rl = checkRateLimit(`admin-login:${ip}:${email}`, { limit: 5, windowMs: 15 * 60 * 1000 })
+    if (!rl.ok) {
+      res.setHeader('Retry-After', String(rl.retryAfterSec))
+      return res.status(429).json({
+        error: `Demasiados intentos. Probá de nuevo en ${rl.retryAfterSec}s`,
+      })
+    }
+
     const password = body.password
     const admin = await prisma.adminUser.findUnique({ where: { email } })
     if (!admin) {
@@ -73,6 +83,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Email o contraseña incorrectos' })
     }
 
+    resetRateLimit(`admin-login:${ip}:${email}`)
     const token = signToken(admin)
     res.json({
       token,
@@ -101,12 +112,13 @@ router.get('/dashboard', requireFullAdmin, async (_req, res) => {
     const startOfWeek = new Date(startOfDay)
     startOfWeek.setDate(startOfWeek.getDate() - 6)
 
+    const counted = { in: ['confirmed', 'preparing', 'ready', 'delivering', 'delivered'] }
     const [todayOrders, weekOrders, allRecent, byStatus, products] = await Promise.all([
       prisma.order.findMany({
-        where: { createdAt: { gte: startOfDay }, status: { not: 'cancelled' } },
+        where: { createdAt: { gte: startOfDay }, status: counted },
       }),
       prisma.order.findMany({
-        where: { createdAt: { gte: startOfWeek }, status: { not: 'cancelled' } },
+        where: { createdAt: { gte: startOfWeek }, status: counted },
         include: { items: true },
       }),
       prisma.order.findMany({
@@ -585,7 +597,10 @@ router.get('/reports', requireFullAdmin, async (req, res) => {
     since.setDate(since.getDate() - (days - 1))
 
     const orders = await prisma.order.findMany({
-      where: { createdAt: { gte: since }, status: { not: 'cancelled' } },
+      where: {
+        createdAt: { gte: since },
+        status: { in: ['confirmed', 'preparing', 'ready', 'delivering', 'delivered'] },
+      },
       include: { items: true },
     })
 

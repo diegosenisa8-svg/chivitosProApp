@@ -107,7 +107,7 @@ export function MyOrdersPage() {
         </button>
         <h1 className="topbar-heading">Mis pedidos</h1>
         <button type="button" className="linkish" onClick={logout}>
-          Salir
+          Cerrar sesión
         </button>
       </header>
 

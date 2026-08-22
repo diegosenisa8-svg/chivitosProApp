@@ -109,12 +109,12 @@ export function CartPage() {
               value={code}
               onChange={(e) => setCode(e.target.value)}
               placeholder="Cupón de descuento"
+              autoComplete="off"
             />
             <button type="button" className="btn btn-secondary" onClick={() => applyCoupon(code)}>
               Aplicar
             </button>
           </div>
-          <p className="hint">Usá un cupón activo del admin (ej. PIZZA20) o CHIVITO10 / PRIMERA</p>
 
           <div className="totals">
             <div>
