@@ -16,7 +16,10 @@ export function MenuPage() {
   const [query, setQuery] = useState('')
   const [active, setActive] = useState(menu.categories[0]?.id || '')
   const [infoOpen, setInfoOpen] = useState(false)
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set())
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
+
+  const searching = query.trim().length > 0
 
   const featured = useMemo(() => getFeaturedItems(menu), [menu])
 
@@ -36,8 +39,14 @@ export function MenuPage() {
   }, [menu, query])
 
   useEffect(() => {
+    if (searching) {
+      setExpandedIds(new Set(filtered.map((c) => c.id)))
+    }
+  }, [searching, filtered])
+
+  useEffect(() => {
     const nodes = Object.values(sectionRefs.current).filter(Boolean) as HTMLElement[]
-    if (!nodes.length) return
+    if (!nodes.length || searching) return
     const obs = new IntersectionObserver(
       (entries) => {
         const visible = entries
@@ -49,11 +58,24 @@ export function MenuPage() {
     )
     nodes.forEach((n) => obs.observe(n))
     return () => obs.disconnect()
-  }, [filtered])
+  }, [filtered, searching, expandedIds])
+
+  function toggleCat(id: string) {
+    setExpandedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+    setActive(id)
+  }
 
   function scrollToCat(id: string) {
+    setExpandedIds((prev) => new Set(prev).add(id))
     setActive(id)
-    sectionRefs.current[id]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    window.requestAnimationFrame(() => {
+      sectionRefs.current[id]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
   }
 
   return (
@@ -127,63 +149,88 @@ export function MenuPage() {
           </section>
         )}
 
-        {filtered.map((cat) => (
-          <section
-            key={cat.id}
-            className="category"
-            id={cat.id}
-            ref={(el) => {
-              sectionRefs.current[cat.id] = el
-            }}
-          >
-            <div className="category-head static">
-              <div>
-                <h2>{cat.name}</h2>
-                {cat.subtitle && <p>{cat.subtitle}</p>}
-              </div>
-            </div>
+        {filtered.map((cat) => {
+          const expanded = searching || expandedIds.has(cat.id)
+          return (
+            <section
+              key={cat.id}
+              className={`category${expanded ? ' is-expanded' : ''}`}
+              id={cat.id}
+              ref={(el) => {
+                sectionRefs.current[cat.id] = el
+              }}
+            >
+              <button
+                type="button"
+                className="category-head"
+                aria-expanded={expanded}
+                onClick={() => toggleCat(cat.id)}
+              >
+                <div className="category-head-text">
+                  <h2>{cat.name}</h2>
+                  {cat.subtitle && (
+                    <p className={expanded ? '' : 'category-teaser'}>
+                      {expanded ? cat.subtitle : cat.subtitle.slice(0, 72)}
+                      {!expanded && cat.subtitle.length > 72 ? '…' : ''}
+                    </p>
+                  )}
+                  {!expanded && (
+                    <span className="category-count">
+                      {cat.items.length} producto{cat.items.length === 1 ? '' : 's'}
+                    </span>
+                  )}
+                </div>
+                <span className="category-chevron" aria-hidden>
+                  {expanded ? '▾' : '▸'}
+                </span>
+              </button>
 
-            {!isPlaceholderImage(cat.banner) && cat.id !== 'bebidas' && (
-              <div className="category-banner">
-                <MediaImage src={cat.banner} alt="" loading="lazy" />
-              </div>
-            )}
-
-            <ul className="item-list">
-              {cat.items.map((item) => (
-                <li key={item.id}>
-                  <Link to={`/product/${item.id}`} className="item-row">
-                    <MediaImage src={item.image} alt="" className="item-thumb" loading="lazy" />
-                    <div className="item-body">
-                      <div className="item-line">
-                        <h3>
-                          {item.name}
-                          {item.badge && (
-                            <span className={`chip chip-${item.badge}`}>
-                              {item.badge === 'mas-pedido'
-                                ? 'Más pedido'
-                                : item.badge === 'nuevo'
-                                  ? 'Nuevo'
-                                  : item.badge === 'combo'
-                                    ? 'Combo'
-                                    : 'Picante'}
-                            </span>
-                          )}
-                        </h3>
-                        <strong>
-                          {formatPrice(item.price)}
-                          {item.priceMax != null && ` · ${formatPrice(item.priceMax)}`}
-                        </strong>
-                      </div>
-                      {item.description && <p>{item.description}</p>}
-                      <span className="add-pill">Agregar</span>
+              {expanded ? (
+                <div className="category-body">
+                  {!isPlaceholderImage(cat.banner) && cat.id !== 'bebidas' && (
+                    <div className="category-banner">
+                      <MediaImage src={cat.banner} alt="" loading="lazy" />
                     </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
+                  )}
+
+                  <ul className="item-list">
+                    {cat.items.map((item) => (
+                      <li key={item.id}>
+                        <Link to={`/product/${item.id}`} className="item-row">
+                          <MediaImage src={item.image} alt="" className="item-thumb" loading="lazy" />
+                          <div className="item-body">
+                            <div className="item-line">
+                              <h3>
+                                {item.name}
+                                {item.badge && (
+                                  <span className={`chip chip-${item.badge}`}>
+                                    {item.badge === 'mas-pedido'
+                                      ? 'Más pedido'
+                                      : item.badge === 'nuevo'
+                                        ? 'Nuevo'
+                                        : item.badge === 'combo'
+                                          ? 'Combo'
+                                          : 'Picante'}
+                                  </span>
+                                )}
+                              </h3>
+                              <strong>
+                                {formatPrice(item.price)}
+                                {item.priceMax != null && ` · ${formatPrice(item.priceMax)}`}
+                              </strong>
+                            </div>
+                            {item.description && <p>{item.description}</p>}
+                            <span className="add-pill">Agregar</span>
+                          </div>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </section>
+          )
+        })}
 
         {filtered.length === 0 && <p className="empty">No encontramos resultados</p>}
       </main>
