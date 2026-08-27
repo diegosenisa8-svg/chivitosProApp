@@ -1,8 +1,8 @@
 import { Router } from 'express'
 import multer from 'multer'
-import { existsSync, mkdirSync } from 'node:fs'
 import path from 'node:path'
 import { z } from 'zod'
+import { getUploadDir, uploadPublicPath } from '../lib/uploads.js'
 import { prisma } from '../lib/prisma.js'
 import { hashPassword, signToken, verifyPassword } from '../lib/auth.js'
 import { requireAdmin, requireFullAdmin } from '../middleware/auth.js'
@@ -26,8 +26,7 @@ import { checkRateLimit, resetRateLimit } from '../lib/rateLimit.js'
 
 const router = Router()
 
-const uploadDir = path.join(process.cwd(), 'uploads')
-if (!existsSync(uploadDir)) mkdirSync(uploadDir, { recursive: true })
+const uploadDir = getUploadDir()
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -55,7 +54,7 @@ router.post('/upload', requireAdmin, (req, res) => {
     }
     if (!req.file) return res.status(400).json({ error: 'No se recibió archivo' })
     res.status(201).json({
-      url: `/uploads/${req.file.filename}`,
+      url: uploadPublicPath(req.file.filename),
       filename: req.file.filename,
       size: req.file.size,
     })

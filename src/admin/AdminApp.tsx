@@ -39,13 +39,13 @@ import {
   type DashboardData,
   type MercadoPagoAdminStatus,
 } from '../lib/adminApi'
-import { mediaUrl } from '../lib/apiBase'
 import { formatMoney } from '../lib/format'
 import type { Category, MenuData, MenuItem, ModifierGroup, ModifierLibraryGroup, RestaurantSettings } from '../types'
 import '../admin.css'
 import './menu-editor.css'
 import { DevPopup } from './DevPopup'
 import { ModifierLibraryPanel } from './ModifierLibraryPanel'
+import { MediaImage } from '../components/MediaImage'
 import {
   defaultSectionForRole,
   groupOfSection,
@@ -1903,7 +1903,7 @@ function MenuConfigView({
                     <div className="menu-ci-content">
                       <div className="menu-ci-content-left">
                         <div className="menu-ci-image has-image">
-                          <img src={mediaUrl(thumb)} alt="" />
+                          <MediaImage src={thumb} alt="" />
                         </div>
                         <div className="menu-ci-details">
                           <div className="menu-ci-title">{cat.name}</div>
@@ -2075,7 +2075,7 @@ function MenuConfigView({
                                     <div className="menu-ci-content">
                                       <div className="menu-ci-content-left">
                                         <div className="menu-ci-image has-image">
-                                          <img src={mediaUrl(item.image)} alt="" />
+                                          <MediaImage src={item.image} alt="" />
                                         </div>
                                         <div className="menu-ci-details">
                                           <div className="menu-ci-title">{item.name}</div>
@@ -2373,7 +2373,7 @@ function CategoryEditor({
       </p>
 
       <div className="preview preview--banner">
-        <img src={mediaUrl(form.banner)} alt="" />
+        <MediaImage src={form.banner} alt="" className="preview--banner-inner" />
       </div>
 
       <label className="upload-box">
@@ -2528,7 +2528,7 @@ function ProductEditor({
       <h3 style={{ margin: 0 }}>{isNew ? 'Nuevo producto' : 'Editar producto'}</h3>
 
       <div className="preview">
-        <img src={mediaUrl(form.image)} alt="" />
+        <MediaImage src={form.image} alt="" />
       </div>
 
       <label className="upload-box">

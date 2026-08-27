@@ -17,9 +17,26 @@ export function apiUrl(path: string) {
 export function mediaUrl(src?: string | null) {
   if (!src) return '/logo.png'
   if (src.startsWith('http') || src.startsWith('data:') || src.startsWith('blob:')) return src
-  if (src.startsWith('/uploads')) {
+
+  const path = src.startsWith('/') ? src : `/${src}`
+
+  if (path.startsWith('/uploads')) {
     const base = getApiBase()
-    return base === null ? src : `${base}${src}`
+    if (base && typeof window !== 'undefined') {
+      // localhost en .env rompe imágenes vía ngrok/dominio: usar proxy same-origin
+      if (!/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/?$/i.test(base)) {
+        try {
+          const apiOrigin = new URL(base, window.location.origin).origin
+          if (apiOrigin !== window.location.origin) {
+            return `${base.replace(/\/$/, '')}${path}`
+          }
+        } catch {
+          /* usar ruta relativa */
+        }
+      }
+    }
+    return path
   }
-  return src
+
+  return path
 }
