@@ -257,6 +257,16 @@
   flex-shrink: 0;
 }
 
+.menu-ci-content-right .me-btn-order {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.menu-ci-content-right .me-btn-order:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
 .menu-ci-content-right .me-btn-wrap {
   position: relative;
   display: inline-flex;

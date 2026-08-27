@@ -22,6 +22,7 @@ import {
   ORDER_STATUS_FLOW,
   ORDER_STATUS_LABELS,
   replaceMenuCatalog,
+  reorderMenu,
   saveProductModifiers,
   setAdminToken,
   unassignModifierGroupFromCategory,
@@ -1753,6 +1754,52 @@ function MenuConfigView({
     }
   }
 
+  const moveCategory = async (categoryId: string, direction: 'up' | 'down') => {
+    const ids = menu.categories.map((c) => c.id)
+    const idx = ids.indexOf(categoryId)
+    if (idx < 0) return
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1
+    if (swapIdx < 0 || swapIdx >= ids.length) return
+    const next = [...ids]
+    ;[next[idx], next[swapIdx]] = [next[swapIdx], next[idx]]
+    setSaving(true)
+    try {
+      await reorderMenu({
+        categories: next.map((id, sortOrder) => ({ id, sortOrder })),
+      })
+      await refreshMenu()
+      notify(direction === 'up' ? 'Categoría subida' : 'Categoría bajada')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const moveProduct = async (categoryId: string, productId: string, direction: 'up' | 'down') => {
+    const cat = menu.categories.find((c) => c.id === categoryId)
+    if (!cat) return
+    const ids = cat.items.map((i) => i.id)
+    const idx = ids.indexOf(productId)
+    if (idx < 0) return
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1
+    if (swapIdx < 0 || swapIdx >= ids.length) return
+    const next = [...ids]
+    ;[next[idx], next[swapIdx]] = [next[swapIdx], next[idx]]
+    setSaving(true)
+    try {
+      await reorderMenu({
+        products: next.map((id, sortOrder) => ({ id, sortOrder, categoryId })),
+      })
+      await refreshMenu()
+      notify(direction === 'up' ? 'Producto subido' : 'Producto bajado')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const newProductCategoryId = editing?.id.startsWith('__new__:')
     ? editing.id.slice('__new__:'.length)
     : null
@@ -1835,13 +1882,15 @@ function MenuConfigView({
 
         <div className="menu-editor-body">
           <div className="menu-categories">
-            {menu.categories.map((cat) => {
+            {menu.categories.map((cat, catIndex) => {
               const thumb = cat.banner || cat.items[0]?.image || '/logo.png'
               const expanded = isExpanded(cat.id)
               const focused = focusCategoryId === cat.id
               const editingThisCategory = editCategoryId === cat.id
               const editingNewProduct =
                 editing?.id === `__new__:${cat.id}` ? editing : null
+              const canMoveCategoryUp = catIndex > 0
+              const canMoveCategoryDown = catIndex < menu.categories.length - 1
               return (
                 <div
                   key={cat.id}
@@ -1864,6 +1913,30 @@ function MenuConfigView({
                         </div>
                       </div>
                       <div className="menu-ci-content-right">
+                        <button
+                          type="button"
+                          className="me-btn visible-on-hover me-btn-order"
+                          title="Subir categoría"
+                          disabled={!canMoveCategoryUp || saving}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            void moveCategory(cat.id, 'up')
+                          }}
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          className="me-btn visible-on-hover me-btn-order"
+                          title="Bajar categoría"
+                          disabled={!canMoveCategoryDown || saving}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            void moveCategory(cat.id, 'down')
+                          }}
+                        >
+                          ↓
+                        </button>
                         <div className="me-btn-wrap">
                           <button
                             type="button"
@@ -1973,8 +2046,10 @@ function MenuConfigView({
                         </div>
 
                         <div className="category-items">
-                          {cat.items.map((item) => {
+                          {cat.items.map((item, itemIndex) => {
                             const editingThisProduct = editing?.id === item.id
+                            const canMoveProductUp = itemIndex > 0
+                            const canMoveProductDown = itemIndex < cat.items.length - 1
                             return (
                               <div key={item.id}>
                                 <div
@@ -2011,6 +2086,30 @@ function MenuConfigView({
                                       </div>
                                       <div className="menu-ci-content-right">
                                         <span className="item-price">{formatMoney(item.price)}</span>
+                                        <button
+                                          type="button"
+                                          className="me-btn visible-on-hover me-btn-order"
+                                          title="Subir producto"
+                                          disabled={!canMoveProductUp || saving}
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            void moveProduct(cat.id, item.id, 'up')
+                                          }}
+                                        >
+                                          ↑
+                                        </button>
+                                        <button
+                                          type="button"
+                                          className="me-btn visible-on-hover me-btn-order"
+                                          title="Bajar producto"
+                                          disabled={!canMoveProductDown || saving}
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            void moveProduct(cat.id, item.id, 'down')
+                                          }}
+                                        >
+                                          ↓
+                                        </button>
                                         <div className="me-btn-wrap">
                                           <button
                                             type="button"
