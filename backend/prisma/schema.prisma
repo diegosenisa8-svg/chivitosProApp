@@ -45,12 +45,45 @@ model Restaurant {
 }
 
 model Category {
-  id        String    @id
+  id                   String                       @id
+  name                 String
+  subtitle             String                       @default("")
+  banner               String
+  sortOrder            Int                          @default(0)
+  items                Product[]
+  modifierAssignments  CategoryModifierAssignment[]
+}
+
+model ModifierLibraryGroup {
+  id            String                       @id @default(cuid())
+  name          String
+  required      Boolean                      @default(false)
+  min           Int                          @default(0)
+  max           Int                          @default(1)
+  allowQuantity Boolean                      @default(false)
+  sortOrder     Int                          @default(0)
+  options       ModifierLibraryOption[]
+  categories    CategoryModifierAssignment[]
+  createdAt     DateTime                     @default(now())
+  updatedAt     DateTime                     @updatedAt
+}
+
+model ModifierLibraryOption {
+  id        String               @id @default(cuid())
   name      String
-  subtitle  String    @default("")
-  banner    String
-  sortOrder Int       @default(0)
-  items     Product[]
+  price     Float                @default(0)
+  sortOrder Int                  @default(0)
+  groupId   String
+  group     ModifierLibraryGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+}
+
+model CategoryModifierAssignment {
+  categoryId     String
+  libraryGroupId String
+  category       Category             @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  libraryGroup   ModifierLibraryGroup @relation(fields: [libraryGroupId], references: [id], onDelete: Cascade)
+
+  @@id([categoryId, libraryGroupId])
 }
 
 model Product {

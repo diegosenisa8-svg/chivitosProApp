@@ -28,6 +28,9 @@ export async function replaceMenuCatalog(menu, { wipeOrders = true } = {}) {
   }
   await prisma.modifierOption.deleteMany()
   await prisma.modifierGroup.deleteMany()
+  await prisma.categoryModifierAssignment.deleteMany()
+  await prisma.modifierLibraryOption.deleteMany()
+  await prisma.modifierLibraryGroup.deleteMany()
   await prisma.product.deleteMany()
   await prisma.category.deleteMany()
 

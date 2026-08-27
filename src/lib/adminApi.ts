@@ -222,18 +222,66 @@ export async function saveProductModifiers(
 }
 
 export async function fetchModifierLibrary() {
-  return adminFetch<
-    {
-      id: string
-      name: string
-      required: boolean
-      min: number
-      max: number
-      allowQuantity?: boolean
-      options: { id: string; name: string; price: number }[]
-      usedBy: { id: string; name: string }[]
-    }[]
-  >('/modifier-library')
+  return adminFetch<import('../types').ModifierLibraryGroup[]>('/modifier-library')
+}
+
+export async function createModifierLibraryGroup(body: {
+  name: string
+  required: boolean
+  min: number
+  max: number
+  allowQuantity?: boolean
+  options: { name: string; price: number }[]
+}) {
+  return adminFetch<import('../types').ModifierLibraryGroup>('/modifier-library', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
+}
+
+export async function updateModifierLibraryGroup(
+  id: string,
+  body: {
+    name: string
+    required: boolean
+    min: number
+    max: number
+    allowQuantity?: boolean
+    options: { id?: string; name: string; price: number }[]
+  },
+) {
+  return adminFetch<import('../types').ModifierLibraryGroup>(`/modifier-library/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  })
+}
+
+export async function deleteModifierLibraryGroup(id: string) {
+  return adminFetch<{ ok: boolean }>(`/modifier-library/${id}`, { method: 'DELETE' })
+}
+
+export async function assignModifierGroupToCategory(categoryId: string, libraryGroupId: string) {
+  return adminFetch<{ ok: boolean }>(`/categories/${categoryId}/modifier-groups/${libraryGroupId}`, {
+    method: 'POST',
+  })
+}
+
+export async function unassignModifierGroupFromCategory(categoryId: string, libraryGroupId: string) {
+  return adminFetch<{ ok: boolean }>(`/categories/${categoryId}/modifier-groups/${libraryGroupId}`, {
+    method: 'DELETE',
+  })
+}
+
+export async function assignModifierGroupToProduct(productId: string, libraryGroupId: string) {
+  return adminFetch<{ ok: boolean }>(`/products/${productId}/modifier-groups/${libraryGroupId}`, {
+    method: 'POST',
+  })
+}
+
+export async function unassignModifierGroupFromProduct(productId: string, libraryGroupId: string) {
+  return adminFetch<{ ok: boolean }>(`/products/${productId}/modifier-groups/${libraryGroupId}`, {
+    method: 'DELETE',
+  })
 }
 
 export async function fetchReports(days = 30) {

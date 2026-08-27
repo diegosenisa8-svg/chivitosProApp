@@ -3,9 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import {
   adminLogin,
   adminMe,
+  assignModifierGroupToCategory,
+  assignModifierGroupToProduct,
   createCategory,
   createProduct,
+  createModifierLibraryGroup,
   deleteCategory,
+  deleteModifierLibraryGroup,
   deleteProduct,
   fetchAdminMenu,
   fetchAdminOrders,
@@ -21,6 +25,9 @@ import {
   replaceMenuCatalog,
   saveProductModifiers,
   setAdminToken,
+  unassignModifierGroupFromCategory,
+  unassignModifierGroupFromProduct,
+  updateModifierLibraryGroup,
   updateOrder,
   updateProduct,
   updateRestaurant,
@@ -33,9 +40,10 @@ import {
 } from '../lib/adminApi'
 import { mediaUrl } from '../lib/apiBase'
 import { formatMoney } from '../lib/format'
-import type { MenuData, MenuItem, ModifierGroup, RestaurantSettings } from '../types'
+import type { MenuData, MenuItem, ModifierGroup, ModifierLibraryGroup, RestaurantSettings } from '../types'
 import '../admin.css'
 import { DevPopup } from './DevPopup'
+import { ModifierLibraryPanel } from './ModifierLibraryPanel'
 import {
   defaultSectionForRole,
   LEGACY_SECTION_MAP,
@@ -79,7 +87,7 @@ export function AdminApp() {
   const [customerQuery, setCustomerQuery] = useState('')
   const [mpStatus, setMpStatus] = useState<MercadoPagoAdminStatus | null>(null)
   const [menu, setMenu] = useState<MenuData | null>(null)
-  const [library, setLibrary] = useState<Awaited<ReturnType<typeof fetchModifierLibrary>>>([])
+  const [library, setLibrary] = useState<ModifierLibraryGroup[]>([])
   const [reports, setReports] = useState<Awaited<ReturnType<typeof fetchReports>> | null>(null)
   const [orderFilter, setOrderFilter] = useState('all')
   const [orderQuery, setOrderQuery] = useState('')
@@ -144,6 +152,11 @@ export function AdminApp() {
     const m = await fetchAdminMenu()
     setMenu(m)
     return m
+  }, [])
+  const refreshLibrary = useCallback(async () => {
+    const list = await fetchModifierLibrary()
+    setLibrary(list)
+    return list
   }, [])
   const refreshOrders = useCallback(async () => {
     const list = await fetchAdminOrders({ status: orderFilter, q: orderQuery })
@@ -227,7 +240,7 @@ export function AdminApp() {
         ) {
           await refreshMenu()
         }
-        if (section === 'modifiers') setLibrary(await fetchModifierLibrary())
+        if (section === 'menu' || section === 'modifiers') await refreshLibrary()
         if (
           section === 'reports' ||
           section.startsWith('sales-') ||
@@ -240,7 +253,7 @@ export function AdminApp() {
         setError(e instanceof Error ? e.message : 'Error')
       }
     })()
-  }, [admin, section, refreshDashboard, refreshOrders, refreshMenu, refreshCustomers])
+  }, [admin, section, refreshDashboard, refreshOrders, refreshMenu, refreshLibrary, refreshCustomers])
 
   useEffect(() => {
     if (!admin) return
@@ -573,6 +586,7 @@ export function AdminApp() {
         {section === 'menu' && menu && (
           <MenuConfigView
             menu={menu}
+            library={library}
             editing={editing}
             setEditing={setEditing}
             saving={saving}
@@ -580,7 +594,9 @@ export function AdminApp() {
             setError={setError}
             setSaving={setSaving}
             refreshMenu={refreshMenu}
+            refreshLibrary={refreshLibrary}
             onPreview={() => goSection('preview')}
+            onManageLibrary={() => goSection('modifiers')}
           />
         )}
 
@@ -594,7 +610,7 @@ export function AdminApp() {
             setError={setError}
             refresh={async () => {
               await refreshMenu()
-              setLibrary(await fetchModifierLibrary())
+              await refreshLibrary()
             }}
           />
         )}
@@ -1347,6 +1363,7 @@ function OrderDetail({
 
 function MenuConfigView({
   menu,
+  library,
   editing,
   setEditing,
   saving,
@@ -1354,9 +1371,12 @@ function MenuConfigView({
   setError,
   setSaving,
   refreshMenu,
+  refreshLibrary,
   onPreview,
+  onManageLibrary,
 }: {
   menu: MenuData
+  library: ModifierLibraryGroup[]
   editing: MenuItem | null
   setEditing: (i: MenuItem | null) => void
   saving: boolean
@@ -1364,7 +1384,9 @@ function MenuConfigView({
   setError: (m: string) => void
   setSaving: (v: boolean) => void
   refreshMenu: () => Promise<MenuData>
+  refreshLibrary: () => Promise<ModifierLibraryGroup[]>
   onPreview: () => void
+  onManageLibrary: () => void
 }) {
   const [newCatName, setNewCatName] = useState('')
   const [openCatId, setOpenCatId] = useState<string | null>(null)
@@ -1444,8 +1466,21 @@ function MenuConfigView({
     }
   }
 
+  const refreshAll = async () => {
+    await refreshMenu()
+    await refreshLibrary()
+  }
+
+  const panelCategoryId = editing ? null : openCat?.id || null
+  const panelCategoryName = openCat?.name
+  const panelProductId = editing && !editing.id.startsWith('__new__:') ? editing.id : null
+  const panelProductName = editing?.name
+  const assignedGroupIds = editing
+    ? (editing.modifiers || []).map((g) => g.id)
+    : (openCat?.modifierGroups || []).map((g) => g.id)
+
   return (
-    <section className="admin-section">
+    <section className="admin-section menu-config-section">
       <header className="admin-header">
         <div>
           <h2>Configuración del menú</h2>
@@ -1461,7 +1496,7 @@ function MenuConfigView({
           <button type="button" className="admin-btn" onClick={onPreview}>
             Vista previa & Pedido de prueba
           </button>
-          <button type="button" className="admin-btn" onClick={() => refreshMenu()}>
+          <button type="button" className="admin-btn" onClick={() => refreshAll()}>
             Actualizar
           </button>
           <button
@@ -1480,7 +1515,7 @@ function MenuConfigView({
               setSaving(true)
               try {
                 const result = await replaceMenuCatalog()
-                await refreshMenu()
+                await refreshAll()
                 setEditing(null)
                 notify(`Menú reemplazado: ${result.categories} categorías, ${result.products} productos`)
               } catch (e) {
@@ -1495,6 +1530,8 @@ function MenuConfigView({
         </div>
       </header>
 
+      <div className="menu-config-layout">
+        <div className="menu-config-main">
       {editing ? (
         <div className="admin-card detail menu-editor-full">
           <button
@@ -1685,6 +1722,15 @@ function MenuConfigView({
                         {cat.subtitle ||
                           `${cat.items.length} producto${cat.items.length === 1 ? '' : 's'}`}
                       </span>
+                      {cat.modifierGroups && cat.modifierGroups.length > 0 && (
+                        <span className="menu-cat-mod-tags">
+                          {cat.modifierGroups.map((g) => (
+                            <span key={g.id} className="modifier-tag">
+                              {g.name} ×
+                            </span>
+                          ))}
+                        </span>
+                      )}
                     </span>
                     <span className="menu-cat-chevron" aria-hidden>
                       ›
@@ -1743,6 +1789,30 @@ function MenuConfigView({
           </div>
         </>
       )}
+        </div>
+
+        <ModifierLibraryPanel
+          library={library}
+          categoryId={panelCategoryId}
+          productId={panelProductId}
+          categoryName={panelCategoryName}
+          productName={panelProductName}
+          assignedGroupIds={assignedGroupIds}
+          saving={saving}
+          setSaving={setSaving}
+          notify={notify}
+          setError={setError}
+          onChanged={async () => {
+            const m = await refreshMenu()
+            await refreshLibrary()
+            if (editing && panelProductId) {
+              const found = m.categories.flatMap((c) => c.items).find((i) => i.id === panelProductId)
+              if (found) setEditing(found)
+            }
+          }}
+          onManage={onManageLibrary}
+        />
+      </div>
     </section>
   )
 }
@@ -2074,90 +2144,149 @@ function ModifiersView({
   refresh,
 }: {
   menu: MenuData
-  library: Awaited<ReturnType<typeof fetchModifierLibrary>>
+  library: ModifierLibraryGroup[]
   saving: boolean
   setSaving: (v: boolean) => void
   notify: (m: string) => void
   setError: (m: string) => void
   refresh: () => Promise<void>
 }) {
-  const products = menu.categories.flatMap((c) => c.items.map((i) => ({ ...i, category: c.name })))
-  const [productId, setProductId] = useState(products[0]?.id || '')
-  const product = products.find((p) => p.id === productId)
-  const [groups, setGroups] = useState<ModifierGroup[]>(product?.modifiers || [])
+  const [selectedId, setSelectedId] = useState<string | null>(library[0]?.id || null)
+  const [expandedCatId, setExpandedCatId] = useState<string | null>(null)
+  const selected = library.find((g) => g.id === selectedId) || null
+  const [draft, setDraft] = useState<ModifierLibraryGroup | null>(selected)
 
   useEffect(() => {
-    setGroups(product?.modifiers || [])
-  }, [productId, product])
+    if (selectedId?.startsWith('__new__')) return
+    const found = library.find((g) => g.id === selectedId)
+    setDraft(found ? { ...found, options: found.options.map((o) => ({ ...o })) } : null)
+  }, [selectedId, library])
+
+  async function saveDraft() {
+    if (!draft) return
+    setSaving(true)
+    try {
+      if (draft.id.startsWith('__new__')) {
+        await createModifierLibraryGroup({
+          name: draft.name,
+          required: draft.required,
+          min: draft.min,
+          max: draft.max,
+          allowQuantity: draft.allowQuantity,
+          options: draft.options.map((o) => ({ name: o.name, price: o.price })),
+        })
+        notify('Grupo creado')
+      } else {
+        await updateModifierLibraryGroup(draft.id, {
+          name: draft.name,
+          required: draft.required,
+          min: draft.min,
+          max: draft.max,
+          allowQuantity: draft.allowQuantity,
+          options: draft.options.map((o) => ({ id: o.id, name: o.name, price: o.price })),
+        })
+        notify('Grupo actualizado en todos los productos')
+      }
+      await refresh()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function startNewGroup() {
+    const blank: ModifierLibraryGroup = {
+      id: `__new__:${Date.now()}`,
+      name: 'Nuevo grupo',
+      required: false,
+      min: 0,
+      max: 1,
+      options: [{ id: `opt-${Date.now()}`, name: 'Opción', price: 0 }],
+      usedByCategories: [],
+      usedByProducts: [],
+    }
+    setSelectedId(blank.id)
+    setDraft(blank)
+  }
 
   return (
     <section className="admin-section">
       <header className="admin-header">
         <div>
           <h2>Opcionales y agregados</h2>
-          <p>Biblioteca de extras y asignación por producto (como TuMenuWeb)</p>
+          <p>Creá grupos reutilizables (guarnición, dips, bebidas…) y asignalos desde Configuración del menú</p>
+        </div>
+        <div className="header-actions">
+          <button type="button" className="admin-btn primary" onClick={startNewGroup}>
+            + Agregar grupo
+          </button>
         </div>
       </header>
-      <div className="admin-grid-2">
-        <div className="admin-card">
+
+      <div className="modifiers-layout">
+        <div className="admin-card modifiers-library-list">
           <h3>Biblioteca</h3>
-          <ul className="rank-list">
+          <ul className="rank-list modifier-rank-list">
             {library.map((g) => (
               <li key={g.id}>
-                <span>
-                  <strong>{g.name}</strong>
-                  <small className="admin-muted"> · {g.usedBy.length} productos</small>
-                </span>
-                <strong>{g.options.length} opts</strong>
+                <button
+                  type="button"
+                  className={`modifier-rank-btn${selectedId === g.id ? ' active' : ''}`}
+                  onClick={() => setSelectedId(g.id)}
+                >
+                  <span>
+                    <strong>{g.name}</strong>
+                    <small className="admin-muted">
+                      {g.options.length} opts · {g.usedByCategories.length} cat. · {g.usedByProducts.length}{' '}
+                      prod.
+                    </small>
+                  </span>
+                </button>
               </li>
             ))}
           </ul>
         </div>
-        <div className="admin-card settings-form">
-          <label>
-            Producto
-            <select value={productId} onChange={(e) => setProductId(e.target.value)}>
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.category} · {p.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          {groups.map((g, gi) => (
-            <div key={g.id} className="mod-group-edit">
-              <div className="mod-group-head">
+
+        <div className="admin-card settings-form modifiers-editor">
+          {!draft ? (
+            <p className="admin-muted">Elegí un grupo de la biblioteca o creá uno nuevo.</p>
+          ) : (
+            <>
+              <h3>{draft.id.startsWith('__new__') ? 'Nuevo grupo' : 'Editar grupo'}</h3>
+              <label>
+                Nombre del grupo
                 <input
-                  value={g.name}
-                  onChange={(e) => {
-                    const next = [...groups]
-                    next[gi] = { ...g, name: e.target.value }
-                    setGroups(next)
-                  }}
+                  value={draft.name}
+                  onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                  placeholder="Ej. Guarnición"
                 />
-                <label className="check">
-                  <input
-                    type="checkbox"
-                    checked={g.required}
-                    onChange={(e) => {
-                      const next = [...groups]
-                      next[gi] = { ...g, required: e.target.checked }
-                      setGroups(next)
-                    }}
-                  />
-                  Obligatorio
-                </label>
-              </div>
-              {g.options.map((o, oi) => (
+              </label>
+              <label className="check">
+                <input
+                  type="checkbox"
+                  checked={draft.required}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      required: e.target.checked,
+                      min: e.target.checked ? Math.max(1, draft.min) : 0,
+                    })
+                  }
+                />
+                Obligatorio
+              </label>
+
+              <p className="admin-muted">Opciones con precio extra</p>
+              {draft.options.map((o, oi) => (
                 <div key={o.id} className="mod-option-row">
                   <input
                     value={o.name}
+                    placeholder="Ej. Papa con cheddar"
                     onChange={(e) => {
-                      const next = [...groups]
-                      const opts = [...g.options]
-                      opts[oi] = { ...o, name: e.target.value }
-                      next[gi] = { ...g, options: opts }
-                      setGroups(next)
+                      const options = [...draft.options]
+                      options[oi] = { ...o, name: e.target.value }
+                      setDraft({ ...draft, options })
                     }}
                   />
                   <input
@@ -2166,111 +2295,221 @@ function ModifiersView({
                     value={o.price}
                     aria-label="Precio extra"
                     onChange={(e) => {
-                      const next = [...groups]
-                      const opts = [...g.options]
-                      opts[oi] = { ...o, price: Number(e.target.value) || 0 }
-                      next[gi] = { ...g, options: opts }
-                      setGroups(next)
+                      const options = [...draft.options]
+                      options[oi] = { ...o, price: Number(e.target.value) || 0 }
+                      setDraft({ ...draft, options })
                     }}
                   />
                   <button
                     type="button"
                     className="admin-btn ghost icon-del"
                     title="Eliminar opción"
-                    aria-label={`Eliminar ${o.name || 'opción'}`}
-                    onClick={() => {
-                      const label = o.name.trim() || 'esta opción'
-                      if (!confirm(`¿Seguro que deseas eliminar "${label}"?`)) return
-                      const next = [...groups]
-                      next[gi] = { ...g, options: g.options.filter((_, i) => i !== oi) }
-                      setGroups(next)
-                    }}
+                    onClick={() =>
+                      setDraft({
+                        ...draft,
+                        options: draft.options.filter((_, i) => i !== oi),
+                      })
+                    }
                   >
                     ×
                   </button>
                 </div>
               ))}
-              <div className="mod-group-actions">
+              <button
+                type="button"
+                className="admin-btn ghost"
+                onClick={() =>
+                  setDraft({
+                    ...draft,
+                    options: [
+                      ...draft.options,
+                      { id: `opt-${Date.now()}`, name: 'Nueva opción', price: 0 },
+                    ],
+                  })
+                }
+              >
+                + Opción
+              </button>
+
+              {!draft.id.startsWith('__new__') && (
+                <div className="modifier-usage">
+                  {draft.usedByCategories.length > 0 && (
+                    <p>
+                      <strong>Categorías:</strong> {draft.usedByCategories.map((c) => c.name).join(', ')}
+                    </p>
+                  )}
+                  {draft.usedByProducts.length > 0 && (
+                    <p>
+                      <strong>Productos:</strong>{' '}
+                      {draft.usedByProducts.map((p) => p.name).join(', ')}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div className="product-editor-actions">
                 <button
                   type="button"
-                  className="admin-btn ghost"
-                  onClick={() => {
-                    const next = [...groups]
-                    next[gi] = {
-                      ...g,
-                      options: [
-                        ...g.options,
-                        { id: `opt-${Date.now()}`, name: 'Nueva opción', price: 0 },
-                      ],
-                    }
-                    setGroups(next)
-                  }}
+                  className="admin-btn primary"
+                  disabled={saving || !draft.name.trim() || draft.options.length === 0}
+                  onClick={saveDraft}
                 >
-                  + Opción
+                  {saving ? 'Guardando…' : draft.id.startsWith('__new__') ? 'Crear grupo' : 'Guardar grupo'}
                 </button>
-                <button
-                  type="button"
-                  className="admin-btn danger"
-                  onClick={() => {
-                    const label = g.name.trim() || 'este grupo'
-                    if (!confirm(`¿Seguro que deseas eliminar el grupo "${label}"?`)) return
-                    setGroups(groups.filter((_, i) => i !== gi))
-                  }}
-                >
-                  Quitar grupo
-                </button>
+                {!draft.id.startsWith('__new__') && (
+                  <button
+                    type="button"
+                    className="admin-btn danger"
+                    disabled={saving}
+                    onClick={async () => {
+                      if (!confirm(`¿Eliminar "${draft.name}" de la biblioteca y de todos los productos?`)) return
+                      setSaving(true)
+                      try {
+                        await deleteModifierLibraryGroup(draft.id)
+                        setSelectedId(null)
+                        await refresh()
+                        notify('Grupo eliminado')
+                      } catch (e) {
+                        setError(e instanceof Error ? e.message : 'Error')
+                      } finally {
+                        setSaving(false)
+                      }
+                    }}
+                  >
+                    Eliminar grupo
+                  </button>
+                )}
               </div>
-            </div>
-          ))}
-          <button
-            type="button"
-            className="admin-btn"
-            onClick={() =>
-              setGroups([
-                ...groups,
-                {
-                  id: `grp-${Date.now()}`,
-                  name: 'Nuevo grupo',
-                  required: false,
-                  min: 0,
-                  max: 1,
-                  options: [{ id: `opt-${Date.now()}`, name: 'Opción', price: 0 }],
-                },
-              ])
-            }
-          >
-            + Grupo de extras
-          </button>
-          <button
-            type="button"
-            className="admin-btn primary"
-            disabled={saving || !productId}
-            onClick={async () => {
-              setSaving(true)
-              try {
-                await saveProductModifiers(
-                  productId,
-                  groups.map((g) => ({
-                    id: g.id,
-                    name: g.name,
-                    required: g.required,
-                    min: g.min,
-                    max: g.max,
-                    allowQuantity: g.allowQuantity,
-                    options: g.options,
-                  })),
-                )
-                await refresh()
-                notify('Extras guardados')
-              } catch (e) {
-                setError(e instanceof Error ? e.message : 'Error')
-              } finally {
-                setSaving(false)
-              }
-            }}
-          >
-            Guardar extras del producto
-          </button>
+            </>
+          )}
+        </div>
+
+        <div className="admin-card modifiers-assign">
+          <h3>Asignar por categoría</h3>
+          <p className="admin-muted">Expandí una categoría y asigná el grupo seleccionado a todos sus productos.</p>
+          <ul className="modifiers-cat-list">
+            {menu.categories.map((cat) => {
+              const open = expandedCatId === cat.id
+              const assigned = new Set((cat.modifierGroups || []).map((g) => g.id))
+              return (
+                <li key={cat.id} className={`modifiers-cat-item${open ? ' open' : ''}`}>
+                  <button
+                    type="button"
+                    className="modifiers-cat-head"
+                    onClick={() => setExpandedCatId(open ? null : cat.id)}
+                  >
+                    <span>{open ? '▾' : '▸'}</span>
+                    <strong>{cat.name}</strong>
+                    <small>{cat.items.length} prod.</small>
+                  </button>
+                  {open && (
+                    <div className="modifiers-cat-body">
+                      {(cat.modifierGroups || []).length > 0 && (
+                        <div className="menu-cat-mod-tags">
+                          {(cat.modifierGroups || []).map((g) => (
+                            <span key={g.id} className="modifier-tag on">
+                              {g.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {selected && !selected.id.startsWith('__new__') && (
+                        assigned.has(selected.id) ? (
+                          <button
+                            type="button"
+                            className="admin-btn ghost full"
+                            disabled={saving}
+                            onClick={async () => {
+                              setSaving(true)
+                              try {
+                                await unassignModifierGroupFromCategory(cat.id, selected.id)
+                                await refresh()
+                                notify(`Grupo quitado de ${cat.name}`)
+                              } catch (e) {
+                                setError(e instanceof Error ? e.message : 'Error')
+                              } finally {
+                                setSaving(false)
+                              }
+                            }}
+                          >
+                            Quitar &quot;{selected.name}&quot; de {cat.name}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="admin-btn primary full"
+                            disabled={saving}
+                            onClick={async () => {
+                              setSaving(true)
+                              try {
+                                await assignModifierGroupToCategory(cat.id, selected.id)
+                                await refresh()
+                                notify(`Grupo asignado a ${cat.name}`)
+                              } catch (e) {
+                                setError(e instanceof Error ? e.message : 'Error')
+                              } finally {
+                                setSaving(false)
+                              }
+                            }}
+                          >
+                            Asignar &quot;{selected.name}&quot; a todos
+                          </button>
+                        )
+                      )}
+                      <ul className="modifiers-product-list">
+                        {cat.items.map((item) => (
+                          <li key={item.id}>
+                            <span>{item.name}</span>
+                            {selected &&
+                              !selected.id.startsWith('__new__') &&
+                              ((item.modifiers || []).some((m) => m.id === selected.id) ? (
+                                <button
+                                  type="button"
+                                  className="admin-btn ghost"
+                                  disabled={saving}
+                                  onClick={async () => {
+                                    setSaving(true)
+                                    try {
+                                      await unassignModifierGroupFromProduct(item.id, selected.id)
+                                      await refresh()
+                                    } catch (e) {
+                                      setError(e instanceof Error ? e.message : 'Error')
+                                    } finally {
+                                      setSaving(false)
+                                    }
+                                  }}
+                                >
+                                  Quitar
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="admin-btn"
+                                  disabled={saving}
+                                  onClick={async () => {
+                                    setSaving(true)
+                                    try {
+                                      await assignModifierGroupToProduct(item.id, selected.id)
+                                      await refresh()
+                                    } catch (e) {
+                                      setError(e instanceof Error ? e.message : 'Error')
+                                    } finally {
+                                      setSaving(false)
+                                    }
+                                  }}
+                                >
+                                  Asignar
+                                </button>
+                              ))}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
         </div>
       </div>
     </section>

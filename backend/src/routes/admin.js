@@ -11,6 +11,16 @@ import { mergeSettings, slugify } from '../lib/settings.js'
 import { syncCustomersFromOrders, whatsappUrlForPhone } from '../lib/customers.js'
 import { getMpCredentials } from '../lib/mercadopago.js'
 import { loadBundledMenu, replaceMenuCatalog } from '../lib/replaceMenu.js'
+import {
+  applyLibraryGroupToProduct,
+  buildLibraryResponse,
+  deleteLibraryGroupEverywhere,
+  importLibraryFromProducts,
+  propagateLibraryGroupUpdate,
+  removeLibraryGroupFromProduct,
+  syncCategoryLibraryGroup,
+  unsyncCategoryLibraryGroup,
+} from '../lib/modifierLibrary.js'
 import { checkRateLimit, resetRateLimit } from '../lib/rateLimit.js'
 
 const router = Router()
@@ -207,7 +217,21 @@ router.get('/menu', requireAdmin, async (_req, res) => {
       },
     })
     if (!restaurant) return res.status(404).json({ error: 'Restaurant not found' })
-    res.json(mapMenu(restaurant, categories, { includeUnavailable: true }))
+    const assignments = await prisma.categoryModifierAssignment.findMany({
+      include: { libraryGroup: { select: { id: true, name: true } } },
+    })
+    const groupsByCategory = new Map()
+    for (const a of assignments) {
+      const list = groupsByCategory.get(a.categoryId) || []
+      list.push({ id: a.libraryGroup.id, name: a.libraryGroup.name })
+      groupsByCategory.set(a.categoryId, list)
+    }
+    const menu = mapMenu(restaurant, categories, { includeUnavailable: true })
+    menu.categories = menu.categories.map((c) => ({
+      ...c,
+      modifierGroups: groupsByCategory.get(c.id) || [],
+    }))
+    res.json(menu)
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'Error al cargar menú' })
@@ -446,12 +470,11 @@ router.post('/menu/replace-catalog', requireAdmin, async (req, res) => {
     }
     const { path, menu } = loadBundledMenu()
     const result = await replaceMenuCatalog(menu, { wipeOrders: true })
-    const mapped = await mapMenu()
+    await importLibraryFromProducts()
     res.json({
       ok: true,
       source: path,
       ...result,
-      menu: mapped,
     })
   } catch (err) {
     console.error(err)
@@ -562,30 +585,174 @@ router.put('/products/:id/modifiers', requireAdmin, async (req, res) => {
 
 router.get('/modifier-library', requireAdmin, async (_req, res) => {
   try {
-    const groups = await prisma.modifierGroup.findMany({
-      include: { options: true, product: { select: { id: true, name: true } } },
-      orderBy: { name: 'asc' },
-    })
-    const byKey = new Map()
-    for (const g of groups) {
-      const key = g.externalId || g.name
-      const prev = byKey.get(key) || {
-        id: g.externalId,
-        name: g.name,
-        required: g.required,
-        min: g.min,
-        max: g.max,
-        allowQuantity: g.allowQuantity,
-        options: g.options.map((o) => ({ id: o.externalId, name: o.name, price: o.price })),
-        usedBy: [],
-      }
-      prev.usedBy.push({ id: g.product.id, name: g.product.name })
-      byKey.set(key, prev)
-    }
-    res.json([...byKey.values()])
+    await importLibraryFromProducts()
+    res.json(await buildLibraryResponse())
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'Error al cargar biblioteca de extras' })
+  }
+})
+
+const libraryGroupBody = z.object({
+  name: z.string().min(1),
+  required: z.boolean().default(false),
+  min: z.number().int().default(0),
+  max: z.number().int().default(1),
+  allowQuantity: z.boolean().optional(),
+  options: z.array(
+    z.object({
+      id: z.string().optional(),
+      name: z.string().min(1),
+      price: z.number().default(0),
+    }),
+  ),
+})
+
+router.post('/modifier-library', requireAdmin, async (req, res) => {
+  try {
+    const body = libraryGroupBody.parse(req.body)
+    const group = await prisma.modifierLibraryGroup.create({
+      data: {
+        name: body.name.trim(),
+        required: body.required,
+        min: body.min,
+        max: body.max,
+        allowQuantity: !!body.allowQuantity,
+        options: {
+          create: body.options.map((o, i) => ({
+            name: o.name.trim(),
+            price: o.price,
+            sortOrder: i,
+          })),
+        },
+      },
+      include: { options: { orderBy: { sortOrder: 'asc' } }, categories: { include: { category: true } } },
+    })
+    res.status(201).json({
+      id: group.id,
+      name: group.name,
+      required: group.required,
+      min: group.min,
+      max: group.max,
+      allowQuantity: group.allowQuantity,
+      sortOrder: group.sortOrder,
+      options: group.options.map((o) => ({ id: o.id, name: o.name, price: o.price })),
+      usedByCategories: [],
+      usedByProducts: [],
+    })
+  } catch (err) {
+    if (err?.name === 'ZodError') {
+      return res.status(400).json({ error: 'Datos inválidos', details: err.issues })
+    }
+    console.error(err)
+    res.status(500).json({ error: 'No se pudo crear el grupo' })
+  }
+})
+
+router.put('/modifier-library/:id', requireAdmin, async (req, res) => {
+  try {
+    const body = libraryGroupBody.parse(req.body)
+    const id = req.params.id
+    const existing = await prisma.modifierLibraryGroup.findUnique({ where: { id } })
+    if (!existing) return res.status(404).json({ error: 'Grupo no encontrado' })
+
+    await prisma.modifierLibraryOption.deleteMany({ where: { groupId: id } })
+    const group = await prisma.modifierLibraryGroup.update({
+      where: { id },
+      data: {
+        name: body.name.trim(),
+        required: body.required,
+        min: body.min,
+        max: body.max,
+        allowQuantity: !!body.allowQuantity,
+        options: {
+          create: body.options.map((o, i) => ({
+            ...(o.id ? { id: o.id } : {}),
+            name: o.name.trim(),
+            price: o.price,
+            sortOrder: i,
+          })),
+        },
+      },
+      include: { options: { orderBy: { sortOrder: 'asc' } }, categories: { include: { category: true } } },
+    })
+
+    await propagateLibraryGroupUpdate(id)
+    const library = await buildLibraryResponse()
+    const updated = library.find((g) => g.id === id)
+    res.json(updated || group)
+  } catch (err) {
+    if (err?.name === 'ZodError') {
+      return res.status(400).json({ error: 'Datos inválidos', details: err.issues })
+    }
+    console.error(err)
+    res.status(500).json({ error: 'No se pudo actualizar el grupo' })
+  }
+})
+
+router.delete('/modifier-library/:id', requireAdmin, async (req, res) => {
+  try {
+    const id = req.params.id
+    const existing = await prisma.modifierLibraryGroup.findUnique({ where: { id } })
+    if (!existing) return res.status(404).json({ error: 'Grupo no encontrado' })
+    await deleteLibraryGroupEverywhere(id)
+    res.json({ ok: true })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'No se pudo eliminar el grupo' })
+  }
+})
+
+router.post('/categories/:categoryId/modifier-groups/:libraryGroupId', requireAdmin, async (req, res) => {
+  try {
+    const { categoryId, libraryGroupId } = req.params
+    const category = await prisma.category.findUnique({ where: { id: categoryId } })
+    if (!category) return res.status(404).json({ error: 'Categoría no encontrada' })
+    await syncCategoryLibraryGroup(categoryId, libraryGroupId)
+    res.json({ ok: true })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: err.message || 'No se pudo asignar el grupo' })
+  }
+})
+
+router.delete('/categories/:categoryId/modifier-groups/:libraryGroupId', requireAdmin, async (req, res) => {
+  try {
+    const { categoryId, libraryGroupId } = req.params
+    await unsyncCategoryLibraryGroup(categoryId, libraryGroupId)
+    res.json({ ok: true })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'No se pudo quitar el grupo de la categoría' })
+  }
+})
+
+router.post('/products/:productId/modifier-groups/:libraryGroupId', requireAdmin, async (req, res) => {
+  try {
+    const { productId, libraryGroupId } = req.params
+    const product = await prisma.product.findUnique({ where: { id: productId } })
+    if (!product) return res.status(404).json({ error: 'Producto no encontrado' })
+    const libraryGroup = await prisma.modifierLibraryGroup.findUnique({
+      where: { id: libraryGroupId },
+      include: { options: { orderBy: { sortOrder: 'asc' } } },
+    })
+    if (!libraryGroup) return res.status(404).json({ error: 'Grupo no encontrado' })
+    await applyLibraryGroupToProduct(productId, libraryGroup)
+    res.json({ ok: true })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'No se pudo asignar el grupo al producto' })
+  }
+})
+
+router.delete('/products/:productId/modifier-groups/:libraryGroupId', requireAdmin, async (req, res) => {
+  try {
+    const { productId, libraryGroupId } = req.params
+    await removeLibraryGroupFromProduct(productId, libraryGroupId)
+    res.json({ ok: true })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'No se pudo quitar el grupo del producto' })
   }
 })
 

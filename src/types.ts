@@ -33,6 +33,20 @@ export type Category = {
   subtitle: string
   banner: string
   items: MenuItem[]
+  modifierGroups?: { id: string; name: string }[]
+}
+
+export type ModifierLibraryGroup = {
+  id: string
+  name: string
+  required: boolean
+  min: number
+  max: number
+  allowQuantity?: boolean
+  sortOrder?: number
+  options: ModifierOption[]
+  usedByCategories: { id: string; name: string }[]
+  usedByProducts: { id: string; name: string }[]
 }
 
 export type Restaurant = {

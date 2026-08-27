@@ -710,11 +710,226 @@ th {
   align-items: center;
 }
 
+.menu-config-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 16px;
+  align-items: start;
+}
+
+.menu-config-main {
+  min-width: 0;
+}
+
+.menu-config-section .menu-cat-cards,
+.menu-config-section .menu-drill,
+.menu-config-section .menu-editor-full {
+  max-width: none;
+}
+
+.menu-cat-mod-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.modifier-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 1.3;
+  background: var(--admin-line-soft);
+  color: var(--admin-muted);
+  border: 1px solid var(--admin-line);
+}
+
+.modifier-tag.on {
+  background: color-mix(in srgb, var(--admin-accent) 12%, transparent);
+  color: var(--admin-accent);
+  border-color: color-mix(in srgb, var(--admin-accent) 35%, var(--admin-line));
+}
+
+.modifier-library-panel {
+  position: sticky;
+  top: 12px;
+  background: var(--admin-card);
+  border: 1px solid var(--admin-line);
+  border-radius: 14px;
+  padding: 14px;
+  max-height: calc(100vh - 120px);
+  overflow: auto;
+}
+
+.modifier-library-head h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+
+.modifier-library-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.modifier-library-item {
+  border: 1px solid var(--admin-line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--admin-input);
+}
+
+.modifier-library-item-head {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 10px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.modifier-library-item-title {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.modifier-library-item-title strong {
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.modifier-library-item-body {
+  padding: 0 10px 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.modifier-option-preview {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--admin-muted);
+  font-size: 12px;
+}
+
+.modifier-usage {
+  font-size: 12px;
+  color: var(--admin-muted);
+}
+
+.modifier-usage p {
+  margin: 0 0 4px;
+}
+
+.modifier-library-empty {
+  margin: 12px 0;
+}
+
+.modifier-library-manage {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.admin-btn.full {
+  width: 100%;
+}
+
+.modifiers-layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr) 280px;
+  gap: 16px;
+  align-items: start;
+}
+
+.modifier-rank-list {
+  display: grid;
+  gap: 6px;
+}
+
+.modifier-rank-btn {
+  width: 100%;
+  border: 1px solid var(--admin-line);
+  border-radius: 10px;
+  background: var(--admin-input);
+  color: inherit;
+  text-align: left;
+  padding: 10px;
+  cursor: pointer;
+}
+
+.modifier-rank-btn.active {
+  border-color: var(--admin-accent);
+  background: color-mix(in srgb, var(--admin-accent) 10%, var(--admin-input));
+}
+
+.modifiers-cat-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.modifiers-cat-item {
+  border: 1px solid var(--admin-line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.modifiers-cat-head {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 10px;
+  border: 0;
+  background: var(--admin-input);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.modifiers-cat-body {
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid var(--admin-line);
+}
+
+.modifiers-product-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.modifiers-product-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+}
+
 .menu-cat-cards {
   display: grid;
   gap: 10px;
   max-width: 720px;
 }
+
 
 .menu-cat-card {
   display: grid;
@@ -1187,8 +1402,15 @@ th {
   .filters,
   .row-2,
   .quick-add,
-  .zone-row {
+  .zone-row,
+  .menu-config-layout,
+  .modifiers-layout {
     grid-template-columns: 1fr;
+  }
+
+  .modifier-library-panel {
+    position: static;
+    max-height: none;
   }
 
   .mod-group-head {
