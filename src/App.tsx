@@ -39,23 +39,28 @@ function AppRoutes() {
       {!isAdmin ? <ThemeToggle /> : null}
       <Routes>
         <Route path="/admin" element={<AdminPage />} />
+        <Route path="/" element={<HomePage />} />
+        <Route path="/menu" element={<MenuPage />} />
+        <Route path="/product/:id" element={<ProductPage />} />
+        <Route path="/cart" element={<CartPage />} />
+        <Route path="/confirm" element={<ConfirmPage />} />
         <Route
-          path="/*"
+          path="/checkout"
           element={
             <CustomerGate>
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/menu" element={<MenuPage />} />
-                <Route path="/product/:id" element={<ProductPage />} />
-                <Route path="/cart" element={<CartPage />} />
-                <Route path="/checkout" element={<CheckoutPage />} />
-                <Route path="/confirm" element={<ConfirmPage />} />
-                <Route path="/mis-pedidos" element={<MyOrdersPage />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
+              <CheckoutPage />
             </CustomerGate>
           }
         />
+        <Route
+          path="/mis-pedidos"
+          element={
+            <CustomerGate>
+              <MyOrdersPage />
+            </CustomerGate>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>
   )

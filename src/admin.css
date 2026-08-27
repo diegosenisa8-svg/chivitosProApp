@@ -1521,6 +1521,16 @@ th {
   background: #faf9f7;
 }
 
+.tm-client-app-btn {
+  border-color: #3d7a10;
+  color: #3d7a10;
+  background: #f4fbea;
+}
+
+.tm-client-app-btn:hover {
+  background: #e8f5dc;
+}
+
 .tm-user {
   text-align: right;
   line-height: 1.25;

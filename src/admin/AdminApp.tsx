@@ -107,6 +107,10 @@ export function AdminApp() {
     window.setTimeout(() => setToast(''), 2500)
   }
 
+  const openClientApp = (path = '/menu') => {
+    navigate(path)
+  }
+
   const showDev = (title?: string) => {
     setDevTitle(title || 'Sección en desarrollo')
     setDevOpen(true)
@@ -383,7 +387,7 @@ export function AdminApp() {
           <button type="submit" className="admin-btn primary">
             Entrar
           </button>
-          <button type="button" className="admin-btn ghost" onClick={() => navigate('/')}>
+          <button type="button" className="admin-btn ghost" onClick={() => openClientApp('/')}>
             Volver a la app
           </button>
         </form>
@@ -433,6 +437,9 @@ export function AdminApp() {
           </div>
         </div>
         <div className="tm-topbar-actions">
+          <button type="button" className="tm-help-btn tm-client-app-btn" onClick={() => openClientApp('/menu')}>
+            Ver app cliente
+          </button>
           {flashCount > 0 ? (
             <button type="button" className="tm-help-btn" onClick={() => goSection('report-orders')}>
               {flashCount} nuevo{flashCount === 1 ? '' : 's'}
@@ -462,6 +469,11 @@ export function AdminApp() {
             </button>
             {userMenuOpen ? (
               <ul className="tm-user-dropdown">
+                <li>
+                  <button type="button" onClick={() => openClientApp('/menu')}>
+                    Ver app cliente
+                  </button>
+                </li>
                 <li>
                   <button
                     type="button"
@@ -512,7 +524,7 @@ export function AdminApp() {
         ))}
 
         <div className="admin-sidebar-foot">
-          <button type="button" className="admin-btn ghost" onClick={() => navigate('/')}>
+          <button type="button" className="admin-btn ghost" onClick={() => openClientApp('/menu')}>
             Ver app
           </button>
           <button
@@ -594,7 +606,7 @@ export function AdminApp() {
             setSaving={setSaving}
             refreshMenu={refreshMenu}
             refreshLibrary={refreshLibrary}
-            onPreview={() => goSection('preview')}
+            onPreview={() => openClientApp('/menu')}
             onManageLibrary={() => goSection('modifiers')}
           />
         )}
@@ -628,13 +640,17 @@ export function AdminApp() {
                 desde la app; en local/ngrok verás el popup de pedido de prueba (sin WhatsApp real).
               </p>
               <div className="row-2">
-                <button type="button" className="admin-btn primary" onClick={() => navigate('/menu')}>
+                <button type="button" className="admin-btn primary" onClick={() => openClientApp('/menu')}>
                   Abrir menú cliente
                 </button>
-                <button type="button" className="admin-btn" onClick={() => navigate('/checkout')}>
+                <button type="button" className="admin-btn" onClick={() => openClientApp('/checkout')}>
                   Ir a checkout de prueba
                 </button>
               </div>
+              <p className="admin-muted" style={{ marginTop: 12 }}>
+                El menú se puede ver sin cuenta de cliente. Checkout y Mis pedidos piden login de
+                cliente.
+              </p>
             </div>
           </section>
         )}
