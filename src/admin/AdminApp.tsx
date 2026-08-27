@@ -40,6 +40,7 @@ import {
   type MercadoPagoAdminStatus,
 } from '../lib/adminApi'
 import { formatMoney } from '../lib/format'
+import { categoryAdminThumb } from '../lib/media'
 import type { Category, MenuData, MenuItem, ModifierGroup, ModifierLibraryGroup, RestaurantSettings } from '../types'
 import '../admin.css'
 import './menu-editor.css'
@@ -1883,7 +1884,7 @@ function MenuConfigView({
         <div className="menu-editor-body">
           <div className="menu-categories">
             {menu.categories.map((cat, catIndex) => {
-              const thumb = cat.banner || cat.items[0]?.image || '/logo.png'
+              const thumb = categoryAdminThumb(cat.banner)
               const expanded = isExpanded(cat.id)
               const focused = focusCategoryId === cat.id
               const editingThisCategory = editCategoryId === cat.id
@@ -1901,10 +1902,33 @@ function MenuConfigView({
                       ≡
                     </span>
                     <div className="menu-ci-content">
-                      <div className="menu-ci-content-left">
-                        <div className="menu-ci-image has-image">
-                          <MediaImage src={thumb} alt="" />
-                        </div>
+                          <div className="menu-ci-content-left">
+                            <div
+                              className="menu-ci-image has-image"
+                              role="button"
+                              tabIndex={0}
+                              title="Editar imagen de categoría"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setFocusCategoryId(cat.id)
+                                setFocusProductId(null)
+                                setEditing(null)
+                                setEditCategoryId(cat.id)
+                                ensureCategoryExpanded(cat.id)
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.stopPropagation()
+                                  setFocusCategoryId(cat.id)
+                                  setFocusProductId(null)
+                                  setEditing(null)
+                                  setEditCategoryId(cat.id)
+                                  ensureCategoryExpanded(cat.id)
+                                }
+                              }}
+                            >
+                              <MediaImage src={thumb} alt="" />
+                            </div>
                         <div className="menu-ci-details">
                           <div className="menu-ci-title">{cat.name}</div>
                           {cat.subtitle ? (
@@ -2017,7 +2041,11 @@ function MenuConfigView({
                             setSaving(true)
                             try {
                               await updateCategory(editCategory.id, payload)
-                              await refreshMenu()
+                              const m = await refreshMenu()
+                              const updated = m.categories.find((c) => c.id === editCategory.id)
+                              if (updated) {
+                                setEditCategoryId(updated.id)
+                              }
                               notify('Categoría guardada')
                             } catch (e) {
                               setError(e instanceof Error ? e.message : 'Error')
@@ -2346,7 +2374,14 @@ function CategoryEditor({
     setUploading(true)
     try {
       const result = await uploadImage(file)
-      setForm((f) => ({ ...f, banner: result.url }))
+      const banner = result.url
+      const payload = {
+        name: form.name.trim() || category.name,
+        subtitle: form.subtitle,
+        banner,
+      }
+      setForm((f) => ({ ...f, banner }))
+      await onSave(payload)
     } catch (e) {
       setUploadError(e instanceof Error ? e.message : 'Error al subir')
     } finally {
@@ -2368,8 +2403,8 @@ function CategoryEditor({
     >
       <h3 style={{ margin: 0 }}>Editar categoría</h3>
       <p className="admin-muted">
-        La imagen grande se muestra en el menú del cliente al lado de esta categoría (ej.
-        empanadas, refrescos).
+        La imagen grande se muestra en el menú del cliente al lado de esta categoría. Se guarda
+        automáticamente al subirla.
       </p>
 
       <div className="preview preview--banner">

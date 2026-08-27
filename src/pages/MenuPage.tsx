@@ -6,6 +6,7 @@ import { Toast } from '../components/Toast'
 import { useCart } from '../context/CartContext'
 import { useMenu } from '../context/MenuContext'
 import { formatPrice } from '../lib/format'
+import { isPlaceholderImage } from '../lib/media'
 import { getFeaturedItems } from '../lib/menuUtils'
 
 export function MenuPage() {
@@ -142,7 +143,7 @@ export function MenuPage() {
               </div>
             </div>
 
-            {cat.banner && cat.id !== 'bebidas' && (
+            {!isPlaceholderImage(cat.banner) && cat.id !== 'bebidas' && (
               <div className="category-banner">
                 <MediaImage src={cat.banner} alt="" loading="lazy" />
               </div>
