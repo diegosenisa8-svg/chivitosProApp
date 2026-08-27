@@ -398,3 +398,14 @@ export function moduleOfSection(section: AdminSection): NavModule['id'] | null {
   if (mapped) return moduleOfSection(mapped)
   return null
 }
+
+export function groupOfSection(section: AdminSection): string | null {
+  for (const m of MODULES) {
+    for (const g of m.groups) {
+      if (g.items.some((i) => i.id === section)) return g.id
+    }
+  }
+  const mapped = LEGACY_SECTION_MAP[section]
+  if (mapped) return groupOfSection(mapped)
+  return null
+}

@@ -8,6 +8,7 @@ import {
   createCategory,
   createProduct,
   createModifierLibraryGroup,
+  deleteCategory,
   deleteModifierLibraryGroup,
   deleteProduct,
   fetchAdminMenu,
@@ -27,6 +28,7 @@ import {
   unassignModifierGroupFromProduct,
   updateModifierLibraryGroup,
   updateOrder,
+  updateCategory,
   updateProduct,
   updateRestaurant,
   uploadImage,
@@ -38,13 +40,14 @@ import {
 } from '../lib/adminApi'
 import { mediaUrl } from '../lib/apiBase'
 import { formatMoney } from '../lib/format'
-import type { MenuData, MenuItem, ModifierGroup, ModifierLibraryGroup, RestaurantSettings } from '../types'
+import type { Category, MenuData, MenuItem, ModifierGroup, ModifierLibraryGroup, RestaurantSettings } from '../types'
 import '../admin.css'
 import './menu-editor.css'
 import { DevPopup } from './DevPopup'
 import { ModifierLibraryPanel } from './ModifierLibraryPanel'
 import {
   defaultSectionForRole,
+  groupOfSection,
   LEGACY_SECTION_MAP,
   moduleOfSection,
   modulesForRole,
@@ -98,6 +101,7 @@ export function AdminApp() {
   const [devOpen, setDevOpen] = useState(false)
   const [devTitle, setDevTitle] = useState('Sección en desarrollo')
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({})
   const knownOrderIds = useRef<Set<string>>(new Set())
   const [flashOrderIds, setFlashOrderIds] = useState<string[]>([])
   const audioCtx = useRef<AudioContext | null>(null)
@@ -300,7 +304,15 @@ export function AdminApp() {
     setSection(mapped)
     const mod = moduleOfSection(mapped)
     if (mod) setActiveModule(mod)
+    const groupId = groupOfSection(mapped)
+    if (groupId) {
+      setExpandedGroups((prev) => ({ ...prev, [groupId]: true }))
+    }
     setModuleArmed(null)
+  }
+
+  function toggleNavGroup(groupId: string) {
+    setExpandedGroups((prev) => ({ ...prev, [groupId]: !prev[groupId] }))
   }
 
   useEffect(() => {
@@ -316,6 +328,22 @@ export function AdminApp() {
       setActiveModule(moduleOfSection(def) || 'reports')
     }
   }, [admin, section])
+
+  useEffect(() => {
+    const groupId = groupOfSection(section)
+    if (groupId) {
+      setExpandedGroups((prev) => (prev[groupId] ? prev : { ...prev, [groupId]: true }))
+    }
+  }, [section])
+
+  useEffect(() => {
+    const groupId = groupOfSection(section)
+    if (groupId) {
+      setExpandedGroups({ [groupId]: true })
+    } else {
+      setExpandedGroups({})
+    }
+  }, [activeModule])
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', 'light')
@@ -497,31 +525,48 @@ export function AdminApp() {
           {modules.find((m) => m.id === activeModule)?.label || 'Panel'}
         </p>
 
-        {(modules.find((m) => m.id === activeModule)?.groups || []).map((group) => (
-          <div key={group.id} className="nav-group">
-            <p className="nav-group-label">{group.label}</p>
-            {group.items.map((item) => (
+        {(modules.find((m) => m.id === activeModule)?.groups || []).map((group) => {
+          const expanded = !!expandedGroups[group.id]
+          return (
+            <div key={group.id} className={`nav-group ${expanded ? 'expanded' : 'collapsed'}`}>
               <button
-                key={item.id}
                 type="button"
-                className={`${section === item.id ? 'active' : ''} ${
-                  (item.id === 'report-orders' || item.id === 'take-orders-app') && flashCount
-                    ? 'nav-flash'
-                    : ''
-                }`}
-                onClick={() => goSection(item.id)}
+                className="nav-group-toggle"
+                aria-expanded={expanded}
+                onClick={() => toggleNavGroup(group.id)}
               >
-                <span className="tm-nav-indicator" aria-hidden />
-                <span>{item.label}</span>
-                {(item.id === 'report-orders' || item.id === 'take-orders-app') && flashCount > 0 ? (
-                  <em className="nav-new">
-                    {flashCount}
-                  </em>
-                ) : null}
+                <span>{group.label}</span>
+                <span className="nav-group-caret" aria-hidden>
+                  {expanded ? '▾' : '▸'}
+                </span>
               </button>
-            ))}
-          </div>
-        ))}
+              {expanded ? (
+                <div className="nav-group-items">
+                  {group.items.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`${section === item.id ? 'active' : ''} ${
+                        (item.id === 'report-orders' || item.id === 'take-orders-app') && flashCount
+                          ? 'nav-flash'
+                          : ''
+                      }`}
+                      onClick={() => goSection(item.id)}
+                    >
+                      <span className="tm-nav-indicator" aria-hidden />
+                      <span>{item.label}</span>
+                      {(item.id === 'report-orders' || item.id === 'take-orders-app') && flashCount > 0 ? (
+                        <em className="nav-new">
+                          {flashCount}
+                        </em>
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          )
+        })}
 
         <div className="admin-sidebar-foot">
           <button type="button" className="admin-btn ghost" onClick={() => openClientApp('/menu')}>
@@ -1376,6 +1421,49 @@ function OrderDetail({
   )
 }
 
+function MenuRowMenu({
+  hidden,
+  showVisibility = true,
+  onDuplicate,
+  onRemove,
+  onHide,
+  onShow,
+}: {
+  hidden: boolean
+  showVisibility?: boolean
+  onDuplicate: () => void
+  onRemove: () => void
+  onHide: () => void
+  onShow: () => void
+}) {
+  return (
+    <div className="menu-row-menu" onClick={(e) => e.stopPropagation()}>
+      <div className="menu-row-menu-actions">
+        <button type="button" onClick={onDuplicate}>
+          Duplicar
+        </button>
+        <button type="button" className="danger" onClick={onRemove}>
+          Retirar
+        </button>
+      </div>
+      {showVisibility ? (
+        <div className="menu-row-menu-section">
+          <p className="menu-row-menu-label">Visibilidad</p>
+          <label className="menu-row-menu-radio">
+            <input type="radio" name="visibility" checked={hidden} onChange={onHide} />
+            Ocultar
+          </label>
+          <label className="menu-row-menu-radio">
+            <input type="radio" name="visibility" checked={!hidden} onChange={onShow} />
+            Mostrar
+          </label>
+          <p className="menu-row-menu-soon">Solo desde… / Desde–hasta… (próximamente)</p>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 function MenuConfigView({
   menu,
   library,
@@ -1407,12 +1495,18 @@ function MenuConfigView({
   const [expandedCatIds, setExpandedCatIds] = useState<string[]>([])
   const [focusCategoryId, setFocusCategoryId] = useState<string | null>(null)
   const [focusProductId, setFocusProductId] = useState<string | null>(null)
+  const [editCategoryId, setEditCategoryId] = useState<string | null>(null)
 
   const focusCategory = menu.categories.find((c) => c.id === focusCategoryId) || null
+  const editCategory = menu.categories.find((c) => c.id === editCategoryId) || null
   const focusProduct =
     focusCategory?.items.find((i) => i.id === focusProductId) ||
     menu.categories.flatMap((c) => c.items).find((i) => i.id === focusProductId) ||
     null
+
+  const ensureCategoryExpanded = (catId: string) => {
+    setExpandedCatIds((prev) => (prev.includes(catId) ? prev : [...prev, catId]))
+  }
 
   const toggleCategory = (catId: string) => {
     setExpandedCatIds((prev) => {
@@ -1431,6 +1525,10 @@ function MenuConfigView({
   const isExpanded = (catId: string) => expandedCatIds.includes(catId)
 
   const startNewProduct = (categoryId: string) => {
+    setEditCategoryId(null)
+    ensureCategoryExpanded(categoryId)
+    setFocusCategoryId(categoryId)
+    setFocusProductId(null)
     setEditing({
       id: `__new__:${categoryId}`,
       name: '',
@@ -1511,22 +1609,164 @@ function MenuConfigView({
     await refreshLibrary()
   }
 
-  const editingCategoryId = editing?.id.startsWith('__new__:')
+  const [rowMenu, setRowMenu] = useState<{ kind: 'category' | 'product'; id: string } | null>(null)
+
+  useEffect(() => {
+    if (!rowMenu) return
+    const close = () => setRowMenu(null)
+    document.addEventListener('click', close)
+    return () => document.removeEventListener('click', close)
+  }, [rowMenu])
+
+  const duplicateProduct = async (item: MenuItem, categoryId: string) => {
+    setSaving(true)
+    try {
+      const created = await createProduct({
+        categoryId,
+        name: `${item.name} (copia)`,
+        description: item.description,
+        price: item.price,
+        priceMax: item.priceMax ?? null,
+        image: item.image,
+        available: item.available !== false,
+        featured: !!item.featured,
+      })
+      if (item.modifiers?.length) {
+        await saveProductModifiers(
+          created.id,
+          item.modifiers.map((g) => ({
+            id: g.id,
+            name: g.name,
+            required: g.required,
+            min: g.min,
+            max: g.max,
+            allowQuantity: g.allowQuantity,
+            options: g.options,
+          })),
+        )
+      }
+      await refreshMenu()
+      setFocusCategoryId(categoryId)
+      setFocusProductId(created.id)
+      ensureCategoryExpanded(categoryId)
+      notify('Producto duplicado')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const duplicateCategory = async (cat: Category) => {
+    setSaving(true)
+    try {
+      const created = (await createCategory({
+        name: `${cat.name} (copia)`,
+        subtitle: cat.subtitle,
+        banner: cat.banner,
+      })) as { id: string }
+      for (const g of cat.modifierGroups || []) {
+        await assignModifierGroupToCategory(created.id, g.id)
+      }
+      for (const item of cat.items) {
+        const product = await createProduct({
+          categoryId: created.id,
+          name: item.name,
+          description: item.description,
+          price: item.price,
+          priceMax: item.priceMax ?? null,
+          image: item.image,
+          available: item.available !== false,
+          featured: !!item.featured,
+        })
+        if (item.modifiers?.length) {
+          await saveProductModifiers(
+            product.id,
+            item.modifiers.map((g) => ({
+              id: g.id,
+              name: g.name,
+              required: g.required,
+              min: g.min,
+              max: g.max,
+              allowQuantity: g.allowQuantity,
+              options: g.options,
+            })),
+          )
+        }
+      }
+      await refreshMenu()
+      setEditCategoryId(null)
+      setEditing(null)
+      setFocusCategoryId(created.id)
+      setFocusProductId(null)
+      ensureCategoryExpanded(created.id)
+      notify('Categoría duplicada')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const setProductVisibility = async (item: MenuItem, available: boolean) => {
+    setSaving(true)
+    try {
+      await updateProduct(item.id, { available })
+      await refreshMenu()
+      notify(available ? 'Producto visible en el menú' : 'Producto oculto del menú')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const removeProduct = async (item: MenuItem) => {
+    if (!confirm(`¿Seguro que deseas retirar "${item.name}" del menú?`)) return
+    setSaving(true)
+    try {
+      await deleteProduct(item.id)
+      if (editing?.id === item.id) setEditing(null)
+      if (focusProductId === item.id) setFocusProductId(null)
+      await refreshMenu()
+      notify('Producto retirado')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const removeCategory = async (cat: Category) => {
+    if (!confirm(`¿Seguro que deseas retirar la categoría "${cat.name}" y todos sus productos?`)) return
+    setSaving(true)
+    try {
+      await deleteCategory(cat.id)
+      if (editCategoryId === cat.id) setEditCategoryId(null)
+      if (focusCategoryId === cat.id) setFocusCategoryId(null)
+      await refreshMenu()
+      notify('Categoría retirada')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const newProductCategoryId = editing?.id.startsWith('__new__:')
     ? editing.id.slice('__new__:'.length)
     : null
-  const editingCategory =
-    menu.categories.find((c) => c.id === editingCategoryId) ||
+  const editingProductCategory =
+    menu.categories.find((c) => c.id === newProductCategoryId) ||
     (editing && !editing.id.startsWith('__new__:')
       ? menu.categories.find((c) => c.items.some((i) => i.id === editing.id))
       : null) ||
     null
 
-  const panelCategoryId = focusProductId
+  const panelCategoryId = focusProductId || (editing && !editing.id.startsWith('__new__:'))
     ? null
-    : editing && !editing.id.startsWith('__new__:')
-      ? null
-      : editingCategoryId || focusCategoryId
-  const panelCategoryName = editingCategory?.name || focusCategory?.name
+    : editCategoryId || newProductCategoryId || focusCategoryId
+  const panelCategoryName = editCategory?.name || editingProductCategory?.name || focusCategory?.name
   const panelProductId =
     editing && !editing.id.startsWith('__new__:')
       ? editing.id
@@ -1573,6 +1813,7 @@ function MenuConfigView({
                   const result = await replaceMenuCatalog()
                   await refreshAll()
                   setEditing(null)
+                  setEditCategoryId(null)
                   setExpandedCatIds([])
                   setFocusCategoryId(null)
                   setFocusProductId(null)
@@ -1593,138 +1834,163 @@ function MenuConfigView({
         </div>
 
         <div className="menu-editor-body">
-          {editing ? (
-            <div className="menu-editor-product-form">
-              <button
-                type="button"
-                className="menu-back-btn"
-                onClick={() => {
-                  setEditing(null)
-                  setFocusProductId(null)
-                }}
-              >
-                ← Volver al menú
-              </button>
-              <ProductEditor
-                item={editing}
-                saving={saving}
-                onCancel={() => {
-                  setEditing(null)
-                  setFocusProductId(null)
-                }}
-                onDelete={async () => {
-                  if (editing.id.startsWith('__new__:')) {
-                    setEditing(null)
-                    return
-                  }
-                  if (!confirm(`¿Seguro que deseas eliminar el producto "${editing.name}"?`)) return
-                  setSaving(true)
-                  try {
-                    await deleteProduct(editing.id)
-                    setEditing(null)
-                    setFocusProductId(null)
-                    await refreshMenu()
-                    notify('Producto eliminado')
-                  } catch (e) {
-                    setError(e instanceof Error ? e.message : 'Error')
-                  } finally {
-                    setSaving(false)
-                  }
-                }}
-                onSave={saveProduct}
-              />
-            </div>
-          ) : (
-            <>
-              <div className="menu-categories">
-                {menu.categories.map((cat) => {
-                  const thumb = cat.banner || cat.items[0]?.image || '/logo.png'
-                  const expanded = isExpanded(cat.id)
-                  const focused = focusCategoryId === cat.id
-                  return (
-                    <div
-                      key={cat.id}
-                      className={`menu-ci${expanded ? ' is-expanded' : ''}${focused ? ' keep-hovering highlighted' : ''}`}
-                    >
-                      <div className="menu-ci-body">
-                        <span className="drag-hover-indicator" aria-hidden>
-                          ≡
-                        </span>
-                        <div className="menu-ci-content">
-                          <div className="menu-ci-content-left">
-                            <div className="menu-ci-image has-image">
-                              <img src={mediaUrl(thumb)} alt="" />
-                            </div>
-                            <div className="menu-ci-details">
-                              <div className="menu-ci-title">{cat.name}</div>
-                              {cat.subtitle ? (
-                                <div className="menu-ci-subtitle">{cat.subtitle}</div>
-                              ) : null}
-                            </div>
-                          </div>
-                          <div className="menu-ci-content-right">
-                            <button
-                              type="button"
-                              className="me-btn visible-on-hover"
-                              title="Más"
-                              aria-label="Más"
-                            >
-                              ⋮
-                            </button>
-                            <button
-                              type="button"
-                              className="me-btn visible-on-hover"
-                              title="Editar categoría"
-                              onClick={() => {
-                                setFocusCategoryId(cat.id)
-                                setFocusProductId(null)
-                                if (!expanded) toggleCategory(cat.id)
-                              }}
-                            >
-                              ✎
-                            </button>
-                            <button
-                              type="button"
-                              className="me-btn"
-                              title={expanded ? 'Contraer' : 'Expandir'}
-                              onClick={() => toggleCategory(cat.id)}
-                            >
-                              {expanded ? '▾' : '▸'}
-                            </button>
-                          </div>
+          <div className="menu-categories">
+            {menu.categories.map((cat) => {
+              const thumb = cat.banner || cat.items[0]?.image || '/logo.png'
+              const expanded = isExpanded(cat.id)
+              const focused = focusCategoryId === cat.id
+              const editingThisCategory = editCategoryId === cat.id
+              const editingNewProduct =
+                editing?.id === `__new__:${cat.id}` ? editing : null
+              return (
+                <div
+                  key={cat.id}
+                  className={`menu-ci${expanded ? ' is-expanded' : ''}${focused ? ' keep-hovering highlighted' : ''}${editingThisCategory ? ' is-editing' : ''}`}
+                >
+                  <div className="menu-ci-body">
+                    <span className="drag-hover-indicator" aria-hidden>
+                      ≡
+                    </span>
+                    <div className="menu-ci-content">
+                      <div className="menu-ci-content-left">
+                        <div className="menu-ci-image has-image">
+                          <img src={mediaUrl(thumb)} alt="" />
+                        </div>
+                        <div className="menu-ci-details">
+                          <div className="menu-ci-title">{cat.name}</div>
+                          {cat.subtitle ? (
+                            <div className="menu-ci-subtitle">{cat.subtitle}</div>
+                          ) : null}
+                        </div>
+                      </div>
+                      <div className="menu-ci-content-right">
+                        <div className="me-btn-wrap">
+                          <button
+                            type="button"
+                            className={`me-btn visible-on-hover${rowMenu?.kind === 'category' && rowMenu.id === cat.id ? ' active' : ''}`}
+                            title="Más"
+                            aria-label="Más"
+                            aria-expanded={rowMenu?.kind === 'category' && rowMenu.id === cat.id}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setRowMenu((cur) =>
+                                cur?.kind === 'category' && cur.id === cat.id
+                                  ? null
+                                  : { kind: 'category', id: cat.id },
+                              )
+                            }}
+                          >
+                            ⋮
+                          </button>
+                          {rowMenu?.kind === 'category' && rowMenu.id === cat.id ? (
+                            <MenuRowMenu
+                              hidden={false}
+                              showVisibility={false}
+                              onDuplicate={() => void duplicateCategory(cat)}
+                              onRemove={() => void removeCategory(cat)}
+                              onHide={() => undefined}
+                              onShow={() => undefined}
+                            />
+                          ) : null}
+                        </div>
+                        <button
+                          type="button"
+                          className={`me-btn visible-on-hover${editingThisCategory ? ' active' : ''}`}
+                          title="Editar categoría"
+                          onClick={() => {
+                            setFocusCategoryId(cat.id)
+                            setFocusProductId(null)
+                            setEditing(null)
+                            setEditCategoryId((cur) => (cur === cat.id ? null : cat.id))
+                            ensureCategoryExpanded(cat.id)
+                          }}
+                        >
+                          ✎
+                        </button>
+                        <button
+                          type="button"
+                          className="me-btn"
+                          title={expanded ? 'Contraer' : 'Expandir'}
+                          onClick={() => toggleCategory(cat.id)}
+                        >
+                          {expanded ? '▾' : '▸'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {editingThisCategory && editCategory ? (
+                      <div className="menu-inline-editor">
+                        <CategoryEditor
+                          category={editCategory}
+                          saving={saving}
+                          onCancel={() => setEditCategoryId(null)}
+                          onDelete={async () => {
+                            if (!confirm(`¿Seguro que deseas eliminar la categoría "${editCategory.name}"?`))
+                              return
+                            setSaving(true)
+                            try {
+                              await deleteCategory(editCategory.id)
+                              setEditCategoryId(null)
+                              setFocusCategoryId(null)
+                              await refreshMenu()
+                              notify('Categoría eliminada')
+                            } catch (e) {
+                              setError(e instanceof Error ? e.message : 'Error')
+                            } finally {
+                              setSaving(false)
+                            }
+                          }}
+                          onSave={async (payload) => {
+                            setSaving(true)
+                            try {
+                              await updateCategory(editCategory.id, payload)
+                              await refreshMenu()
+                              notify('Categoría guardada')
+                            } catch (e) {
+                              setError(e instanceof Error ? e.message : 'Error')
+                            } finally {
+                              setSaving(false)
+                            }
+                          }}
+                        />
+                      </div>
+                    ) : null}
+
+                    {expanded && (
+                      <>
+                        <div
+                          className={`choices-list${
+                            cat.modifierGroups && cat.modifierGroups.length > 0
+                              ? ''
+                              : ' empty-list'
+                          }`}
+                        >
+                          {(cat.modifierGroups || []).map((g) => (
+                            <span key={g.id} className="choice-pill">
+                              {g.name} ×
+                            </span>
+                          ))}
                         </div>
 
-                        {expanded && (
-                          <>
-                            <div
-                              className={`choices-list${
-                                cat.modifierGroups && cat.modifierGroups.length > 0
-                                  ? ''
-                                  : ' empty-list'
-                              }`}
-                            >
-                              {(cat.modifierGroups || []).map((g) => (
-                                <span key={g.id} className="choice-pill">
-                                  {g.name} ×
-                                </span>
-                              ))}
-                            </div>
-
-                            <div className="category-items">
-                              {cat.items.map((item) => (
+                        <div className="category-items">
+                          {cat.items.map((item) => {
+                            const editingThisProduct = editing?.id === item.id
+                            return (
+                              <div key={item.id}>
                                 <div
-                                  key={item.id}
                                   className={`menu-ci is-product${
                                     focusProductId === item.id ? ' selected keep-hovering' : ''
-                                  }`}
+                                  }${editingThisProduct ? ' is-editing' : ''}`}
                                   onClick={() => {
                                     setFocusCategoryId(cat.id)
                                     setFocusProductId(item.id)
+                                    setEditCategoryId(null)
                                   }}
                                   onKeyDown={(e) => {
                                     if (e.key === 'Enter' || e.key === ' ') {
                                       setFocusCategoryId(cat.id)
                                       setFocusProductId(item.id)
+                                      setEditCategoryId(null)
                                     }
                                   }}
                                   role="button"
@@ -1745,15 +2011,45 @@ function MenuConfigView({
                                       </div>
                                       <div className="menu-ci-content-right">
                                         <span className="item-price">{formatMoney(item.price)}</span>
+                                        <div className="me-btn-wrap">
+                                          <button
+                                            type="button"
+                                            className={`me-btn visible-on-hover${rowMenu?.kind === 'product' && rowMenu.id === item.id ? ' active' : ''}`}
+                                            title="Más"
+                                            aria-label="Más"
+                                            aria-expanded={rowMenu?.kind === 'product' && rowMenu.id === item.id}
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              setRowMenu((cur) =>
+                                                cur?.kind === 'product' && cur.id === item.id
+                                                  ? null
+                                                  : { kind: 'product', id: item.id },
+                                              )
+                                            }}
+                                          >
+                                            ⋮
+                                          </button>
+                                          {rowMenu?.kind === 'product' && rowMenu.id === item.id ? (
+                                            <MenuRowMenu
+                                              hidden={item.available === false}
+                                              onDuplicate={() => void duplicateProduct(item, cat.id)}
+                                              onRemove={() => void removeProduct(item)}
+                                              onHide={() => void setProductVisibility(item, false)}
+                                              onShow={() => void setProductVisibility(item, true)}
+                                            />
+                                          ) : null}
+                                        </div>
                                         <button
                                           type="button"
-                                          className="me-btn visible-on-hover"
+                                          className={`me-btn visible-on-hover${editingThisProduct ? ' active' : ''}`}
                                           title="Editar producto"
                                           onClick={(e) => {
                                             e.stopPropagation()
                                             setFocusCategoryId(cat.id)
                                             setFocusProductId(item.id)
-                                            setEditing(item)
+                                            setEditCategoryId(null)
+                                            setEditing(editing?.id === item.id ? null : item)
+                                            ensureCategoryExpanded(cat.id)
                                           }}
                                         >
                                           ✎
@@ -1761,8 +2057,11 @@ function MenuConfigView({
                                         <button
                                           type="button"
                                           className="me-btn"
-                                          title={item.available === false ? 'Oculto' : 'Visible'}
-                                          onClick={(e) => e.stopPropagation()}
+                                          title={item.available === false ? 'Oculto — clic para mostrar' : 'Visible — clic para ocultar'}
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            void setProductVisibility(item, item.available === false)
+                                          }}
                                         >
                                           {item.available === false ? '○' : '✓'}
                                         </button>
@@ -1779,28 +2078,81 @@ function MenuConfigView({
                                     )}
                                   </div>
                                 </div>
-                              ))}
 
-                              <button
-                                type="button"
-                                className="btn-add-category"
-                                onClick={() => {
-                                  setFocusCategoryId(cat.id)
-                                  startNewProduct(cat.id)
+                                {editingThisProduct && editing ? (
+                                  <div className="menu-inline-editor menu-inline-editor--product">
+                                    <ProductEditor
+                                      item={editing}
+                                      inline
+                                      saving={saving}
+                                      onCancel={() => {
+                                        setEditing(null)
+                                        setFocusProductId(null)
+                                      }}
+                                      onDelete={async () => {
+                                        if (!confirm(`¿Seguro que deseas eliminar el producto "${editing.name}"?`))
+                                          return
+                                        setSaving(true)
+                                        try {
+                                          await deleteProduct(editing.id)
+                                          setEditing(null)
+                                          setFocusProductId(null)
+                                          await refreshMenu()
+                                          notify('Producto eliminado')
+                                        } catch (e) {
+                                          setError(e instanceof Error ? e.message : 'Error')
+                                        } finally {
+                                          setSaving(false)
+                                        }
+                                      }}
+                                      onSave={saveProduct}
+                                    />
+                                  </div>
+                                ) : null}
+                              </div>
+                            )
+                          })}
+
+                          {editingNewProduct ? (
+                            <div className="menu-inline-editor menu-inline-editor--product">
+                              <ProductEditor
+                                item={editingNewProduct}
+                                inline
+                                saving={saving}
+                                onCancel={() => {
+                                  setEditing(null)
+                                  setFocusProductId(null)
                                 }}
-                              >
-                                + Agregar producto
-                              </button>
+                                onDelete={async () => {
+                                  setEditing(null)
+                                }}
+                                onSave={saveProduct}
+                              />
                             </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+                          ) : null}
 
-              <div className="menu-editor-new-cat">
+                          {!editingNewProduct ? (
+                            <button
+                              type="button"
+                              className="btn-add-category"
+                              onClick={() => {
+                                setFocusCategoryId(cat.id)
+                                startNewProduct(cat.id)
+                              }}
+                            >
+                              + Agregar producto
+                            </button>
+                          ) : null}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="menu-editor-new-cat">
                 <input
                   placeholder="Nueva categoría"
                   value={newCatName}
@@ -1824,11 +2176,9 @@ function MenuConfigView({
                     }
                   }}
                 >
-                  Agregar categoría
-                </button>
-              </div>
-            </>
-          )}
+                Agregar categoría
+              </button>
+            </div>
         </div>
       </div>
 
@@ -1861,15 +2211,132 @@ function MenuConfigView({
   )
 }
 
+function CategoryEditor({
+  category,
+  saving,
+  onSave,
+  onDelete,
+  onCancel,
+}: {
+  category: Category
+  saving: boolean
+  onSave: (payload: { name: string; subtitle: string; banner: string }) => Promise<void>
+  onDelete: () => Promise<void>
+  onCancel: () => void
+}) {
+  const [form, setForm] = useState({
+    name: category.name,
+    subtitle: category.subtitle || '',
+    banner: category.banner || '/logo.png',
+  })
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
+
+  useEffect(() => {
+    setForm({
+      name: category.name,
+      subtitle: category.subtitle || '',
+      banner: category.banner || '/logo.png',
+    })
+    setUploadError('')
+  }, [category])
+
+  async function onPickFile(file: File | null) {
+    if (!file) return
+    setUploadError('')
+    setUploading(true)
+    try {
+      const result = await uploadImage(file)
+      setForm((f) => ({ ...f, banner: result.url }))
+    } catch (e) {
+      setUploadError(e instanceof Error ? e.message : 'Error al subir')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  return (
+    <form
+      className="category-editor"
+      onSubmit={(e) => {
+        e.preventDefault()
+        onSave({
+          name: form.name.trim(),
+          subtitle: form.subtitle,
+          banner: form.banner.trim() || '/logo.png',
+        })
+      }}
+    >
+      <h3 style={{ margin: 0 }}>Editar categoría</h3>
+      <p className="admin-muted">
+        La imagen grande se muestra en el menú del cliente al lado de esta categoría (ej.
+        empanadas, refrescos).
+      </p>
+
+      <div className="preview preview--banner">
+        <img src={mediaUrl(form.banner)} alt="" />
+      </div>
+
+      <label className="upload-box">
+        <span>Cargar imagen de categoría</span>
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          disabled={uploading || saving}
+          onChange={(e) => onPickFile(e.target.files?.[0] || null)}
+        />
+      </label>
+      {uploading && <p className="admin-muted">Subiendo imagen…</p>}
+      {uploadError && <p className="admin-error">{uploadError}</p>}
+
+      <label>
+        URL imagen (opcional / alternativa)
+        <input value={form.banner} onChange={(e) => setForm((f) => ({ ...f, banner: e.target.value }))} />
+      </label>
+
+      <label>
+        Nombre
+        <input
+          value={form.name}
+          onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+          required
+        />
+      </label>
+      <label>
+        Subtítulo
+        <textarea
+          rows={2}
+          value={form.subtitle}
+          onChange={(e) => setForm((f) => ({ ...f, subtitle: e.target.value }))}
+        />
+      </label>
+
+      <div className="row-2">
+        <button type="button" className="admin-btn ghost" onClick={onCancel}>
+          Cerrar
+        </button>
+        <button type="submit" className="admin-btn primary" disabled={saving || uploading}>
+          Guardar categoría
+        </button>
+      </div>
+      <button type="button" className="admin-btn danger" disabled={saving} onClick={() => void onDelete()}>
+        Eliminar categoría
+      </button>
+    </form>
+  )
+}
+
 function ProductEditor({
   item,
   saving,
+  inline = false,
   onSave,
   onDelete,
   onCancel,
 }: {
   item: MenuItem
   saving: boolean
+  inline?: boolean
   onSave: (payload: {
     name: string
     description: string
@@ -1936,7 +2403,7 @@ function ProductEditor({
 
   return (
     <form
-      className="product-editor"
+      className={`product-editor${inline ? ' product-editor--inline' : ''}`}
       onSubmit={(e) => {
         e.preventDefault()
         onSave({

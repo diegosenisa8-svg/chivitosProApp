@@ -257,6 +257,81 @@
   flex-shrink: 0;
 }
 
+.menu-ci-content-right .me-btn-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.menu-row-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 30;
+  min-width: 220px;
+  background: #fff;
+  border: 1px solid #e6e6e6;
+  border-radius: 3px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 10px 0;
+}
+
+.menu-row-menu-actions {
+  display: grid;
+  gap: 2px;
+  padding: 0 8px 8px;
+  border-bottom: 1px solid #eee;
+}
+
+.menu-row-menu-actions button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #424242;
+}
+
+.menu-row-menu-actions button:hover {
+  background: #faf9f7;
+}
+
+.menu-row-menu-actions button.danger {
+  color: #c0392b;
+}
+
+.menu-row-menu-section {
+  padding: 10px 18px 4px;
+}
+
+.menu-row-menu-label {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #666;
+}
+
+.menu-row-menu-radio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+  font-size: 14px;
+  color: #424242;
+  cursor: pointer;
+}
+
+.menu-row-menu-soon {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: #999;
+}
+
 .menu-ci-content-right .me-btn {
   display: flex;
   align-items: center;
@@ -372,12 +447,24 @@
   font-size: 14px;
 }
 
-.menu-editor-product-form {
+.menu-editor-product-form,
+.menu-inline-editor {
   width: 100%;
   background: #fff;
   box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
   border-radius: 3px;
   padding: 16px;
+  margin-top: 8px;
+}
+
+.menu-inline-editor--product {
+  margin: 0 0 8px 28px;
+}
+
+.menu-ci.is-editing > .menu-ci-body,
+.menu-ci.is-product.is-editing {
+  outline: 1px solid #528fcc;
+  outline-offset: -1px;
 }
 
 .menu-editor-product-form .menu-back-btn {
@@ -391,19 +478,25 @@
   font-size: 14px;
 }
 
-.menu-editor-product-form .product-editor {
+.menu-editor-product-form .product-editor,
+.menu-inline-editor .product-editor,
+.menu-inline-editor .category-editor {
   display: grid;
   gap: 12px;
 }
 
-.menu-editor-product-form .product-editor h3 {
+.menu-editor-product-form .product-editor h3,
+.menu-inline-editor .product-editor h3,
+.menu-inline-editor .category-editor h3 {
   font-family: 'Roboto', sans-serif;
   font-size: 16px;
   font-weight: 600;
   color: #424242;
 }
 
-.menu-editor-product-form .product-editor label {
+.menu-editor-product-form .product-editor label,
+.menu-inline-editor .product-editor label,
+.menu-inline-editor .category-editor label {
   display: grid;
   gap: 4px;
   font-size: 13px;
@@ -412,7 +505,12 @@
 
 .menu-editor-product-form .product-editor input,
 .menu-editor-product-form .product-editor textarea,
-.menu-editor-product-form .product-editor select {
+.menu-editor-product-form .product-editor select,
+.menu-inline-editor .product-editor input,
+.menu-inline-editor .product-editor textarea,
+.menu-inline-editor .product-editor select,
+.menu-inline-editor .category-editor input,
+.menu-inline-editor .category-editor textarea {
   padding: 8px 12px;
   border: 1px solid #cccccc;
   border-radius: 3px;
@@ -422,16 +520,49 @@
   color: #424242;
 }
 
-.menu-editor-product-form .product-editor .admin-btn {
+.menu-inline-editor .preview {
+  width: 100%;
+  max-width: 280px;
+  border: 1px solid #e6e6e6;
+  border-radius: 3px;
+  overflow: hidden;
+  background: #fafafa;
+}
+
+.menu-inline-editor .preview img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+.menu-inline-editor .preview--banner {
+  max-width: 360px;
+}
+
+.menu-inline-editor .preview--banner img {
+  max-height: 160px;
+}
+
+.menu-editor-product-form .product-editor .admin-btn,
+.menu-inline-editor .product-editor .admin-btn,
+.menu-inline-editor .category-editor .admin-btn {
   border-radius: 3px;
   font-weight: 600;
   font-size: 14px;
 }
 
-.menu-editor-product-form .product-editor .admin-btn.primary {
+.menu-editor-product-form .product-editor .admin-btn.primary,
+.menu-inline-editor .product-editor .admin-btn.primary,
+.menu-inline-editor .category-editor .admin-btn.primary {
   background: #528fcc;
   border-color: #528fcc;
   color: #fff;
+}
+
+.menu-ci-content-right .me-btn.active {
+  color: #528fcc;
+  background: rgba(82, 143, 204, 0.12);
 }
 
 .menu-editor-side-bar {

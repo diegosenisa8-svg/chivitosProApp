@@ -144,7 +144,7 @@ export function MenuPage() {
 
             {cat.banner && cat.id !== 'bebidas' && (
               <div className="category-banner">
-                <img src={cat.banner} alt="" loading="lazy" />
+                <img src={mediaUrl(cat.banner)} alt="" loading="lazy" />
               </div>
             )}
 
