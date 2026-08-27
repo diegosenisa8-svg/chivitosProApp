@@ -1475,7 +1475,10 @@ function MenuConfigView({
           featured: payload.featured,
         })
       }
-      await saveProductModifiers(productId, payload.modifiers)
+      // No borrar grupos de la biblioteca: al crear, el backend ya hereda los de la categoría.
+      if (payload.modifiers.length > 0) {
+        await saveProductModifiers(productId, payload.modifiers)
+      }
       const m = await refreshMenu()
       const found = m.categories.flatMap((c) => c.items).find((i) => i.id === productId)
       setEditing(found || null)
@@ -1492,9 +1495,22 @@ function MenuConfigView({
     await refreshLibrary()
   }
 
-  const panelCategoryId =
-    editing || focusProductId ? null : focusCategoryId
-  const panelCategoryName = focusCategory?.name
+  const editingCategoryId = editing?.id.startsWith('__new__:')
+    ? editing.id.slice('__new__:'.length)
+    : null
+  const editingCategory =
+    menu.categories.find((c) => c.id === editingCategoryId) ||
+    (editing && !editing.id.startsWith('__new__:')
+      ? menu.categories.find((c) => c.items.some((i) => i.id === editing.id))
+      : null) ||
+    null
+
+  const panelCategoryId = focusProductId
+    ? null
+    : editing && !editing.id.startsWith('__new__:')
+      ? null
+      : editingCategoryId || focusCategoryId
+  const panelCategoryName = editingCategory?.name || focusCategory?.name
   const panelProductId =
     editing && !editing.id.startsWith('__new__:')
       ? editing.id
@@ -2010,124 +2026,30 @@ function ProductEditor({
       </div>
 
       <h4>Subproductos / extras</h4>
-      <p className="admin-muted">Grupos tipo guarnición, dips, carnes extras…</p>
-      {groups.map((g, gi) => (
-        <div key={g.id} className="mod-group-edit">
-          <div className="mod-group-head">
-            <input
-              value={g.name}
-              placeholder="Nombre del grupo"
-              onChange={(e) => {
-                const next = [...groups]
-                next[gi] = { ...g, name: e.target.value }
-                setGroups(next)
-              }}
-            />
-            <label className="check">
-              <input
-                type="checkbox"
-                checked={g.required}
-                onChange={(e) => {
-                  const next = [...groups]
-                  next[gi] = { ...g, required: e.target.checked, min: e.target.checked ? Math.max(1, g.min) : 0 }
-                  setGroups(next)
-                }}
-              />
-              Obligatorio
-            </label>
-          </div>
-          {g.options.map((o, oi) => (
-            <div key={o.id} className="mod-option-row">
-              <input
-                value={o.name}
-                placeholder="Opción"
-                onChange={(e) => {
-                  const next = [...groups]
-                  const opts = [...g.options]
-                  opts[oi] = { ...o, name: e.target.value }
-                  next[gi] = { ...g, options: opts }
-                  setGroups(next)
-                }}
-              />
-              <input
-                className="mod-option-price"
-                type="number"
-                value={o.price}
-                title="Precio extra"
-                aria-label="Precio extra"
-                onChange={(e) => {
-                  const next = [...groups]
-                  const opts = [...g.options]
-                  opts[oi] = { ...o, price: Number(e.target.value) || 0 }
-                  next[gi] = { ...g, options: opts }
-                  setGroups(next)
-                }}
-              />
-              <button
-                type="button"
-                className="admin-btn ghost icon-del"
-                title="Eliminar opción"
-                aria-label={`Eliminar ${o.name || 'opción'}`}
-                onClick={() => {
-                  const label = o.name.trim() || 'esta opción'
-                  if (!confirm(`¿Seguro que deseas eliminar "${label}"?`)) return
-                  const next = [...groups]
-                  next[gi] = { ...g, options: g.options.filter((_, i) => i !== oi) }
-                  setGroups(next)
-                }}
-              >
-                ×
-              </button>
-            </div>
-          ))}
-          <div className="mod-group-actions">
-            <button
-              type="button"
-              className="admin-btn ghost"
-              onClick={() => {
-                const next = [...groups]
-                next[gi] = {
-                  ...g,
-                  options: [...g.options, { id: `opt-${Date.now()}`, name: 'Nueva opción', price: 0 }],
-                }
-                setGroups(next)
-              }}
-            >
-              + Opción
-            </button>
-            <button
-              type="button"
-              className="admin-btn danger"
-              onClick={() => {
-                const label = g.name.trim() || 'este grupo'
-                if (!confirm(`¿Seguro que deseas eliminar el grupo "${label}"?`)) return
-                setGroups(groups.filter((_, i) => i !== gi))
-              }}
-            >
-              Quitar grupo
-            </button>
-          </div>
-        </div>
-      ))}
-      <button
-        type="button"
-        className="admin-btn"
-        onClick={() =>
-          setGroups([
-            ...groups,
-            {
-              id: `grp-${Date.now()}`,
-              name: 'Nuevo grupo',
-              required: false,
-              min: 0,
-              max: 1,
-              options: [{ id: `opt-${Date.now()}`, name: 'Opción', price: 0 }],
-            },
-          ])
-        }
-      >
-        + Grupo de extras
-      </button>
+      {groups.length === 0 ? (
+        <p className="admin-muted">
+          Los grupos se asignan desde el panel <strong>Opcionales y agregados</strong> a la derecha.
+          Si la categoría ya tiene grupos, aparecerán acá al guardar el producto.
+        </p>
+      ) : (
+        <>
+          <p className="admin-muted">
+            Grupos asignados a este producto. Para agregar o quitar, usá el panel derecho mientras
+            editás.
+          </p>
+          <ul className="modifier-option-preview">
+            {groups.map((g) => (
+              <li key={g.id}>
+                <strong>{g.name}</strong>
+                <span className="admin-muted">
+                  {' '}
+                  · {g.options.length} opción{g.options.length === 1 ? '' : 'es'}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
 
       <div className="product-editor-actions">
         <button type="submit" className="admin-btn primary" disabled={saving || uploading || !form.name.trim()}>

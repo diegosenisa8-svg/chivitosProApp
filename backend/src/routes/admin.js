@@ -12,6 +12,7 @@ import { syncCustomersFromOrders, whatsappUrlForPhone } from '../lib/customers.j
 import { getMpCredentials } from '../lib/mercadopago.js'
 import { loadBundledMenu, replaceMenuCatalog } from '../lib/replaceMenu.js'
 import {
+  applyCategoryAssignmentsToProduct,
   applyLibraryGroupToProduct,
   buildLibraryResponse,
   deleteLibraryGroupEverywhere,
@@ -377,7 +378,12 @@ router.post('/products', requireAdmin, async (req, res) => {
     const product = await prisma.product.create({
       data: { ...body, id, sortOrder: count },
     })
-    res.status(201).json(product)
+    await applyCategoryAssignmentsToProduct(body.categoryId, product.id)
+    const withModifiers = await prisma.product.findUnique({
+      where: { id: product.id },
+      include: { modifiers: { include: { options: true } } },
+    })
+    res.status(201).json(withModifiers)
   } catch (err) {
     if (err?.name === 'ZodError') {
       return res.status(400).json({ error: 'Datos inválidos', details: err.issues })

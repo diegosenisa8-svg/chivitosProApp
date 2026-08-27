@@ -52,6 +52,19 @@ export async function removeLibraryGroupFromProduct(productId, libraryGroupId) {
   })
 }
 
+/** Aplica a un producto todos los grupos de la biblioteca asignados a su categoría. */
+export async function applyCategoryAssignmentsToProduct(categoryId, productId) {
+  const assignments = await prisma.categoryModifierAssignment.findMany({
+    where: { categoryId },
+    include: {
+      libraryGroup: { include: { options: { orderBy: { sortOrder: 'asc' } } } },
+    },
+  })
+  for (const { libraryGroup } of assignments) {
+    await applyLibraryGroupToProduct(productId, libraryGroup)
+  }
+}
+
 export async function syncCategoryLibraryGroup(categoryId, libraryGroupId) {
   const libraryGroup = await prisma.modifierLibraryGroup.findUnique({
     where: { id: libraryGroupId },
