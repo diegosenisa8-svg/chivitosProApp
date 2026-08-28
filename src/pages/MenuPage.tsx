@@ -6,7 +6,7 @@ import { Toast } from '../components/Toast'
 import { useCart } from '../context/CartContext'
 import { useMenu } from '../context/MenuContext'
 import { formatPrice } from '../lib/format'
-import { isPlaceholderImage } from '../lib/media'
+import { categoryDisplayImage, isPlaceholderImage } from '../lib/media'
 import { getFeaturedItems } from '../lib/menuUtils'
 
 export function MenuPage() {
@@ -151,6 +151,7 @@ export function MenuPage() {
 
         {filtered.map((cat) => {
           const expanded = searching || expandedIds.has(cat.id)
+          const thumb = categoryDisplayImage(cat)
           return (
             <section
               key={cat.id}
@@ -166,19 +167,22 @@ export function MenuPage() {
                 aria-expanded={expanded}
                 onClick={() => toggleCat(cat.id)}
               >
-                <div className="category-head-text">
-                  <h2>{cat.name}</h2>
-                  {cat.subtitle && (
-                    <p className={expanded ? '' : 'category-teaser'}>
-                      {expanded ? cat.subtitle : cat.subtitle.slice(0, 72)}
-                      {!expanded && cat.subtitle.length > 72 ? '…' : ''}
-                    </p>
-                  )}
-                  {!expanded && (
-                    <span className="category-count">
-                      {cat.items.length} producto{cat.items.length === 1 ? '' : 's'}
-                    </span>
-                  )}
+                <div className="category-head-left">
+                  <MediaImage src={thumb} alt="" className="category-thumb" loading="lazy" />
+                  <div className="category-head-text">
+                    <h2>{cat.name}</h2>
+                    {cat.subtitle && (
+                      <p className={expanded ? '' : 'category-teaser'}>
+                        {expanded ? cat.subtitle : cat.subtitle.slice(0, 72)}
+                        {!expanded && cat.subtitle.length > 72 ? '…' : ''}
+                      </p>
+                    )}
+                    {!expanded && (
+                      <span className="category-count">
+                        {cat.items.length} producto{cat.items.length === 1 ? '' : 's'}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <span className="category-chevron" aria-hidden>
                   {expanded ? '▾' : '▸'}

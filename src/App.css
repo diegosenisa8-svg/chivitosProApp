@@ -597,13 +597,30 @@ img {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 16px 16px 14px;
+  padding: 12px 14px;
   border: 0;
   background: transparent;
   text-align: left;
   cursor: pointer;
   color: inherit;
   font: inherit;
+}
+
+.category-head-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.category-thumb {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 12px;
+  background: var(--line);
+  flex-shrink: 0;
 }
 
 .category-head-text {

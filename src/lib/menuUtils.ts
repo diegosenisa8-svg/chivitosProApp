@@ -1,17 +1,5 @@
-import type { Category, MenuData, MenuItem } from '../types'
-
-const CATEGORY_ORDER = [
-  'chivitospro',
-  'hamburguesas',
-  'milanesas',
-  'pizzas',
-  'sandwiches',
-  'fritos',
-  'guarniciones',
-  'ensaladas',
-  'bebidas',
-  'postres',
-]
+import type { MenuData, MenuItem } from '../types'
+import { isPlaceholderImage } from './media'
 
 const NAME_FIXES: Record<string, string> = {
   chivitopro: 'Chivito Pro',
@@ -59,7 +47,8 @@ function prettyName(id: string, name: string) {
 function enrichItem(item: MenuItem, categoryId: string): MenuItem {
   const name = prettyName(item.id, item.name)
   let image = item.image
-  if (categoryId === 'bebidas') image = DRINK_IMAGE
+  // Solo forzar ilustración de bebidas si no hay foto real subida
+  if (categoryId === 'bebidas' && isPlaceholderImage(image)) image = DRINK_IMAGE
 
   let badge: MenuItem['badge']
   if (FEATURED_IDS.has(item.id)) badge = 'mas-pedido'
@@ -71,32 +60,21 @@ function enrichItem(item: MenuItem, categoryId: string): MenuItem {
     name,
     image,
     badge,
-    featured: FEATURED_IDS.has(item.id),
+    featured: FEATURED_IDS.has(item.id) || !!item.featured,
   }
 }
 
 export function prepareMenu(menu: MenuData): MenuData {
-  const byId = new Map(menu.categories.map((c) => [c.id, c]))
-  const ordered: Category[] = []
-
-  for (const id of CATEGORY_ORDER) {
-    const cat = byId.get(id)
-    if (!cat) continue
-    ordered.push({
-      ...cat,
-      name: cat.id === 'chivitospro' ? 'Chivitos' : cat.name,
-      banner: cat.id === 'bebidas' || cat.id === 'postres' ? '/hero.png' : cat.banner,
-      items: cat.items.map((i) => enrichItem(i, cat.id)),
-    })
-    byId.delete(id)
-  }
-
-  for (const cat of byId.values()) {
-    ordered.push({
-      ...cat,
-      items: cat.items.map((i) => enrichItem(i, cat.id)),
-    })
-  }
+  // Respetar el orden del admin (sortOrder de la API). No reordenar a mano.
+  const categories = menu.categories.map((cat) => ({
+    ...cat,
+    name: cat.id === 'chivitospro' ? 'Chivitos' : cat.name,
+    // No pisar banners reales subidos por el local
+    banner: isPlaceholderImage(cat.banner) && (cat.id === 'bebidas' || cat.id === 'postres')
+      ? '/hero.png'
+      : cat.banner,
+    items: cat.items.map((i) => enrichItem(i, cat.id)),
+  }))
 
   return {
     restaurant: {
@@ -108,7 +86,7 @@ export function prepareMenu(menu: MenuData): MenuData {
       hoursLabel: menu.restaurant.hoursLabel ?? 'Lun–Dom 11:30 a 00:00',
       phone: menu.restaurant.phone ?? '',
     },
-    categories: ordered,
+    categories,
   }
 }
 
