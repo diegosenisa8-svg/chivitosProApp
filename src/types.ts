@@ -78,11 +78,19 @@ export type DeliveryZone = {
   id: string
   name: string
   color: string
+  /** Costo de envío en UYU. 0 = sin costo / zona gratis. */
   fee: number
   minOrder?: number
   shape?: 'circle' | 'polygon'
   feeByDistance?: boolean
   active: boolean
+  /** Centro de la zona (mapa Salto). */
+  lat?: number
+  lng?: number
+  /** Radio en km para shape=circle. */
+  radiusKm?: number
+  /** Si true, no se suma costo de envío (fee se trata como 0). */
+  freeDelivery?: boolean
 }
 
 export type Promotion = {
@@ -232,6 +240,8 @@ export type CheckoutInfo = {
   phone: string
   fulfillment: Fulfillment
   address: string
+  /** Zona de entrega elegida (solo delivery). */
+  deliveryZoneId?: string
   schedule: 'now' | 'later'
   scheduleTime: string
   payment: 'efectivo' | 'pos' | 'transferencia' | 'mercadopago'

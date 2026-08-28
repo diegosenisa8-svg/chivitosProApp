@@ -1,6 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { formatMoney } from '../lib/format'
+import { SALTO_CENTER, zoneDeliveryFee } from '../lib/deliveryZones'
 import type {
+  DeliveryZone,
   MenuData,
   Promotion,
   RestaurantSettings,
@@ -8,6 +10,7 @@ import type {
 } from '../types'
 import type { DashboardData } from '../lib/adminApi'
 import type { AdminSection } from './nav'
+import { DeliveryZonesMap } from './DeliveryZonesMap'
 
 type ReportsPayload = {
   days: number
@@ -155,155 +158,231 @@ export function DeliveryZonesFullView({
   onSave: SaveFn
 }) {
   const [enabled, setEnabled] = useState(settings.deliveryEnabled !== false)
-  const [zones, setZones] = useState(settings.deliveryZones || [])
+  const [zones, setZones] = useState<DeliveryZone[]>(settings.deliveryZones || [])
+  const [selectedId, setSelectedId] = useState<string | null>(
+    settings.deliveryZones?.[0]?.id || null,
+  )
   useEffect(() => {
     setEnabled(settings.deliveryEnabled !== false)
-    setZones(settings.deliveryZones || [])
+    const incoming = settings.deliveryZones || []
+    setZones(
+      incoming.map((z, i) => ({
+        ...z,
+        freeDelivery: z.freeDelivery ?? z.fee === 0,
+        lat: z.lat ?? SALTO_CENTER.lat + (i - 2) * 0.008,
+        lng: z.lng ?? SALTO_CENTER.lng + (i - 2) * 0.008,
+        radiusKm: z.radiusKm ?? 1.5,
+        shape: z.shape || 'circle',
+      })),
+    )
   }, [settings])
+
+  const selected = zones.find((z) => z.id === selectedId) || null
+
+  function patchZone(id: string, patch: Partial<DeliveryZone>) {
+    setZones((prev) => prev.map((z) => (z.id === id ? { ...z, ...patch } : z)))
+  }
+
+  function addZone() {
+    const id = `z${Date.now()}`
+    const next: DeliveryZone = {
+      id,
+      name: 'Nueva zona',
+      color: '#4a90e2',
+      fee: 100,
+      minOrder: 250,
+      shape: 'circle',
+      feeByDistance: false,
+      freeDelivery: false,
+      active: true,
+      lat: SALTO_CENTER.lat + (Math.random() - 0.5) * 0.02,
+      lng: SALTO_CENTER.lng + (Math.random() - 0.5) * 0.02,
+      radiusKm: 1.5,
+    }
+    setZones((prev) => [...prev, next])
+    setSelectedId(id)
+  }
 
   return (
     <WizardCard
       title="Entrega"
-      subtitle="Zonas de entrega a domicilio con costo y monto mínimo"
+      subtitle="Mapa de Salto: zonas con o sin costo de envío. Si el cliente pide delivery desde una zona con costo, se suma automáticamente."
       saving={saving}
-      nextLabel="Guardar"
+      nextLabel="Guardar zonas"
       onNext={() => onSave({ deliveryEnabled: enabled, deliveryZones: zones })}
     >
       <Switch checked={enabled} onChange={setEnabled} label="¿Ofrecen entrega a domicilio?" />
       {enabled && (
-        <>
-          <div className="zones-map-mock admin-card">
-            <p className="admin-muted">Mapa de zonas (polígonos / círculos)</p>
-            <div className="zones-swatches">
-              {zones.filter((z) => z.active).map((z) => (
-                <span key={z.id} style={{ background: z.color }}>
-                  {z.name}
-                </span>
-              ))}
-            </div>
+        <div className="delivery-zones-layout">
+          <div className="delivery-zones-map-col">
+            <DeliveryZonesMap
+              zones={zones}
+              selectedId={selectedId}
+              restaurantLat={SALTO_CENTER.lat}
+              restaurantLng={SALTO_CENTER.lng}
+              editable
+              onSelectZone={setSelectedId}
+              onMoveSelectedCenter={(lat, lng) => {
+                if (!selectedId) return
+                patchZone(selectedId, { lat, lng })
+              }}
+              height={420}
+            />
           </div>
-          {zones.map((z, i) => (
-            <div key={z.id} className="zone-row mod-group-edit">
-              <div className="mod-group-head">
-                <input
-                  value={z.name}
-                  onChange={(e) => {
-                    const next = [...zones]
-                    next[i] = { ...z, name: e.target.value }
-                    setZones(next)
-                  }}
-                />
-                <label className="check">
-                  <input
-                    type="checkbox"
-                    checked={z.active}
-                    onChange={(e) => {
-                      const next = [...zones]
-                      next[i] = { ...z, active: e.target.checked }
-                      setZones(next)
-                    }}
-                  />
-                  Activa
-                </label>
-              </div>
-              <div className="row-2">
-                <label>
-                  Color
-                  <input
-                    type="color"
-                    value={z.color}
-                    onChange={(e) => {
-                      const next = [...zones]
-                      next[i] = { ...z, color: e.target.value }
-                      setZones(next)
-                    }}
-                  />
-                </label>
-                <label>
-                  Forma
-                  <select
-                    value={z.shape || 'circle'}
-                    onChange={(e) => {
-                      const next = [...zones]
-                      next[i] = { ...z, shape: e.target.value as 'circle' | 'polygon' }
-                      setZones(next)
-                    }}
-                  >
-                    <option value="circle">Círculo</option>
-                    <option value="polygon">Forma libre</option>
-                  </select>
-                </label>
-              </div>
-              <div className="row-2">
-                <label>
-                  Monto mínimo (UYU)
-                  <input
-                    type="number"
-                    value={z.minOrder ?? 0}
-                    onChange={(e) => {
-                      const next = [...zones]
-                      next[i] = { ...z, minOrder: Number(e.target.value) || 0 }
-                      setZones(next)
-                    }}
-                  />
-                </label>
-                <label>
-                  Coste de envío (UYU)
-                  <input
-                    type="number"
-                    value={z.fee}
-                    disabled={z.feeByDistance}
-                    onChange={(e) => {
-                      const next = [...zones]
-                      next[i] = { ...z, fee: Number(e.target.value) || 0 }
-                      setZones(next)
-                    }}
-                  />
-                </label>
-              </div>
-              <Switch
-                checked={!!z.feeByDistance}
-                onChange={(v) => {
-                  const next = [...zones]
-                  next[i] = { ...z, feeByDistance: v }
-                  setZones(next)
-                }}
-                label="Switch to fee by distance"
-              />
-              <button
-                type="button"
-                className="admin-btn danger"
-                onClick={() => {
-                  if (!confirm(`¿Seguro que deseas eliminar la zona "${z.name}"?`)) return
-                  setZones(zones.filter((_, j) => j !== i))
-                }}
-              >
-                Eliminar zona
-              </button>
+
+          <div className="delivery-zones-list-col">
+            <div className="delivery-zones-list-head">
+              <strong>Zonas de entrega</strong>
+              <span className="admin-muted">{zones.filter((z) => z.active).length} activas</span>
             </div>
-          ))}
-          <button
-            type="button"
-            className="admin-btn"
-            onClick={() =>
-              setZones([
-                ...zones,
-                {
-                  id: `z${Date.now()}`,
-                  name: 'Nueva zona',
-                  color: '#4a90e2',
-                  fee: 100,
-                  minOrder: 250,
-                  shape: 'circle',
-                  feeByDistance: false,
-                  active: true,
-                },
-              ])
-            }
-          >
-            Agregar nueva zona
-          </button>
-        </>
+
+            <ul className="delivery-zones-list">
+              {zones.map((z) => (
+                <li key={z.id}>
+                  <button
+                    type="button"
+                    className={`delivery-zone-item${selectedId === z.id ? ' selected' : ''}`}
+                    onClick={() => setSelectedId(z.id)}
+                  >
+                    <span className="delivery-zone-dot" style={{ background: z.color }} />
+                    <span className="delivery-zone-meta">
+                      <strong>{z.name}</strong>
+                      <em>
+                        {!z.active
+                          ? 'Inactiva'
+                          : z.freeDelivery || z.fee === 0
+                            ? 'Sin costo de envío'
+                            : `Envío ${formatMoney(z.fee)}`}
+                      </em>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+
+            <button type="button" className="admin-btn" onClick={addZone}>
+              + Agregar nueva zona
+            </button>
+
+            {selected ? (
+              <div className="zone-row mod-group-edit delivery-zone-editor">
+                <h4>Editar: {selected.name}</h4>
+                <label>
+                  Nombre
+                  <input
+                    value={selected.name}
+                    onChange={(e) => patchZone(selected.id, { name: e.target.value })}
+                  />
+                </label>
+                <div className="row-2">
+                  <label>
+                    Color
+                    <input
+                      type="color"
+                      value={selected.color}
+                      onChange={(e) => patchZone(selected.id, { color: e.target.value })}
+                    />
+                  </label>
+                  <label className="check" style={{ alignSelf: 'end', paddingBottom: 8 }}>
+                    <input
+                      type="checkbox"
+                      checked={selected.active}
+                      onChange={(e) => patchZone(selected.id, { active: e.target.checked })}
+                    />
+                    Zona activa
+                  </label>
+                </div>
+
+                <Switch
+                  checked={!!selected.freeDelivery || selected.fee === 0}
+                  onChange={(v) =>
+                    patchZone(selected.id, {
+                      freeDelivery: v,
+                      fee: v ? 0 : selected.fee || 80,
+                    })
+                  }
+                  label="Esta zona NO suma costo de envío"
+                />
+
+                {!selected.freeDelivery && selected.fee !== 0 ? (
+                  <label>
+                    Costo de envío (UYU)
+                    <input
+                      type="number"
+                      min={0}
+                      value={selected.fee}
+                      onChange={(e) =>
+                        patchZone(selected.id, {
+                          fee: Number(e.target.value) || 0,
+                          freeDelivery: false,
+                        })
+                      }
+                    />
+                  </label>
+                ) : (
+                  <p className="admin-muted">
+                    Pedidos delivery en esta zona: envío gratis. Retiro en local: siempre sin
+                    envío.
+                  </p>
+                )}
+
+                <label>
+                  Monto mínimo del pedido (UYU)
+                  <input
+                    type="number"
+                    min={0}
+                    value={selected.minOrder ?? 0}
+                    onChange={(e) =>
+                      patchZone(selected.id, { minOrder: Number(e.target.value) || 0 })
+                    }
+                  />
+                </label>
+
+                <label>
+                  Radio de cobertura (km)
+                  <input
+                    type="range"
+                    min={0.4}
+                    max={5}
+                    step={0.1}
+                    value={selected.radiusKm ?? 1.5}
+                    onChange={(e) =>
+                      patchZone(selected.id, { radiusKm: Number(e.target.value) || 1.5 })
+                    }
+                  />
+                  <span className="admin-muted">
+                    {(selected.radiusKm ?? 1.5).toFixed(1)} km · clic en el mapa para mover el
+                    centro
+                  </span>
+                </label>
+
+                <p className="admin-muted">
+                  Preview: si el cliente elige delivery en esta zona, se suma{' '}
+                  <strong>
+                    {zoneDeliveryFee(selected) > 0
+                      ? formatMoney(zoneDeliveryFee(selected))
+                      : 'gratis'}
+                  </strong>
+                  .
+                </p>
+
+                <button
+                  type="button"
+                  className="admin-btn danger"
+                  onClick={() => {
+                    if (!confirm(`¿Eliminar la zona "${selected.name}"?`)) return
+                    setZones((prev) => prev.filter((z) => z.id !== selected.id))
+                    setSelectedId(null)
+                  }}
+                >
+                  Eliminar zona
+                </button>
+              </div>
+            ) : (
+              <p className="admin-muted">Seleccioná una zona para editarla o creá una nueva.</p>
+            )}
+          </div>
+        </div>
       )}
     </WizardCard>
   )

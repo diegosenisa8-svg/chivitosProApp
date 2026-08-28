@@ -46,6 +46,7 @@ const defaultCheckout: CheckoutInfo = {
   phone: '',
   fulfillment: 'delivery',
   address: '',
+  deliveryZoneId: '',
   schedule: 'now',
   scheduleTime: '',
   payment: 'efectivo',
@@ -146,7 +147,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       deliveryFee,
       setFulfillment: (f) => {
         setFulfillment(f)
-        setCheckoutState((c) => ({ ...c, fulfillment: f }))
+        setCheckoutState((c) => ({
+          ...c,
+          fulfillment: f,
+          ...(f === 'pickup' ? { deliveryZoneId: '' } : {}),
+        }))
       },
       setCoupon,
       setDeliveryFeeBase,

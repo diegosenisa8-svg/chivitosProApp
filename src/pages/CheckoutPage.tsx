@@ -13,6 +13,7 @@ import {
   type PaymentConfig,
 } from '../lib/api'
 import { formatMoney } from '../lib/format'
+import { activeDeliveryZones, zoneDeliveryFee } from '../lib/deliveryZones'
 import type { CheckoutInfo } from '../types'
 
 export function CheckoutPage() {
@@ -38,6 +39,8 @@ export function CheckoutPage() {
 
   const total = Math.max(0, subtotal - discount + deliveryFee)
   const r = menu.restaurant
+  const deliveryZones = activeDeliveryZones(r.settings?.deliveryZones)
+  const selectedZone = deliveryZones.find((z) => z.id === checkout.deliveryZoneId) || null
   const pm = r.settings?.paymentMethods || {}
   const transfer = r.settings?.transferPayment || {}
   const isLocal =
@@ -83,14 +86,36 @@ export function CheckoutPage() {
     if (fulfillment === 'delivery' && !checkout.address.trim()) {
       next.address = 'Ingresá la dirección'
     }
+    if (fulfillment === 'delivery' && deliveryZones.length > 0 && !checkout.deliveryZoneId) {
+      next.zone = 'Elegí tu zona de entrega'
+    }
     if (checkout.schedule === 'later' && !checkout.scheduleTime) {
       next.scheduleTime = 'Elegí un horario'
     }
-    if (fulfillment === 'delivery' && subtotal < (r.minOrder || 0)) {
-      next.min = `El mínimo de pedido es ${formatMoney(r.minOrder || 0)}`
+    const minOrder =
+      fulfillment === 'delivery' && selectedZone?.minOrder
+        ? selectedZone.minOrder
+        : r.minOrder || 0
+    if (fulfillment === 'delivery' && subtotal < minOrder) {
+      next.min = `El mínimo de pedido es ${formatMoney(minOrder)}`
     }
     setErrors(next)
     return Object.keys(next).length === 0
+  }
+
+  function checkoutWithZone(): CheckoutInfo {
+    const zoneLabel = selectedZone
+      ? `Zona: ${selectedZone.name}${
+          zoneDeliveryFee(selectedZone) > 0
+            ? ` (envío ${formatMoney(zoneDeliveryFee(selectedZone))})`
+            : ' (envío gratis)'
+        }`
+      : ''
+    const notes = [checkout.notes.trim(), zoneLabel].filter(Boolean).join(' · ')
+    const address = selectedZone
+      ? `${checkout.address.trim()} [${selectedZone.name}]`
+      : checkout.address
+    return { ...checkout, fulfillment, address, notes }
   }
 
   async function finishNonCard() {
@@ -102,7 +127,7 @@ export function CheckoutPage() {
       await submitOrder(
         lines,
         r.currency,
-        { ...checkout, fulfillment },
+        checkoutWithZone(),
         {
           subtotal,
           discount,
@@ -145,7 +170,7 @@ export function CheckoutPage() {
       const order = await submitOrder(
         lines,
         r.currency,
-        { ...checkout, fulfillment, payment: 'mercadopago' },
+        { ...checkoutWithZone(), payment: 'mercadopago' },
         { subtotal, discount, deliveryFee },
         getToken(),
       )
@@ -253,26 +278,72 @@ export function CheckoutPage() {
         </label>
 
         {fulfillment === 'delivery' && (
-          <label className="field">
-            <span>Dirección</span>
-            <input
-              value={checkout.address}
-              onChange={(e) => {
-                const address = e.target.value
-                setCheckout({ address })
-                if (address.trim()) {
-                  setErrors((prev) => {
-                    if (!prev.address) return prev
-                    const next = { ...prev }
-                    delete next.address
-                    return next
-                  })
-                }
-              }}
-              placeholder="Calle, número, referencia"
-            />
-            {errors.address && <em>{errors.address}</em>}
-          </label>
+          <>
+            {deliveryZones.length > 0 && (
+              <fieldset className="field">
+                <legend>Zona de entrega</legend>
+                <p className="field-hint">
+                  Elegí tu barrio. Si la zona tiene costo de envío, se suma solo en delivery (no
+                  en retiro).
+                </p>
+                <div className="checkout-zones">
+                  {deliveryZones.map((z) => {
+                    const fee = zoneDeliveryFee(z)
+                    const selected = checkout.deliveryZoneId === z.id
+                    return (
+                      <label
+                        key={z.id}
+                        className={`checkout-zone-option${selected ? ' selected' : ''}`}
+                      >
+                        <input
+                          type="radio"
+                          name="deliveryZone"
+                          checked={selected}
+                          onChange={() => {
+                            setCheckout({ deliveryZoneId: z.id })
+                            setErrors((prev) => {
+                              if (!prev.zone && !prev.min) return prev
+                              const next = { ...prev }
+                              delete next.zone
+                              delete next.min
+                              return next
+                            })
+                          }}
+                        />
+                        <span className="dot" style={{ background: z.color }} />
+                        <span>
+                          <strong>{z.name}</strong>
+                        </span>
+                        <span className="fee">{fee > 0 ? formatMoney(fee) : 'Gratis'}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+                {errors.zone && <em>{errors.zone}</em>}
+              </fieldset>
+            )}
+
+            <label className="field">
+              <span>Dirección</span>
+              <input
+                value={checkout.address}
+                onChange={(e) => {
+                  const address = e.target.value
+                  setCheckout({ address })
+                  if (address.trim()) {
+                    setErrors((prev) => {
+                      if (!prev.address) return prev
+                      const next = { ...prev }
+                      delete next.address
+                      return next
+                    })
+                  }
+                }}
+                placeholder="Calle, número, referencia"
+              />
+              {errors.address && <em>{errors.address}</em>}
+            </label>
+          </>
         )}
 
         <fieldset className="field">

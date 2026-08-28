@@ -1197,6 +1197,139 @@ th {
     linear-gradient(160deg, #1a2030, #12151b);
 }
 
+.delivery-zones-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 360px);
+  gap: 16px;
+  align-items: start;
+  margin-top: 12px;
+}
+
+.delivery-zones-map {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--admin-line);
+  z-index: 0;
+}
+
+.delivery-zones-map-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+}
+
+.delivery-zones-list-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+
+.delivery-zones-list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  max-height: 280px;
+  overflow: auto;
+  border: 1px solid var(--admin-line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.delivery-zone-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 1px solid #eee;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.delivery-zone-item:last-child {
+  border-bottom: 0;
+}
+
+.delivery-zone-item.selected {
+  background: #fff7ed;
+}
+
+.delivery-zone-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.delivery-zone-meta {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.delivery-zone-meta strong {
+  font-size: 14px;
+  color: #333;
+}
+
+.delivery-zone-meta em {
+  font-style: normal;
+  font-size: 12px;
+  color: #808080;
+}
+
+.delivery-zone-editor {
+  margin-top: 14px;
+}
+
+.delivery-zone-editor h4 {
+  margin: 0 0 10px;
+}
+
+.checkout-zones {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.checkout-zone-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-elev);
+  cursor: pointer;
+}
+
+.checkout-zone-option.selected {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.checkout-zone-option .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.checkout-zone-option .fee {
+  margin-left: auto;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+@media (max-width: 960px) {
+  .delivery-zones-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
 .zones-swatches {
   display: flex;
   flex-wrap: wrap;
