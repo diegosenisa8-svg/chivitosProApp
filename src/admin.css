@@ -1199,10 +1199,53 @@ th {
 
 .delivery-zones-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 360px);
-  gap: 16px;
+  grid-template-columns: minmax(0, 1.55fr) minmax(300px, 340px);
+  gap: 18px;
   align-items: start;
   margin-top: 12px;
+}
+
+@media (max-width: 1100px) {
+  .delivery-zones-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.delivery-zones-list-col {
+  max-height: calc(100dvh - 220px);
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.dz-vertex-icon {
+  background: transparent !important;
+  border: 0 !important;
+}
+
+.dz-vertex {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #2e7d32;
+  color: #fff;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  font-size: 10px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  cursor: grab;
+  user-select: none;
+}
+
+.dz-vertex.first {
+  background: #fff;
+  color: #1b5e20;
+  border-color: #2e7d32;
+}
+
+.dz-vertex:active {
+  cursor: grabbing;
 }
 
 .delivery-zones-map-wrap {

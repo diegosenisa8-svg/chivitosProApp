@@ -274,7 +274,8 @@ export function DeliveryZonesFullView({
                 }
                 setDraftPolygon((prev) => [...prev, { lat, lng }])
               }}
-              height={480}
+              onDraftChange={setDraftPolygon}
+              height={560}
             />
           </div>
 
@@ -285,16 +286,16 @@ export function DeliveryZonesFullView({
             </div>
 
             <ol className="delivery-zones-howto">
-              <li>Elegí o creá una zona.</li>
+              <li>Creá/elegí zona → Forma libre.</li>
               <li>
-                Forma <strong>Libre (polígono)</strong>.
+                <strong>Marcar en el mapa</strong> y clickeá nodos.
               </li>
               <li>
-                Tocá <strong>Marcar en el mapa</strong>.
+                <strong>Arrastrá</strong> los nodos numerados para moverlos.
               </li>
-              <li>Acercate y andá clickeando nodos del perímetro.</li>
+              <li>Clic en el punto blanco del borde = nodo en el medio.</li>
               <li>
-                Con 3+ nodos → <strong>Cerrar zona</strong> → Guardá.
+                <strong>Cerrar zona</strong> → Guardar. Para editar: Marcar de nuevo.
               </li>
             </ol>
 
@@ -366,8 +367,9 @@ export function DeliveryZonesFullView({
                 {markMode && (selected.shape || 'polygon') === 'polygon' ? (
                   <div className="delivery-polygon-tools">
                     <p className="delivery-mark-active">
-                      Modo dibujo: {draftPolygon.length} nodo
-                      {draftPolygon.length === 1 ? '' : 's'}. Acercate y clickeá el perímetro.
+                      {draftPolygon.length} nodos · <strong>arrastrá</strong> los números para
+                      mover · punto blanco del borde para agregar en el medio · clic vacío para
+                      sumar al final
                     </p>
                     <div className="row-2">
                       <button
@@ -376,7 +378,7 @@ export function DeliveryZonesFullView({
                         disabled={draftPolygon.length === 0}
                         onClick={() => setDraftPolygon((p) => p.slice(0, -1))}
                       >
-                        ← Borrar último nodo
+                        ← Borrar último
                       </button>
                       <button
                         type="button"
@@ -384,7 +386,7 @@ export function DeliveryZonesFullView({
                         disabled={draftPolygon.length === 0}
                         onClick={() => setDraftPolygon([])}
                       >
-                        Reiniciar dibujo
+                        Reiniciar
                       </button>
                     </div>
                     <button

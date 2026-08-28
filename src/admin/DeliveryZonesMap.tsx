@@ -10,14 +10,17 @@ type Props = {
   selectedName?: string
   restaurantLat?: number
   restaurantLng?: number
-  /** Modo dibujar: clics agregan nodos (polígono) o ubican centro (círculo). */
   markMode?: boolean
   drawShape?: 'circle' | 'polygon'
-  /** Vértices en progreso mientras se dibuja un polígono. */
   draftPolygon?: LatLng[]
   onSelectZone?: (id: string) => void
   onMapClick?: (lat: number, lng: number) => void
+  onDraftChange?: (points: LatLng[]) => void
   height?: number
+}
+
+function midPoint(a: LatLng, b: LatLng): LatLng {
+  return { lat: (a.lat + b.lat) / 2, lng: (a.lng + b.lng) / 2 }
 }
 
 export function DeliveryZonesMap({
@@ -31,12 +34,16 @@ export function DeliveryZonesMap({
   draftPolygon = [],
   onSelectZone,
   onMapClick,
-  height = 440,
+  onDraftChange,
+  height = 520,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<L.Map | null>(null)
   const layersRef = useRef<L.LayerGroup | null>(null)
   const draftRef = useRef<L.LayerGroup | null>(null)
+  const draftPolygonRef = useRef(draftPolygon)
+  const skipMapClickRef = useRef(false)
+  draftPolygonRef.current = draftPolygon
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
@@ -79,6 +86,10 @@ export function DeliveryZonesMap({
     if (!map) return
     const onClick = (e: L.LeafletMouseEvent) => {
       if (!markMode) return
+      if (skipMapClickRef.current) {
+        skipMapClickRef.current = false
+        return
+      }
       onMapClick?.(e.latlng.lat, e.latlng.lng)
     }
     map.on('click', onClick)
@@ -103,6 +114,9 @@ export function DeliveryZonesMap({
       .addTo(group)
 
     for (const z of zones.filter((x) => x.active)) {
+      // En modo dibujo no dibujamos la zona seleccionada (se ve el draft editable)
+      if (markMode && z.id === selectedId && drawShape === 'polygon') continue
+
       const selected = z.id === selectedId
       const feeLabel = z.freeDelivery || z.fee === 0 ? 'Envío gratis' : `$${z.fee}`
 
@@ -111,7 +125,7 @@ export function DeliveryZonesMap({
         const poly = L.polygon(latlngs, {
           color: z.color,
           fillColor: z.color,
-          fillOpacity: selected ? 0.4 : 0.2,
+          fillOpacity: selected ? 0.35 : 0.18,
           weight: selected ? 3 : 2,
         })
         poly.bindTooltip(`${z.name} · ${feeLabel}`, { sticky: true })
@@ -129,7 +143,7 @@ export function DeliveryZonesMap({
         radius: (z.radiusKm ?? 1.5) * 1000,
         color: z.color,
         fillColor: z.color,
-        fillOpacity: selected ? 0.4 : 0.18,
+        fillOpacity: selected ? 0.35 : 0.15,
         weight: selected ? 3 : 2,
       })
       circle.bindTooltip(`${z.name} · ${feeLabel}`, { sticky: true })
@@ -140,61 +154,112 @@ export function DeliveryZonesMap({
       })
       circle.addTo(group)
     }
-  }, [zones, selectedId, restaurantLat, restaurantLng, onSelectZone, markMode])
+  }, [zones, selectedId, restaurantLat, restaurantLng, onSelectZone, markMode, drawShape])
 
   useEffect(() => {
     const draft = draftRef.current
     if (!draft) return
     draft.clearLayers()
-    if (!markMode || drawShape !== 'polygon' || draftPolygon.length === 0) return
+    if (!markMode || drawShape !== 'polygon') return
 
-    const latlngs = draftPolygon.map((p) => [p.lat, p.lng] as [number, number])
+    const points = draftPolygon
+    if (points.length === 0) return
 
-    if (draftPolygon.length >= 2) {
+    const latlngs = points.map((p) => [p.lat, p.lng] as [number, number])
+
+    if (points.length >= 2) {
       L.polyline(latlngs, {
         color: '#2e7d32',
         weight: 3,
         dashArray: '6 6',
       }).addTo(draft)
     }
-    if (draftPolygon.length >= 3) {
+    if (points.length >= 3) {
       L.polygon(latlngs, {
         color: '#2e7d32',
         fillColor: '#66bb6a',
-        fillOpacity: 0.25,
+        fillOpacity: 0.22,
         weight: 2,
-        dashArray: '4 4',
       }).addTo(draft)
     }
 
-    draftPolygon.forEach((p, i) => {
-      L.circleMarker([p.lat, p.lng], {
-        radius: i === 0 ? 7 : 5,
-        color: '#1b5e20',
-        fillColor: i === 0 ? '#fff' : '#2e7d32',
-        fillOpacity: 1,
-        weight: 2,
+    // Puntos medios (insertar nodo en el borde)
+    if (points.length >= 2) {
+      for (let i = 0; i < points.length; i++) {
+        const a = points[i]
+        const b = points[(i + 1) % points.length]
+        // Solo mostrar midpoints si ya hay al menos un segmento cerrado en vista (>=2)
+        // Para polígono en progreso, mid entre i e i+1 excepto el cierre hasta tener 3+
+        if (i === points.length - 1 && points.length < 3) continue
+        const mid = midPoint(a, b)
+        const midMarker = L.circleMarker([mid.lat, mid.lng], {
+          radius: 5,
+          color: '#81c784',
+          fillColor: '#fff',
+          fillOpacity: 1,
+          weight: 2,
+          className: 'dz-mid-node',
+        })
+        midMarker.bindTooltip('Clic: agregar nodo acá', { direction: 'top' })
+        midMarker.on('click', (e) => {
+          L.DomEvent.stopPropagation(e)
+          const next = [...draftPolygonRef.current]
+          next.splice(i + 1, 0, mid)
+          onDraftChange?.(next)
+        })
+        midMarker.addTo(draft)
+      }
+    }
+
+    // Nodos arrastrables
+    points.forEach((p, i) => {
+      const marker = L.marker([p.lat, p.lng], {
+        draggable: true,
+        autoPan: true,
+        title: `Nodo ${i + 1} — arrastrá para mover`,
+        icon: L.divIcon({
+          className: 'dz-vertex-icon',
+          html: `<div class="dz-vertex${i === 0 ? ' first' : ''}">${i + 1}</div>`,
+          iconSize: [22, 22],
+          iconAnchor: [11, 11],
+        }),
       })
-        .bindTooltip(`Nodo ${i + 1}`, { direction: 'top' })
-        .addTo(draft)
+      marker.bindTooltip(`Nodo ${i + 1} · arrastrá`, { direction: 'top', offset: [0, -10] })
+      marker.on('click', (e) => {
+        L.DomEvent.stopPropagation(e)
+      })
+      marker.on('dragstart', () => {
+        skipMapClickRef.current = true
+      })
+      marker.on('dragend', (e) => {
+        skipMapClickRef.current = true
+        window.setTimeout(() => {
+          skipMapClickRef.current = false
+        }, 50)
+        const ll = (e.target as L.Marker).getLatLng()
+        const next = draftPolygonRef.current.map((pt, idx) =>
+          idx === i ? { lat: ll.lat, lng: ll.lng } : pt,
+        )
+        onDraftChange?.(next)
+      })
+      marker.addTo(draft)
     })
-  }, [markMode, drawShape, draftPolygon])
+  }, [markMode, drawShape, draftPolygon, onDraftChange])
 
   const banner =
     markMode && drawShape === 'polygon' ? (
       <div className="delivery-zones-mark-banner">
-        📍 Dibujá el límite de <strong>{selectedName || 'esta zona'}</strong>: acercate y hacé clic
-        para agregar nodos ({draftPolygon.length} punto
-        {draftPolygon.length === 1 ? '' : 's'}). Con 3 o más podés cerrar la zona.
+        <strong>{selectedName || 'Zona'}</strong>: arrastrá los nodos numerados para moverlos · clic
+        en el punto blanco del borde para agregar · clic en el mapa vacío para sumar al final (
+        {draftPolygon.length} nodos)
       </div>
     ) : markMode ? (
       <div className="delivery-zones-mark-banner">
-        📍 Tocá el mapa para ubicar el centro de <strong>{selectedName || 'esta zona'}</strong>
+        Tocá el mapa para ubicar el centro de <strong>{selectedName || 'esta zona'}</strong>
       </div>
     ) : (
       <div className="delivery-zones-mark-banner idle">
-        Elegí forma libre → <strong>Marcar en el mapa</strong> → clic nodos alrededor del barrio →
-        Cerrar zona
+        Forma libre → Marcar en el mapa → dibujá nodos → arrastralos → Cerrar zona
       </div>
     )
 
