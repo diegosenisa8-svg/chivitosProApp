@@ -72,6 +72,7 @@ import {
   TaxesView,
   TipsDepositView,
   ToggleServiceView,
+  Switch,
 } from './tumenuViews'
 import { RailIcon } from './RailIcon'
 
@@ -84,7 +85,6 @@ export function AdminApp() {
   const [loginError, setLoginError] = useState('')
   const [section, setSection] = useState<AdminSection>('dashboard')
   const [activeModule, setActiveModule] = useState<NavModule['id']>('reports')
-  const [moduleArmed, setModuleArmed] = useState<NavModule['id'] | null>(null)
   const [dash, setDash] = useState<DashboardData | null>(null)
   const [orders, setOrders] = useState<AdminOrder[]>([])
   const [customers, setCustomers] = useState<AdminCustomer[]>([])
@@ -310,7 +310,6 @@ export function AdminApp() {
     if (groupId) {
       setExpandedGroups((prev) => ({ ...prev, [groupId]: true }))
     }
-    setModuleArmed(null)
   }
 
   function toggleNavGroup(groupId: string) {
@@ -430,30 +429,24 @@ export function AdminApp() {
       <DevPopup open={devOpen} title={devTitle} onClose={() => setDevOpen(false)} />
       {toast && <div className="admin-toast">{toast}</div>}
 
-      <aside className="tm-rail">
+      <aside className="tm-rail" aria-label="Navegación principal">
         {modules.map((mod) => (
           <button
             key={mod.id}
             type="button"
             className={`tm-rail-btn ${activeModule === mod.id ? 'active' : ''} ${
-              moduleArmed === mod.id ? 'armed' : ''
-            } ${mod.id === 'reports' && flashCount ? 'nav-flash' : ''}`}
-            title={mod.label}
+              mod.id === 'reports' && flashCount ? 'nav-flash' : ''
+            }`}
             aria-label={mod.label}
+            aria-current={activeModule === mod.id ? 'page' : undefined}
             onClick={() => {
-              // Un clic navega (A-01: el doble clic dejaba el riel “muerto”)
               setActiveModule(mod.id)
-              setModuleArmed(null)
               const first = mod.groups[0]?.items[0]?.id
               if (first) goSection(first)
             }}
-            onMouseEnter={() => setModuleArmed(mod.id)}
-            onMouseLeave={() =>
-              setModuleArmed((cur) => (cur === mod.id ? null : cur))
-            }
           >
             <RailIcon name={mod.icon} />
-            <em className="tm-tooltip">{mod.label}</em>
+            <span className="tm-rail-label">{mod.label}</span>
           </button>
         ))}
       </aside>
@@ -918,10 +911,10 @@ function DashboardView({
     <section className="admin-section">
       <header className="admin-header">
         <div>
-          <h2>Dashboard</h2>
+          <h2>Panel</h2>
           <p>Rendimiento en vivo · auto-actualiza</p>
         </div>
-        <button type="button" className="admin-btn" onClick={onRefresh}>
+        <button type="button" className="admin-btn ghost" onClick={onRefresh}>
           Actualizar
         </button>
       </header>
@@ -965,18 +958,25 @@ function DashboardView({
         </div>
         <div className="admin-card">
           <h3>Más vendidos</h3>
-          <ul className="rank-list">
-            {dash.topProducts.map((p, i) => (
-              <li key={p.name}>
-                <span>
-                  <em>{i + 1}</em> {p.name}
-                </span>
-                <strong>
-                  {p.qty} · {formatMoney(p.revenue)}
-                </strong>
-              </li>
-            ))}
-          </ul>
+          {dash.topProducts.length === 0 ? (
+            <p className="admin-empty-hint">
+              Todavía no hay suficientes ventas para mostrar un ranking. Cuando lleguen
+              pedidos, verás los productos más pedidos acá.
+            </p>
+          ) : (
+            <ul className="rank-list">
+              {dash.topProducts.map((p, i) => (
+                <li key={p.name}>
+                  <span>
+                    <em>{i + 1}</em> {p.name}
+                  </span>
+                  <strong>
+                    {p.qty} · {formatMoney(p.revenue)}
+                  </strong>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
     </section>
@@ -3096,6 +3096,14 @@ function ProfileView({
     })
   }, [r])
 
+  const dirty =
+    form.name !== r.name ||
+    form.address !== r.address ||
+    form.phone !== (r.phone || '') ||
+    form.whatsapp !== r.whatsapp ||
+    form.hoursLabel !== (r.hoursLabel || '') ||
+    form.open !== r.open
+
   return (
     <section className="admin-section">
       <header className="admin-header">
@@ -3108,17 +3116,15 @@ function ProfileView({
         className="admin-card settings-form"
         onSubmit={(e) => {
           e.preventDefault()
+          if (!dirty) return
           onSave(form)
         }}
       >
-        <label className="check big">
-          <input
-            type="checkbox"
-            checked={form.open}
-            onChange={(e) => setForm((f) => ({ ...f, open: e.target.checked }))}
-          />
-          Local abierto
-        </label>
+        <Switch
+          checked={form.open}
+          onChange={(v) => setForm((f) => ({ ...f, open: v }))}
+          label="Local abierto (acepta pedidos ahora)"
+        />
         <label>
           Nombre
           <input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
@@ -3153,8 +3159,8 @@ function ProfileView({
             onChange={(e) => setForm((f) => ({ ...f, hoursLabel: e.target.value }))}
           />
         </label>
-        <button type="submit" className="admin-btn primary" disabled={saving}>
-          Guardar perfil
+        <button type="submit" className="admin-btn primary" disabled={saving || !dirty}>
+          {dirty ? 'Guardar perfil' : 'Sin cambios'}
         </button>
       </form>
     </section>

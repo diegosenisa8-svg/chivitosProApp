@@ -144,7 +144,7 @@ export const MODULES: NavModule[] = [
       },
       {
         id: 'payment-taxes',
-        label: 'Payment methods & taxes',
+        label: 'Métodos de pago e impuestos',
         items: [
           { id: 'pay-taxes', label: 'Impuestos' },
           { id: 'pay-methods', label: 'Métodos de pago' },
@@ -173,7 +173,7 @@ export const MODULES: NavModule[] = [
         items: [
           { id: 'publish-privacy', label: 'Política de privacidad' },
           { id: 'publish-facebook', label: 'Facebook' },
-          { id: 'publish-smartlinks', label: 'Smart links' },
+          { id: 'publish-smartlinks', label: 'Enlaces inteligentes' },
           { id: 'publish-web', label: 'Página Web' },
           { id: 'publish-widget', label: 'Widget HTML' },
           { id: 'publish-app', label: 'Aplicación móvil con su marca' },
@@ -185,28 +185,28 @@ export const MODULES: NavModule[] = [
         items: [
           { id: 'pagos-providers', label: 'Proveedores' },
           { id: 'pagos-tips', label: 'Propinas' },
-          { id: 'pagos-deposit', label: 'Reservation deposit' },
+          { id: 'pagos-deposit', label: 'Seña de reserva' },
         ],
       },
     ],
   },
   {
     id: 'marketing',
-    label: 'Herramientas de marketing',
+    label: 'Marketing',
     icon: 'marketing',
     groups: [
       {
         id: 'kickstarter',
-        label: 'Kickstarter',
+        label: 'Arranque',
         items: [
           { id: 'mkt-kickstarter', label: 'Visión general' },
           { id: 'mkt-kickstarter-first', label: 'Promoción de la primera compra' },
-          { id: 'mkt-kickstarter-invite', label: 'Invita a clientes potenciales' },
+          { id: 'mkt-kickstarter-invite', label: 'Invitar a clientes potenciales' },
         ],
       },
       {
         id: 'autopilot',
-        label: 'Autopilot',
+        label: 'Piloto automático',
         items: [
           { id: 'mkt-autopilot', label: 'Visión general' },
           { id: 'mkt-autopilot-campaigns', label: 'Sus campañas' },
@@ -219,14 +219,14 @@ export const MODULES: NavModule[] = [
       },
       {
         id: 'gmb',
-        label: 'Google business',
-        items: [{ id: 'mkt-google', label: 'Visión de conjunto' }],
+        label: 'Google Business',
+        items: [{ id: 'mkt-google', label: 'Visión general' }],
       },
       {
         id: 'promos',
         label: 'Promociones',
         items: [
-          { id: 'mkt-promos', label: 'Visión de conjunto' },
+          { id: 'mkt-promos', label: 'Visión general' },
           { id: 'mkt-promos-list', label: 'Tus promociones' },
           { id: 'mkt-promos-templates', label: 'Promociones prefabricadas' },
         ],
@@ -245,41 +245,41 @@ export const MODULES: NavModule[] = [
     groups: [
       {
         id: 'dash',
-        label: 'Dashboard',
-        items: [{ id: 'dashboard', label: 'Dashboard' }],
+        label: 'Panel',
+        items: [{ id: 'dashboard', label: 'Panel principal' }],
       },
       {
         id: 'sales',
-        label: 'Sales',
+        label: 'Ventas',
         items: [
-          { id: 'sales-trend', label: 'Trend' },
-          { id: 'sales-summary', label: 'Summary' },
+          { id: 'sales-trend', label: 'Tendencia' },
+          { id: 'sales-summary', label: 'Resumen' },
         ],
       },
       {
         id: 'menu-insights',
-        label: 'Menu Insights',
+        label: 'Análisis del menú',
         items: [
-          { id: 'menu-insights-categories', label: 'Categories' },
-          { id: 'menu-insights-items', label: 'Items' },
+          { id: 'menu-insights-categories', label: 'Categorías' },
+          { id: 'menu-insights-items', label: 'Productos' },
         ],
       },
       {
         id: 'online',
-        label: 'Online ordering',
-        items: [{ id: 'online-funnel', label: 'Funnel del sitio web' }],
+        label: 'Pedidos online',
+        items: [{ id: 'online-funnel', label: 'Embudo del sitio web' }],
       },
       {
         id: 'more-reports',
         label: 'Más reportes',
         items: [
           { id: 'report-clients-metrics', label: 'Clientes' },
-          { id: 'report-reservations', label: 'Reserva de Mesa' },
+          { id: 'report-reservations', label: 'Reserva de mesa' },
           { id: 'google-ranking', label: 'Ranking Google' },
           { id: 'website-visits', label: 'Visitas del sitio web' },
-          { id: 'delivery-map', label: 'Mapa del pedido a domicilio' },
+          { id: 'delivery-map', label: 'Mapa de pedidos a domicilio' },
           { id: 'connectivity-health', label: 'Salud de conectividad' },
-          { id: 'promotions-stats', label: 'Promotions Stats' },
+          { id: 'promotions-stats', label: 'Estadísticas de promociones' },
         ],
       },
       {
@@ -294,7 +294,7 @@ export const MODULES: NavModule[] = [
   },
   {
     id: 'online',
-    label: 'Pedidos en línea',
+    label: 'Pedidos',
     icon: 'online',
     groups: [
       {
@@ -321,17 +321,17 @@ export const MODULES: NavModule[] = [
       },
       {
         id: 'integrations',
-        label: 'Integrations',
+        label: 'Integraciones',
         items: [
-          { id: 'integrations-catalog', label: 'Catalog' },
-          { id: 'integrations-yours', label: 'Your integrations' },
+          { id: 'integrations-catalog', label: 'Catálogo' },
+          { id: 'integrations-yours', label: 'Tus integraciones' },
         ],
       },
     ],
   },
   {
     id: 'other',
-    label: 'Otro',
+    label: 'Más',
     icon: 'other',
     groups: [
       {

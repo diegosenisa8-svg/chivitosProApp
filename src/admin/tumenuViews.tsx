@@ -23,7 +23,7 @@ type ReportsPayload = {
 
 type SaveFn = (partial: Partial<RestaurantSettings>) => Promise<void>
 
-function Switch({
+export function Switch({
   checked,
   onChange,
   label,
@@ -285,19 +285,20 @@ export function DeliveryZonesFullView({
               <span className="admin-muted">{zones.filter((z) => z.active).length} activas</span>
             </div>
 
-            <ol className="delivery-zones-howto">
-              <li>Creá/elegí zona → Forma libre.</li>
-              <li>
-                <strong>Marcar en el mapa</strong> y clickeá nodos.
-              </li>
-              <li>
-                <strong>Arrastrá</strong> los nodos numerados para moverlos.
-              </li>
-              <li>Clic en el punto blanco del borde = nodo en el medio.</li>
-              <li>
-                <strong>Cerrar zona</strong> → Guardar. Para editar: Marcar de nuevo.
-              </li>
-            </ol>
+            <div className="delivery-zones-guide" role="note">
+              <strong>Cómo dibujar una zona</strong>
+              <ol>
+                <li>Creá o elegí una zona y usá forma libre.</li>
+                <li>
+                  Tocá <em>Marcar en el mapa</em> y dibujá nodos con clic.
+                </li>
+                <li>Arrastrá los nodos numerados para ajustar el borde.</li>
+                <li>El punto blanco del borde agrega un nodo en el medio.</li>
+                <li>
+                  Tocá <em>Cerrar zona</em> y después Guardar.
+                </li>
+              </ol>
+            </div>
 
             <ul className="delivery-zones-list">
               {zones.map((z) => (
@@ -334,7 +335,7 @@ export function DeliveryZonesFullView({
             </button>
 
             {selected ? (
-              <div className="zone-row mod-group-edit delivery-zone-editor">
+              <div className="mod-group-edit delivery-zone-editor">
                 <h4>Editar: {selected.name}</h4>
 
                 <label>
@@ -438,7 +439,7 @@ export function DeliveryZonesFullView({
                       fee: v ? 0 : selected.fee || 80,
                     })
                   }
-                  label="Esta zona NO suma costo de envío"
+                  label="Sin costo de envío en esta zona"
                 />
 
                 {!selected.freeDelivery && selected.fee !== 0 ? (
@@ -690,11 +691,11 @@ export function TaxesView({
   saving: boolean
   onSave: SaveFn
 }) {
-  const t = settings.taxes || { enabled: false, rate: 0, label: 'Sales Tax' }
+  const t = settings.taxes || { enabled: false, rate: 0, label: 'IVA' }
   const [form, setForm] = useState({
     includedInPrice: t.includedInPrice !== false,
-    label: t.label || 'Sales Tax',
-    category: t.category || 'Food',
+    label: t.label || 'IVA',
+    category: t.category || 'Comida',
     rate: String(t.rate || 0),
     deliveryTaxRate: String(t.deliveryTaxRate || 0),
     currency: t.currency || 'UYU',
@@ -1318,7 +1319,7 @@ export function ExtendedReportsView({
       <section className="admin-section">
         <header className="admin-header">
           <div>
-            <h2>Sales · Trend</h2>
+            <h2>Ventas · Tendencia</h2>
             <p>Evolución diaria de ventas (últimos días)</p>
           </div>
         </header>
@@ -1370,7 +1371,7 @@ export function ExtendedReportsView({
       <section className="admin-section">
         <header className="admin-header">
           <div>
-            <h2>Sales · Summary</h2>
+            <h2>Ventas · Resumen</h2>
             <p>Foto del período: totales, canal y método de pago</p>
           </div>
         </header>
@@ -1424,7 +1425,8 @@ export function ExtendedReportsView({
         <header className="admin-header">
           <div>
             <h2>
-              Menu Insights · {section === 'menu-insights-categories' ? 'Categories' : 'Items'}
+              Análisis del menú ·{' '}
+              {section === 'menu-insights-categories' ? 'Categorías' : 'Productos'}
             </h2>
           </div>
         </header>
@@ -1480,7 +1482,7 @@ export function ExtendedReportsView({
       <section className="admin-section">
         <header className="admin-header">
           <div>
-            <h2>Promotions Stats</h2>
+            <h2>Estadísticas de promociones</h2>
           </div>
         </header>
         <ul className="rank-list admin-card">
@@ -1533,10 +1535,12 @@ export function ExtendedReportsView({
           <p>
             App toma de pedidos:{' '}
             <span className={`pill ${d?.paired ? 'on' : 'off'}`}>
-              {d?.paired ? 'Online' : 'Offline'}
+              {d?.paired ? 'En línea' : 'Sin conexión'}
             </span>
           </p>
-          <p className="admin-muted">Device {d?.deviceId} · v{d?.appVersion}</p>
+          <p className="admin-muted">
+            Dispositivo {d?.deviceId} · v{d?.appVersion}
+          </p>
         </div>
       </section>
     )
@@ -1678,7 +1682,7 @@ export function MarketingHubView({
   if (section === 'mkt-autopilot' || section === 'mkt-autopilot-campaigns') {
     return (
       <WizardCard
-        title={section === 'mkt-autopilot' ? 'Autopilot · Visión general' : 'Sus campañas'}
+        title={section === 'mkt-autopilot' ? 'Piloto automático · Visión general' : 'Sus campañas'}
         subtitle="Campañas automáticas de reactivación"
         saving={saving}
         nextLabel="Guardar"
@@ -1687,7 +1691,7 @@ export function MarketingHubView({
         <Switch
           checked={!!m.autopilot}
           onChange={(v) => onSave({ marketing: { ...m, autopilot: v } })}
-          label="Autopilot activo"
+          label="Piloto automático activo"
         />
         <ul className="rank-list">
           {(settings.autopilotCampaigns || []).map((c) => (
@@ -1738,7 +1742,7 @@ export function MarketingHubView({
     return (
       <WizardCard
         title="Google Business"
-        subtitle="Visión de conjunto"
+        subtitle="Visión general"
         saving={saving}
         nextLabel="Guardar"
         onNext={() => onSave({ marketing: { ...m, googleBusiness: !!m.googleBusiness } })}
@@ -1770,8 +1774,8 @@ export function MarketingHubView({
           : section === 'mkt-kickstarter-invite'
             ? 'Invita a clientes potenciales'
             : section === 'mkt-promos'
-              ? 'Promociones · Visión de conjunto'
-              : 'Kickstarter · Visión general'
+              ? 'Promociones · Visión general'
+              : 'Arranque · Visión general'
       }
       saving={saving}
       nextLabel="Guardar"
@@ -2000,7 +2004,9 @@ export function OnlineOrderingConfigView({
       'Spoonity post-order rewards',
     ]
     return (
-      <WizardCard title={section === 'integrations-catalog' ? 'Catalog' : 'Your integrations'}>
+      <WizardCard
+        title={section === 'integrations-catalog' ? 'Catálogo' : 'Tus integraciones'}
+      >
         {section === 'integrations-yours' && (settings.integrations || []).length === 0 ? (
           <p className="admin-muted">Nada aquí todavía.</p>
         ) : null}
@@ -2020,7 +2026,7 @@ export function OnlineOrderingConfigView({
                 })
               }
             >
-              Add
+              Agregar
             </button>
           </div>
         ))}
@@ -2147,14 +2153,14 @@ export function TipsDepositView({
         <Switch
           checked={!!tipsForm.askNoCutlery}
           onChange={(v) => setTipsForm((f) => ({ ...f, askNoCutlery: v }))}
-          label="No cutlery (or skip this step)"
+          label="Preguntar si no necesitan cubiertos"
         />
       </WizardCard>
     )
   }
   return (
     <WizardCard
-      title="Reservation deposit"
+      title="Seña de reserva"
       subtitle="Seña al reservar mesa"
       saving={saving}
       nextLabel="Guardar"

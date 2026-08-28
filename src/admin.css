@@ -1199,7 +1199,7 @@ th {
 
 .delivery-zones-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(300px, 340px);
+  grid-template-columns: minmax(0, 1.4fr) minmax(360px, 420px);
   gap: 18px;
   align-items: start;
   margin-top: 12px;
@@ -1212,9 +1212,12 @@ th {
 }
 
 .delivery-zones-list-col {
-  max-height: calc(100dvh - 220px);
-  overflow: auto;
-  padding-right: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: none;
+  overflow: visible;
+  padding-right: 0;
 }
 
 .dz-vertex-icon {
@@ -1264,10 +1267,38 @@ th {
 }
 
 .delivery-zones-mark-banner.idle {
-  background: #fff8e1;
-  border-color: #ffcc80;
-  color: #e65100;
+  background: #f3f7fb;
+  border-color: #90caf9;
+  color: #1565c0;
   font-weight: 500;
+}
+
+.delivery-zones-guide {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #f3f7fb;
+  border: 1px solid #90caf9;
+  color: #0d47a1;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.delivery-zones-guide strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: #0d47a1;
+}
+
+.delivery-zones-guide ol {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.delivery-zones-guide em {
+  font-style: normal;
+  font-weight: 700;
 }
 
 .delivery-zones-map.is-marking,
@@ -1335,10 +1366,10 @@ th {
 
 .delivery-zones-list {
   list-style: none;
-  margin: 0 0 12px;
+  margin: 0;
   padding: 0;
-  max-height: 280px;
-  overflow: auto;
+  max-height: none;
+  overflow: visible;
   border: 1px solid var(--admin-line);
   border-radius: 8px;
   background: #fff;
@@ -1377,11 +1408,13 @@ th {
   display: grid;
   gap: 2px;
   min-width: 0;
+  flex: 1;
 }
 
 .delivery-zone-meta strong {
   font-size: 14px;
   color: #333;
+  overflow-wrap: anywhere;
 }
 
 .delivery-zone-meta em {
@@ -1391,11 +1424,42 @@ th {
 }
 
 .delivery-zone-editor {
-  margin-top: 14px;
+  margin-top: 2px;
+  display: grid;
+  gap: 10px;
 }
 
 .delivery-zone-editor h4 {
-  margin: 0 0 10px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.delivery-zone-editor .row-2 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+  align-items: end;
+}
+
+.delivery-zone-editor .tm-switch {
+  align-items: flex-start;
+}
+
+.delivery-zone-editor .tm-switch-label {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.admin-empty-hint {
+  margin: 8px 0 0;
+  padding: 16px;
+  border-radius: 8px;
+  background: #faf9f7;
+  border: 1px dashed #ccc;
+  color: #666;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .checkout-zones {
@@ -1719,7 +1783,7 @@ th {
   --rail-bg: #f0eeeb;
   --input-text: #666666;
 
-  grid-template-columns: 64px 250px 1fr !important;
+  grid-template-columns: 92px 250px 1fr !important;
   grid-template-rows: 56px 1fr;
   background: var(--admin-bg);
   color: var(--admin-text);
@@ -1841,13 +1905,17 @@ th {
 .tm-rail-btn {
   position: relative;
   width: 100%;
-  height: 58px;
+  min-height: 72px;
+  padding: 10px 4px 8px;
   border: 0;
   border-radius: 0;
   background: transparent;
   color: #808080;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
   cursor: pointer;
 }
 
@@ -1861,16 +1929,21 @@ th {
   color: var(--accent-icon);
 }
 
-.tm-rail-btn:hover .tm-tooltip,
-.tm-rail-btn:focus-visible .tm-tooltip,
-.tm-rail-btn.armed .tm-tooltip {
-  opacity: 1;
-  visibility: visible;
+.tm-rail-label {
+  display: block;
+  max-width: 84px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.15;
+  text-align: center;
+  color: inherit;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .tm-tooltip {
   position: absolute;
-  left: 68px;
+  left: 96px;
   top: 50%;
   transform: translateY(-50%);
   white-space: nowrap;
@@ -2354,7 +2427,7 @@ html.admin-tm body {
 
 @media (max-width: 960px) {
   .tm-shell {
-    grid-template-columns: 56px 1fr !important;
+    grid-template-columns: 72px 1fr !important;
     grid-template-rows: 56px auto 1fr;
   }
 

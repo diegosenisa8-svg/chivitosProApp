@@ -46,9 +46,7 @@ export function RailIcon({ name }: { name: string }) {
     default:
       return (
         <svg {...common}>
-          <circle cx="6" cy="12" r="1.5" fill="currentColor" stroke="none" />
-          <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
-          <circle cx="18" cy="12" r="1.5" fill="currentColor" stroke="none" />
+          <path d="M4 6h16M4 12h16M4 18h10" />
         </svg>
       )
   }
