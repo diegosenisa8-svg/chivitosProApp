@@ -714,17 +714,25 @@ export function AdminApp() {
           />
         )}
 
-        {menu &&
-          (section === 'profile-location' ||
-            section === 'profile-website' ||
-            section === 'profile-product-type' ||
-            section === 'profile-confirm') && (
+        {menu && section === 'profile-location' && (
             <ProfileExtraViews
               section={section}
               menu={menu}
               settings={settings}
               saving={saving}
               onSaveSettings={patchSettings}
+              onSaveRestaurant={async (patch) => {
+                setSaving(true)
+                try {
+                  await updateRestaurant(patch)
+                  await refreshMenu()
+                  notify('Ubicación guardada')
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : 'Error')
+                } finally {
+                  setSaving(false)
+                }
+              }}
             />
           )}
 
@@ -740,7 +748,13 @@ export function AdminApp() {
         )}
 
         {(section === 'schedules-delivery' || section === 'delivery-zones') && (
-          <DeliveryZonesFullView settings={settings} saving={saving} onSave={patchSettings} />
+          <DeliveryZonesFullView
+            settings={settings}
+            saving={saving}
+            onSave={patchSettings}
+            restaurantLat={menu?.restaurant.lat}
+            restaurantLng={menu?.restaurant.lng}
+          />
         )}
 
         {section === 'schedules-reservation' && (
@@ -771,7 +785,7 @@ export function AdminApp() {
           >
             {settings.dineInEnabled !== false ? (
               <label className="tm-switch">
-                <span className="tm-switch-label">Allow guests to order anonymously</span>
+                <span className="tm-switch-label">Permitir pedidos anónimos en mesa</span>
                 <button
                   type="button"
                   role="switch"
@@ -788,17 +802,6 @@ export function AdminApp() {
 
         {(section === 'schedules-hours' || section === 'schedules') && (
           <HoursFullView settings={settings} saving={saving} onSave={patchSettings} />
-        )}
-
-        {section === 'schedules-scheduled' && (
-          <ToggleServiceView
-            title="Pedidos programados"
-            description="Permitir a los clientes solicitar un tiempo de cumplimiento específico"
-            flag="scheduledOrdersEnabled"
-            settings={settings}
-            saving={saving}
-            onSave={patchSettings}
-          />
         )}
 
         {(section === 'pay-taxes' || section === 'payments-taxes') && (

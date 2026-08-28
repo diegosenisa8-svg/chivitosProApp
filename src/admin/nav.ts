@@ -125,9 +125,6 @@ export const MODULES: NavModule[] = [
         items: [
           { id: 'profile-address', label: 'Dirección' },
           { id: 'profile-location', label: 'Ubicación' },
-          { id: 'profile-website', label: 'Sitio web del restaurante' },
-          { id: 'profile-product-type', label: 'Seleccionar tipo de Producto' },
-          { id: 'profile-confirm', label: 'Confirmación de la cuenta' },
         ],
       },
       {
@@ -139,7 +136,6 @@ export const MODULES: NavModule[] = [
           { id: 'schedules-reservation', label: 'Reserva de mesa' },
           { id: 'schedules-dinein', label: 'Local' },
           { id: 'schedules-hours', label: 'Horario de apertura' },
-          { id: 'schedules-scheduled', label: 'Pedidos programados' },
         ],
       },
       {
@@ -360,6 +356,10 @@ export const LEGACY_SECTION_MAP: Partial<Record<AdminSection, AdminSection>> = {
   pagos: 'pagos-providers',
   reports: 'dashboard',
   marketing: 'mkt-promos-list',
+  'profile-website': 'profile-address',
+  'profile-product-type': 'profile-address',
+  'profile-confirm': 'profile-address',
+  'schedules-scheduled': 'schedules-hours',
 }
 
 export function allLeaves(): NavLeaf[] {

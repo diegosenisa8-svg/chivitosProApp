@@ -11,6 +11,7 @@ import type {
 import type { DashboardData } from '../lib/adminApi'
 import type { AdminSection } from './nav'
 import { DeliveryZonesMap } from './DeliveryZonesMap'
+import { RestaurantLocationMap, buildOsmEmbed } from './RestaurantLocationMap'
 
 type ReportsPayload = {
   days: number
@@ -87,6 +88,7 @@ function WizardCard({
   onNext,
   nextLabel = 'Siguiente',
   saving,
+  nextDisabled,
 }: {
   title: string
   subtitle?: string
@@ -94,6 +96,7 @@ function WizardCard({
   onNext?: () => void
   nextLabel?: string
   saving?: boolean
+  nextDisabled?: boolean
 }) {
   return (
     <section className="admin-section tm-wizard">
@@ -104,7 +107,12 @@ function WizardCard({
             {subtitle ? <p className="tm-card-sub">{subtitle}</p> : null}
           </div>
           {onNext ? (
-            <button type="button" className="admin-btn primary tm-next" disabled={saving} onClick={onNext}>
+            <button
+              type="button"
+              className="admin-btn primary tm-next"
+              disabled={saving || nextDisabled}
+              onClick={onNext}
+            >
               {saving ? 'Guardando…' : nextLabel === 'Siguiente' ? 'Siguiente' : nextLabel}
             </button>
           ) : null}
@@ -152,10 +160,14 @@ export function DeliveryZonesFullView({
   settings,
   saving,
   onSave,
+  restaurantLat = SALTO_CENTER.lat,
+  restaurantLng = SALTO_CENTER.lng,
 }: {
   settings: RestaurantSettings
   saving: boolean
   onSave: SaveFn
+  restaurantLat?: number
+  restaurantLng?: number
 }) {
   const [enabled, setEnabled] = useState(settings.deliveryEnabled !== false)
   const [zones, setZones] = useState<DeliveryZone[]>(settings.deliveryZones || [])
@@ -256,8 +268,8 @@ export function DeliveryZonesFullView({
               zones={zones}
               selectedId={selectedId}
               selectedName={selected?.name}
-              restaurantLat={SALTO_CENTER.lat}
-              restaurantLng={SALTO_CENTER.lng}
+              restaurantLat={restaurantLat || SALTO_CENTER.lat}
+              restaurantLng={restaurantLng || SALTO_CENTER.lng}
               markMode={markMode && !!selectedId}
               drawShape={selected?.shape === 'circle' ? 'circle' : 'polygon'}
               draftPolygon={draftPolygon}
@@ -620,38 +632,85 @@ export function HoursFullView({
       >
         Añadir horario
       </button>
-      <h4>Excepciones</h4>
+      <h4>Días especiales / festivos</h4>
+      <p className="admin-muted" style={{ marginTop: -4 }}>
+        Marcá una fecha concreta (feriado, evento) y definí si ese día el local está cerrado o abre
+        con otro horario.
+      </p>
       {exceptions.map((ex, i) => (
-        <div key={ex.id} className="mod-option-row">
-          <input
-            type="date"
-            value={ex.date}
-            onChange={(e) => {
-              const next = [...exceptions]
-              next[i] = { ...ex, date: e.target.value }
-              setExceptions(next)
-            }}
-          />
-          <input
-            value={ex.label}
-            onChange={(e) => {
-              const next = [...exceptions]
-              next[i] = { ...ex, label: e.target.value }
-              setExceptions(next)
-            }}
-          />
-          <label className="check">
+        <div key={ex.id} className="hours-exception-row">
+          <label>
+            Fecha
+            <input
+              type="date"
+              value={ex.date}
+              onChange={(e) => {
+                const next = [...exceptions]
+                next[i] = { ...ex, date: e.target.value }
+                setExceptions(next)
+              }}
+            />
+          </label>
+          <label>
+            Nombre
+            <input
+              value={ex.label}
+              placeholder="Festivo"
+              onChange={(e) => {
+                const next = [...exceptions]
+                next[i] = { ...ex, label: e.target.value }
+                setExceptions(next)
+              }}
+            />
+          </label>
+          <label className="check hours-exception-closed">
             <input
               type="checkbox"
               checked={!!ex.closed}
               onChange={(e) => {
                 const next = [...exceptions]
-                next[i] = { ...ex, closed: e.target.checked }
+                const closed = e.target.checked
+                next[i] = {
+                  ...ex,
+                  closed,
+                  open: closed ? undefined : ex.open || '08:00',
+                  close: closed ? undefined : ex.close || '12:00',
+                }
                 setExceptions(next)
               }}
             />
-            Cerrado
+            Cerrado todo el día
           </label>
+          {!ex.closed ? (
+            <>
+              <label>
+                Abre
+                <input
+                  type="time"
+                  value={ex.open || '08:00'}
+                  onChange={(e) => {
+                    const next = [...exceptions]
+                    next[i] = { ...ex, open: e.target.value, closed: false }
+                    setExceptions(next)
+                  }}
+                />
+              </label>
+              <label>
+                Cierra
+                <input
+                  type="time"
+                  value={ex.close || '12:00'}
+                  onChange={(e) => {
+                    const next = [...exceptions]
+                    next[i] = { ...ex, close: e.target.value, closed: false }
+                    setExceptions(next)
+                  }}
+                />
+              </label>
+            </>
+          ) : (
+            <span className="admin-muted hours-exception-note">Sin atención ese día</span>
+          )}
           <button
             type="button"
             className="admin-btn ghost icon-del"
@@ -663,7 +722,7 @@ export function HoursFullView({
       ))}
       <button
         type="button"
-        className="admin-btn ghost"
+        className="admin-btn"
         onClick={() =>
           setExceptions([
             ...exceptions,
@@ -671,7 +730,9 @@ export function HoursFullView({
               id: `e${Date.now()}`,
               date: new Date().toISOString().slice(0, 10),
               label: 'Festivo',
-              closed: true,
+              closed: false,
+              open: '08:00',
+              close: '12:00',
             },
           ])
         }
@@ -2186,84 +2247,80 @@ export function TipsDepositView({
 export function ProfileExtraViews({
   section,
   menu,
-  settings,
   saving,
-  onSaveSettings,
+  onSaveRestaurant,
 }: {
   section: AdminSection
   menu: MenuData
   settings: RestaurantSettings
   saving: boolean
-  onSaveSettings: SaveFn
+  onSaveSettings?: SaveFn
+  onSaveRestaurant: (patch: Record<string, unknown>) => Promise<void>
 }) {
   const r = menu.restaurant
-  if (section === 'profile-location') {
-    return (
-      <WizardCard title="Ubicación" subtitle="Pin exacto del local">
-        <div className="zones-map-mock admin-card" style={{ minHeight: 220 }}>
-          <p className="admin-muted">
-            Lat {r.lat} · Lng {r.lng}
-          </p>
-        </div>
-        {r.mapEmbed ? (
-          <div dangerouslySetInnerHTML={{ __html: r.mapEmbed }} />
-        ) : (
-          <p className="admin-muted">Configurá el mapa embebido desde Dirección.</p>
-        )}
-      </WizardCard>
-    )
-  }
-  if (section === 'profile-website') {
-    const [url, setUrl] = useState(settings.websiteUrl || '')
-    return (
-      <WizardCard
-        title="Sitio web del restaurante"
-        saving={saving}
-        nextLabel="Guardar"
-        onNext={() => onSaveSettings({ websiteUrl: url })}
-      >
+  const [lat, setLat] = useState(r.lat || SALTO_CENTER.lat)
+  const [lng, setLng] = useState(r.lng || SALTO_CENTER.lng)
+
+  useEffect(() => {
+    setLat(r.lat || SALTO_CENTER.lat)
+    setLng(r.lng || SALTO_CENTER.lng)
+  }, [r.lat, r.lng])
+
+  if (section !== 'profile-location') return null
+
+  const dirty = Math.abs(lat - (r.lat || 0)) > 1e-7 || Math.abs(lng - (r.lng || 0)) > 1e-7
+
+  return (
+    <WizardCard
+      title="Ubicación"
+      subtitle="Marcá el pin exacto de ChivitosPro en el mapa. Así aparece en la app del cliente."
+      saving={saving}
+      nextLabel={dirty ? 'Guardar ubicación' : 'Ubicación guardada'}
+      nextDisabled={!dirty}
+      onNext={() =>
+        onSaveRestaurant({
+          lat,
+          lng,
+          mapEmbed: buildOsmEmbed(lat, lng),
+        })
+      }
+    >
+      <p className="delivery-zones-guide" role="note">
+        Tocá el mapa o arrastrá el marcador hasta la esquina / local exacto. Después guardá.
+      </p>
+      <RestaurantLocationMap
+        lat={lat}
+        lng={lng}
+        onChange={(nextLat, nextLng) => {
+          setLat(nextLat)
+          setLng(nextLng)
+        }}
+      />
+      <div className="row-2" style={{ marginTop: 12 }}>
         <label>
-          URL pública de pedidos
-          <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" />
+          Latitud
+          <input
+            type="number"
+            step="0.0001"
+            value={lat}
+            onChange={(e) => setLat(Number(e.target.value) || SALTO_CENTER.lat)}
+          />
         </label>
-      </WizardCard>
-    )
-  }
-  if (section === 'profile-product-type') {
-    const [type, setType] = useState(settings.productType || 'Food')
-    return (
-      <WizardCard
-        title="Seleccionar tipo de Producto"
-        saving={saving}
-        nextLabel="Guardar"
-        onNext={() => onSaveSettings({ productType: type })}
-      >
         <label>
-          Rubro
-          <select value={type} onChange={(e) => setType(e.target.value)}>
-            <option value="Food">Food / Gastronomía</option>
-            <option value="Cafe">Café</option>
-            <option value="Bakery">Panadería</option>
-            <option value="Other">Otro</option>
-          </select>
+          Longitud
+          <input
+            type="number"
+            step="0.0001"
+            value={lng}
+            onChange={(e) => setLng(Number(e.target.value) || SALTO_CENTER.lng)}
+          />
         </label>
-      </WizardCard>
-    )
-  }
-  if (section === 'profile-confirm') {
-    return (
-      <WizardCard title="Confirmación de la cuenta">
-        <p>
-          Estado:{' '}
-          <span className={`pill ${settings.accountConfirmed !== false ? 'on' : 'off'}`}>
-            {settings.accountConfirmed !== false ? 'Validado ✓' : 'Pendiente'}
-          </span>
-        </p>
-      </WizardCard>
-    )
-  }
-  // profile-address handled by existing ProfileView
-  return null
+      </div>
+      <p className="admin-muted">
+        Coordenadas actuales: {lat.toFixed(5)}, {lng.toFixed(5)}
+      </p>
+    </WizardCard>
+  )
 }
 
 export function resolveSettingsSections(section: AdminSection): boolean {
@@ -2273,7 +2330,6 @@ export function resolveSettingsSections(section: AdminSection): boolean {
     'schedules-reservation',
     'schedules-dinein',
     'schedules-hours',
-    'schedules-scheduled',
     'pay-taxes',
     'pay-methods',
     'take-orders-alert',
@@ -2323,9 +2379,6 @@ export function resolveSettingsSections(section: AdminSection): boolean {
     'other-notifications',
     'other-languages',
     'profile-location',
-    'profile-website',
-    'profile-product-type',
-    'profile-confirm',
     'take-orders-app',
   ].includes(section)
 }

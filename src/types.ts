@@ -146,7 +146,14 @@ export type RestaurantSettings = {
     close: string
     service?: string
   }[]
-  exceptions?: { id: string; date: string; label: string; closed?: boolean }[]
+  exceptions?: {
+    id: string
+    date: string
+    label: string
+    closed?: boolean
+    open?: string
+    close?: string
+  }[]
   deliveryZones?: DeliveryZone[]
   paymentMethods?: Record<string, boolean>
   transferPayment?: {
