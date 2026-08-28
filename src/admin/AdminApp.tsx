@@ -76,6 +76,33 @@ import {
 } from './tumenuViews'
 import { RailIcon } from './RailIcon'
 
+const ADMIN_SECTION_KEY = 'chivitos-admin-section'
+
+function readSavedSection(role: string): AdminSection | null {
+  try {
+    const raw = sessionStorage.getItem(ADMIN_SECTION_KEY)
+    if (!raw) return null
+    const mapped = (LEGACY_SECTION_MAP[raw as AdminSection] || raw) as AdminSection
+    if (!sectionAllowed(mapped, role)) return null
+    if (!moduleOfSection(mapped)) return null
+    return mapped
+  } catch {
+    return null
+  }
+}
+
+function persistSection(section: AdminSection) {
+  try {
+    sessionStorage.setItem(ADMIN_SECTION_KEY, section)
+  } catch {
+    /* ignore */
+  }
+}
+
+function resolveStartSection(role: string): AdminSection {
+  return readSavedSection(role) || defaultSectionForRole(role)
+}
+
 export function AdminApp() {
   const navigate = useNavigate()
   const [admin, setAdmin] = useState<AdminUser | null>(null)
@@ -145,16 +172,28 @@ export function AdminApp() {
       setBooting(false)
       return
     }
+    const started = Date.now()
+    const minSplashMs = 900
     adminMe()
       .then((user) => {
         setAdmin(user)
-        const def = defaultSectionForRole(user.role)
-        setSection(def)
-        setActiveModule(moduleOfSection(def) || 'reports')
+        const start = resolveStartSection(user.role)
+        setSection(start)
+        setActiveModule(moduleOfSection(start) || 'reports')
+        const groupId = groupOfSection(start)
+        if (groupId) setExpandedGroups({ [groupId]: true })
       })
       .catch(() => setAdminToken(null))
-      .finally(() => setBooting(false))
+      .finally(() => {
+        const wait = Math.max(0, minSplashMs - (Date.now() - started))
+        window.setTimeout(() => setBooting(false), wait)
+      })
   }, [])
+
+  useEffect(() => {
+    if (!admin) return
+    persistSection(section)
+  }, [admin, section])
 
   const refreshDashboard = useCallback(async () => setDash(await fetchDashboard()), [])
   const refreshMenu = useCallback(async () => {
@@ -289,9 +328,11 @@ export function AdminApp() {
     try {
       const user = await adminLogin(email.trim(), password)
       setAdmin(user)
-      const def = defaultSectionForRole(user.role)
-      setSection(def)
-      setActiveModule(moduleOfSection(def) || 'reports')
+      const start = resolveStartSection(user.role)
+      setSection(start)
+      setActiveModule(moduleOfSection(start) || 'reports')
+      const groupId = groupOfSection(start)
+      if (groupId) setExpandedGroups({ [groupId]: true })
       setPassword('')
     } catch (err) {
       setLoginError(err instanceof Error ? err.message : 'Error de login')
@@ -375,8 +416,13 @@ export function AdminApp() {
 
   if (booting) {
     return (
-      <div className="admin-shell">
-        <p className="admin-muted">Cargando panel…</p>
+      <div className="admin-splash" aria-busy="true" aria-label="Cargando panel">
+        <div className="admin-splash-inner">
+          <img src="/logo.png" alt="ChivitosPro" className="admin-splash-logo" />
+          <strong className="admin-splash-brand">ChivitosPro</strong>
+          <span className="admin-splash-bar" />
+          <p className="admin-splash-hint">Cargando panel…</p>
+        </div>
       </div>
     )
   }
