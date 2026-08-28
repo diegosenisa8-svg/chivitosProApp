@@ -74,6 +74,8 @@ export type Restaurant = {
   settings?: RestaurantSettings
 }
 
+export type LatLng = { lat: number; lng: number }
+
 export type DeliveryZone = {
   id: string
   name: string
@@ -84,11 +86,13 @@ export type DeliveryZone = {
   shape?: 'circle' | 'polygon'
   feeByDistance?: boolean
   active: boolean
-  /** Centro de la zona (mapa Salto). */
+  /** Centro de la zona (mapa Salto) — para shape=circle. */
   lat?: number
   lng?: number
   /** Radio en km para shape=circle. */
   radiusKm?: number
+  /** Vértices del polígono (shape=polygon). Mínimo 3. */
+  polygon?: LatLng[]
   /** Si true, no se suma costo de envío (fee se trata como 0). */
   freeDelivery?: boolean
 }

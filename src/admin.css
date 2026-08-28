@@ -1260,6 +1260,17 @@ th {
   font-size: 13px;
 }
 
+.delivery-polygon-tools {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.delivery-polygon-tools .admin-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .delivery-zones-map {
   width: 100%;
   border-radius: 8px;

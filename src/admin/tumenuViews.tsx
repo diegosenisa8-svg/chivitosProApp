@@ -163,6 +163,7 @@ export function DeliveryZonesFullView({
     settings.deliveryZones?.[0]?.id || null,
   )
   const [markMode, setMarkMode] = useState(false)
+  const [draftPolygon, setDraftPolygon] = useState<{ lat: number; lng: number }[]>([])
   useEffect(() => {
     setEnabled(settings.deliveryEnabled !== false)
     const incoming = settings.deliveryZones || []
@@ -173,7 +174,8 @@ export function DeliveryZonesFullView({
         lat: z.lat ?? SALTO_CENTER.lat + (i - 2) * 0.008,
         lng: z.lng ?? SALTO_CENTER.lng + (i - 2) * 0.008,
         radiusKm: z.radiusKm ?? 1.5,
-        shape: z.shape || 'circle',
+        shape: z.shape || 'polygon',
+        polygon: z.polygon || [],
       })),
     )
   }, [settings])
@@ -184,6 +186,34 @@ export function DeliveryZonesFullView({
     setZones((prev) => prev.map((z) => (z.id === id ? { ...z, ...patch } : z)))
   }
 
+  function startMarking() {
+    if (!selected) return
+    if (selected.shape === 'polygon') {
+      setDraftPolygon(selected.polygon?.length ? [...selected.polygon] : [])
+    } else {
+      setDraftPolygon([])
+    }
+    setMarkMode(true)
+  }
+
+  function stopMarking() {
+    setMarkMode(false)
+    setDraftPolygon([])
+  }
+
+  function closePolygon() {
+    if (!selectedId || draftPolygon.length < 3) return
+    const centroidLat = draftPolygon.reduce((s, p) => s + p.lat, 0) / draftPolygon.length
+    const centroidLng = draftPolygon.reduce((s, p) => s + p.lng, 0) / draftPolygon.length
+    patchZone(selectedId, {
+      shape: 'polygon',
+      polygon: draftPolygon,
+      lat: centroidLat,
+      lng: centroidLng,
+    })
+    stopMarking()
+  }
+
   function addZone() {
     const id = `z${Date.now()}`
     const next: DeliveryZone = {
@@ -192,26 +222,31 @@ export function DeliveryZonesFullView({
       color: '#4a90e2',
       fee: 100,
       minOrder: 250,
-      shape: 'circle',
+      shape: 'polygon',
       feeByDistance: false,
       freeDelivery: false,
       active: true,
-      lat: SALTO_CENTER.lat + (Math.random() - 0.5) * 0.02,
-      lng: SALTO_CENTER.lng + (Math.random() - 0.5) * 0.02,
+      lat: SALTO_CENTER.lat,
+      lng: SALTO_CENTER.lng,
       radiusKm: 1.5,
+      polygon: [],
     }
     setZones((prev) => [...prev, next])
     setSelectedId(id)
+    setDraftPolygon([])
     setMarkMode(true)
   }
 
   return (
     <WizardCard
       title="Entrega"
-      subtitle="Configuración → Horarios y servicios → Entrega. Marcá cada zona en el mapa de Salto y definí si suma (o no) el costo de envío."
+      subtitle="Configuración → Horarios y servicios → Entrega. Dibujá el límite clickeando nodos en el mapa."
       saving={saving}
       nextLabel="Guardar zonas"
-      onNext={() => onSave({ deliveryEnabled: enabled, deliveryZones: zones })}
+      onNext={() => {
+        stopMarking()
+        return onSave({ deliveryEnabled: enabled, deliveryZones: zones })
+      }}
     >
       <Switch checked={enabled} onChange={setEnabled} label="¿Ofrecen entrega a domicilio?" />
       {enabled && (
@@ -224,16 +259,22 @@ export function DeliveryZonesFullView({
               restaurantLat={SALTO_CENTER.lat}
               restaurantLng={SALTO_CENTER.lng}
               markMode={markMode && !!selectedId}
+              drawShape={selected?.shape === 'circle' ? 'circle' : 'polygon'}
+              draftPolygon={draftPolygon}
               onSelectZone={(id) => {
                 setSelectedId(id)
-                setMarkMode(false)
+                stopMarking()
               }}
-              onMoveSelectedCenter={(lat, lng) => {
-                if (!selectedId) return
-                patchZone(selectedId, { lat, lng })
+              onMapClick={(lat, lng) => {
+                if (!selectedId || !selected) return
+                if (selected.shape === 'circle') {
+                  patchZone(selectedId, { lat, lng })
+                  stopMarking()
+                  return
+                }
+                setDraftPolygon((prev) => [...prev, { lat, lng }])
               }}
-              onMarkDone={() => setMarkMode(false)}
-              height={440}
+              height={480}
             />
           </div>
 
@@ -244,11 +285,17 @@ export function DeliveryZonesFullView({
             </div>
 
             <ol className="delivery-zones-howto">
-              <li>Elegí una zona de la lista (o creá una nueva).</li>
-              <li>Tocá el botón verde <strong>Marcar en el mapa</strong>.</li>
-              <li>Hacé clic en el barrio en el mapa: ahí queda el círculo.</li>
-              <li>Ajustá el radio y si tiene (o no) costo de envío.</li>
-              <li>Guardá zonas.</li>
+              <li>Elegí o creá una zona.</li>
+              <li>
+                Forma <strong>Libre (polígono)</strong>.
+              </li>
+              <li>
+                Tocá <strong>Marcar en el mapa</strong>.
+              </li>
+              <li>Acercate y andá clickeando nodos del perímetro.</li>
+              <li>
+                Con 3+ nodos → <strong>Cerrar zona</strong> → Guardá.
+              </li>
             </ol>
 
             <ul className="delivery-zones-list">
@@ -259,7 +306,7 @@ export function DeliveryZonesFullView({
                     className={`delivery-zone-item${selectedId === z.id ? ' selected' : ''}`}
                     onClick={() => {
                       setSelectedId(z.id)
-                      setMarkMode(false)
+                      stopMarking()
                     }}
                   >
                     <span className="delivery-zone-dot" style={{ background: z.color }} />
@@ -271,6 +318,9 @@ export function DeliveryZonesFullView({
                           : z.freeDelivery || z.fee === 0
                             ? 'Sin costo de envío'
                             : `Envío ${formatMoney(z.fee)}`}
+                        {z.shape === 'polygon' && z.polygon && z.polygon.length >= 3
+                          ? ` · ${z.polygon.length} nodos`
+                          : ''}
                       </em>
                     </span>
                   </button>
@@ -286,21 +336,72 @@ export function DeliveryZonesFullView({
               <div className="zone-row mod-group-edit delivery-zone-editor">
                 <h4>Editar: {selected.name}</h4>
 
+                <label>
+                  Forma de la zona
+                  <select
+                    value={selected.shape || 'polygon'}
+                    onChange={(e) => {
+                      const shape = e.target.value as 'circle' | 'polygon'
+                      patchZone(selected.id, { shape })
+                      stopMarking()
+                    }}
+                  >
+                    <option value="polygon">Libre (polígono — click nodos)</option>
+                    <option value="circle">Círculo (un clic + radio)</option>
+                  </select>
+                </label>
+
                 <button
                   type="button"
                   className={`admin-btn primary delivery-mark-btn${markMode ? ' armed' : ''}`}
-                  onClick={() => setMarkMode((v) => !v)}
+                  onClick={() => (markMode ? stopMarking() : startMarking())}
                 >
                   {markMode
                     ? 'Cancelar marcado'
-                    : '📍 Marcar esta zona en el mapa'}
+                    : selected.shape === 'circle'
+                      ? '📍 Marcar centro en el mapa'
+                      : '📍 Marcar límite en el mapa (nodos)'}
                 </button>
-                {markMode ? (
+
+                {markMode && (selected.shape || 'polygon') === 'polygon' ? (
+                  <div className="delivery-polygon-tools">
+                    <p className="delivery-mark-active">
+                      Modo dibujo: {draftPolygon.length} nodo
+                      {draftPolygon.length === 1 ? '' : 's'}. Acercate y clickeá el perímetro.
+                    </p>
+                    <div className="row-2">
+                      <button
+                        type="button"
+                        className="admin-btn"
+                        disabled={draftPolygon.length === 0}
+                        onClick={() => setDraftPolygon((p) => p.slice(0, -1))}
+                      >
+                        ← Borrar último nodo
+                      </button>
+                      <button
+                        type="button"
+                        className="admin-btn"
+                        disabled={draftPolygon.length === 0}
+                        onClick={() => setDraftPolygon([])}
+                      >
+                        Reiniciar dibujo
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      className="admin-btn primary"
+                      disabled={draftPolygon.length < 3}
+                      onClick={closePolygon}
+                    >
+                      ✓ Cerrar zona ({draftPolygon.length} nodos)
+                    </button>
+                  </div>
+                ) : markMode ? (
                   <p className="delivery-mark-active">
-                    Modo activo: hacé clic en el mapa donde querés ubicar{' '}
-                    <strong>{selected.name}</strong>.
+                    Modo activo: un clic ubica el centro de <strong>{selected.name}</strong>.
                   </p>
                 ) : null}
+
                 <label>
                   Nombre
                   <input
@@ -372,23 +473,28 @@ export function DeliveryZonesFullView({
                   />
                 </label>
 
-                <label>
-                  Radio de cobertura (km)
-                  <input
-                    type="range"
-                    min={0.4}
-                    max={5}
-                    step={0.1}
-                    value={selected.radiusKm ?? 1.5}
-                    onChange={(e) =>
-                      patchZone(selected.id, { radiusKm: Number(e.target.value) || 1.5 })
-                    }
-                  />
-                  <span className="admin-muted">
-                    {(selected.radiusKm ?? 1.5).toFixed(1)} km · clic en el mapa para mover el
-                    centro
-                  </span>
-                </label>
+                {selected.shape === 'circle' ? (
+                  <label>
+                    Radio de cobertura (km)
+                    <input
+                      type="range"
+                      min={0.4}
+                      max={5}
+                      step={0.1}
+                      value={selected.radiusKm ?? 1.5}
+                      onChange={(e) =>
+                        patchZone(selected.id, { radiusKm: Number(e.target.value) || 1.5 })
+                      }
+                    />
+                    <span className="admin-muted">{(selected.radiusKm ?? 1.5).toFixed(1)} km</span>
+                  </label>
+                ) : (
+                  <p className="admin-muted">
+                    {selected.polygon && selected.polygon.length >= 3
+                      ? `Polígono guardado con ${selected.polygon.length} nodos.`
+                      : 'Todavía no hay polígono: usá Marcar en el mapa y cerrá la zona.'}
+                  </p>
+                )}
 
                 <p className="admin-muted">
                   Preview: si el cliente elige delivery en esta zona, se suma{' '}
@@ -407,6 +513,7 @@ export function DeliveryZonesFullView({
                     if (!confirm(`¿Eliminar la zona "${selected.name}"?`)) return
                     setZones((prev) => prev.filter((z) => z.id !== selected.id))
                     setSelectedId(null)
+                    stopMarking()
                   }}
                 >
                   Eliminar zona

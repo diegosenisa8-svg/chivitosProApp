@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import type { DeliveryZone } from '../types'
+import type { DeliveryZone, LatLng } from '../types'
 import { SALTO_CENTER } from '../lib/deliveryZones'
 
 type Props = {
@@ -10,11 +10,13 @@ type Props = {
   selectedName?: string
   restaurantLat?: number
   restaurantLng?: number
-  /** Modo marcar: el próximo clic ubica el centro de la zona seleccionada. */
+  /** Modo dibujar: clics agregan nodos (polígono) o ubican centro (círculo). */
   markMode?: boolean
+  drawShape?: 'circle' | 'polygon'
+  /** Vértices en progreso mientras se dibuja un polígono. */
+  draftPolygon?: LatLng[]
   onSelectZone?: (id: string) => void
-  onMoveSelectedCenter?: (lat: number, lng: number) => void
-  onMarkDone?: () => void
+  onMapClick?: (lat: number, lng: number) => void
   height?: number
 }
 
@@ -25,20 +27,22 @@ export function DeliveryZonesMap({
   restaurantLat = SALTO_CENTER.lat,
   restaurantLng = SALTO_CENTER.lng,
   markMode = false,
+  drawShape = 'polygon',
+  draftPolygon = [],
   onSelectZone,
-  onMoveSelectedCenter,
-  onMarkDone,
-  height = 420,
+  onMapClick,
+  height = 440,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<L.Map | null>(null)
   const layersRef = useRef<L.LayerGroup | null>(null)
+  const draftRef = useRef<L.LayerGroup | null>(null)
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
     const map = L.map(containerRef.current, {
       center: [restaurantLat, restaurantLng],
-      zoom: 13,
+      zoom: 14,
       scrollWheelZoom: true,
     })
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -46,9 +50,9 @@ export function DeliveryZonesMap({
       maxZoom: 19,
     }).addTo(map)
     layersRef.current = L.layerGroup().addTo(map)
+    draftRef.current = L.layerGroup().addTo(map)
     mapRef.current = map
 
-    // Leaflet a veces queda en gris hasta forzar tamaño
     window.setTimeout(() => map.invalidateSize(), 80)
     window.setTimeout(() => map.invalidateSize(), 400)
 
@@ -56,6 +60,7 @@ export function DeliveryZonesMap({
       map.remove()
       mapRef.current = null
       layersRef.current = null
+      draftRef.current = null
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -73,20 +78,18 @@ export function DeliveryZonesMap({
     const map = mapRef.current
     if (!map) return
     const onClick = (e: L.LeafletMouseEvent) => {
-      if (!markMode || !selectedId) return
-      onMoveSelectedCenter?.(e.latlng.lat, e.latlng.lng)
-      onMarkDone?.()
+      if (!markMode) return
+      onMapClick?.(e.latlng.lat, e.latlng.lng)
     }
     map.on('click', onClick)
     return () => {
       map.off('click', onClick)
     }
-  }, [markMode, selectedId, onMoveSelectedCenter, onMarkDone])
+  }, [markMode, onMapClick])
 
   useEffect(() => {
-    const map = mapRef.current
     const group = layersRef.current
-    if (!map || !group) return
+    if (!group) return
     group.clearLayers()
 
     L.circleMarker([restaurantLat, restaurantLng], {
@@ -99,20 +102,37 @@ export function DeliveryZonesMap({
       .bindTooltip('Local', { permanent: false })
       .addTo(group)
 
-    for (const z of zones.filter((x) => x.active && x.lat != null && x.lng != null)) {
-      const radiusM = (z.radiusKm ?? 1.5) * 1000
+    for (const z of zones.filter((x) => x.active)) {
       const selected = z.id === selectedId
-      const circle = L.circle([z.lat!, z.lng!], {
-        radius: radiusM,
+      const feeLabel = z.freeDelivery || z.fee === 0 ? 'Envío gratis' : `$${z.fee}`
+
+      if (z.shape === 'polygon' && z.polygon && z.polygon.length >= 3) {
+        const latlngs = z.polygon.map((p) => [p.lat, p.lng] as [number, number])
+        const poly = L.polygon(latlngs, {
+          color: z.color,
+          fillColor: z.color,
+          fillOpacity: selected ? 0.4 : 0.2,
+          weight: selected ? 3 : 2,
+        })
+        poly.bindTooltip(`${z.name} · ${feeLabel}`, { sticky: true })
+        poly.on('click', (e) => {
+          if (markMode) return
+          L.DomEvent.stopPropagation(e)
+          onSelectZone?.(z.id)
+        })
+        poly.addTo(group)
+        continue
+      }
+
+      if (z.lat == null || z.lng == null) continue
+      const circle = L.circle([z.lat, z.lng], {
+        radius: (z.radiusKm ?? 1.5) * 1000,
         color: z.color,
         fillColor: z.color,
         fillOpacity: selected ? 0.4 : 0.18,
         weight: selected ? 3 : 2,
       })
-      circle.bindTooltip(
-        `${z.name} · ${z.freeDelivery || z.fee === 0 ? 'Envío gratis' : `$${z.fee}`}`,
-        { sticky: true },
-      )
+      circle.bindTooltip(`${z.name} · ${feeLabel}`, { sticky: true })
       circle.on('click', (e) => {
         if (markMode) return
         L.DomEvent.stopPropagation(e)
@@ -122,18 +142,65 @@ export function DeliveryZonesMap({
     }
   }, [zones, selectedId, restaurantLat, restaurantLng, onSelectZone, markMode])
 
+  useEffect(() => {
+    const draft = draftRef.current
+    if (!draft) return
+    draft.clearLayers()
+    if (!markMode || drawShape !== 'polygon' || draftPolygon.length === 0) return
+
+    const latlngs = draftPolygon.map((p) => [p.lat, p.lng] as [number, number])
+
+    if (draftPolygon.length >= 2) {
+      L.polyline(latlngs, {
+        color: '#2e7d32',
+        weight: 3,
+        dashArray: '6 6',
+      }).addTo(draft)
+    }
+    if (draftPolygon.length >= 3) {
+      L.polygon(latlngs, {
+        color: '#2e7d32',
+        fillColor: '#66bb6a',
+        fillOpacity: 0.25,
+        weight: 2,
+        dashArray: '4 4',
+      }).addTo(draft)
+    }
+
+    draftPolygon.forEach((p, i) => {
+      L.circleMarker([p.lat, p.lng], {
+        radius: i === 0 ? 7 : 5,
+        color: '#1b5e20',
+        fillColor: i === 0 ? '#fff' : '#2e7d32',
+        fillOpacity: 1,
+        weight: 2,
+      })
+        .bindTooltip(`Nodo ${i + 1}`, { direction: 'top' })
+        .addTo(draft)
+    })
+  }, [markMode, drawShape, draftPolygon])
+
+  const banner =
+    markMode && drawShape === 'polygon' ? (
+      <div className="delivery-zones-mark-banner">
+        📍 Dibujá el límite de <strong>{selectedName || 'esta zona'}</strong>: acercate y hacé clic
+        para agregar nodos ({draftPolygon.length} punto
+        {draftPolygon.length === 1 ? '' : 's'}). Con 3 o más podés cerrar la zona.
+      </div>
+    ) : markMode ? (
+      <div className="delivery-zones-mark-banner">
+        📍 Tocá el mapa para ubicar el centro de <strong>{selectedName || 'esta zona'}</strong>
+      </div>
+    ) : (
+      <div className="delivery-zones-mark-banner idle">
+        Elegí forma libre → <strong>Marcar en el mapa</strong> → clic nodos alrededor del barrio →
+        Cerrar zona
+      </div>
+    )
+
   return (
     <div className={`delivery-zones-map-wrap${markMode ? ' marking' : ''}`}>
-      {markMode ? (
-        <div className="delivery-zones-mark-banner">
-          📍 Tocá el mapa para ubicar <strong>{selectedName || 'esta zona'}</strong>
-        </div>
-      ) : (
-        <div className="delivery-zones-mark-banner idle">
-          1) Elegí una zona a la derecha → 2) Tocá <strong>Marcar en el mapa</strong> → 3) Clic
-          donde va el círculo
-        </div>
-      )}
+      {banner}
       <div ref={containerRef} className="delivery-zones-map" style={{ height }} />
     </div>
   )

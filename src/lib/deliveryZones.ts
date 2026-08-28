@@ -1,4 +1,4 @@
-import type { DeliveryZone } from '../types'
+import type { DeliveryZone, LatLng } from '../types'
 
 /** Centro aproximado de Salto, Uruguay. */
 export const SALTO_CENTER = { lat: -31.3883, lng: -57.9601 }
@@ -9,7 +9,7 @@ export function zoneDeliveryFee(zone: DeliveryZone | null | undefined): number {
   return Math.max(0, Number(zone.fee) || 0)
 }
 
-export function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
+export function haversineKm(a: LatLng, b: LatLng) {
   const R = 6371
   const dLat = ((b.lat - a.lat) * Math.PI) / 180
   const dLng = ((b.lng - a.lng) * Math.PI) / 180
@@ -21,18 +21,47 @@ export function haversineKm(a: { lat: number; lng: number }, b: { lat: number; l
   return 2 * R * Math.asin(Math.sqrt(h))
 }
 
-/** Encuentra la zona activa más cercana cuyo radio cubre el punto. */
-export function findZoneAtPoint(
-  zones: DeliveryZone[],
-  point: { lat: number; lng: number },
-): DeliveryZone | null {
-  let best: { zone: DeliveryZone; dist: number } | null = null
+/** Ray casting point-in-polygon. */
+export function pointInPolygon(point: LatLng, polygon: LatLng[]): boolean {
+  if (!polygon || polygon.length < 3) return false
+  let inside = false
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i].lng
+    const yi = polygon[i].lat
+    const xj = polygon[j].lng
+    const yj = polygon[j].lat
+    const intersect =
+      yi > point.lat !== yj > point.lat &&
+      point.lng < ((xj - xi) * (point.lat - yi)) / (yj - yi + 0.0) + xi
+    if (intersect) inside = !inside
+  }
+  return inside
+}
+
+export function polygonCentroid(polygon: LatLng[]): LatLng | null {
+  if (!polygon.length) return null
+  const lat = polygon.reduce((s, p) => s + p.lat, 0) / polygon.length
+  const lng = polygon.reduce((s, p) => s + p.lng, 0) / polygon.length
+  return { lat, lng }
+}
+
+/** Encuentra la zona activa que contiene el punto (polígono o círculo). */
+export function findZoneAtPoint(zones: DeliveryZone[], point: LatLng): DeliveryZone | null {
+  let best: { zone: DeliveryZone; score: number } | null = null
   for (const z of zones) {
-    if (!z.active || z.lat == null || z.lng == null) continue
+    if (!z.active) continue
+    if (z.shape === 'polygon' && z.polygon && z.polygon.length >= 3) {
+      if (!pointInPolygon(point, z.polygon)) continue
+      const c = polygonCentroid(z.polygon)
+      const dist = c ? haversineKm(point, c) : 0
+      if (!best || dist < best.score) best = { zone: z, score: dist }
+      continue
+    }
+    if (z.lat == null || z.lng == null) continue
     const radius = z.radiusKm ?? 1.5
     const dist = haversineKm(point, { lat: z.lat, lng: z.lng })
-    if (dist <= radius && (!best || dist < best.dist)) {
-      best = { zone: z, dist }
+    if (dist <= radius && (!best || dist < best.score)) {
+      best = { zone: z, score: dist }
     }
   }
   return best?.zone || null
