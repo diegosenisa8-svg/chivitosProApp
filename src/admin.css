@@ -1205,6 +1205,61 @@ th {
   margin-top: 12px;
 }
 
+.delivery-zones-map-wrap {
+  position: relative;
+}
+
+.delivery-zones-mark-banner {
+  margin-bottom: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #e8f5e9;
+  border: 1px solid #81c784;
+  color: #1b5e20;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.delivery-zones-mark-banner.idle {
+  background: #fff8e1;
+  border-color: #ffcc80;
+  color: #e65100;
+  font-weight: 500;
+}
+
+.delivery-zones-map.is-marking,
+.delivery-zones-map-wrap.marking .delivery-zones-map {
+  cursor: crosshair;
+  box-shadow: 0 0 0 3px #4caf50;
+}
+
+.delivery-zones-howto {
+  margin: 0 0 12px;
+  padding-left: 18px;
+  font-size: 12px;
+  color: #666;
+  line-height: 1.45;
+}
+
+.delivery-mark-btn {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.delivery-mark-btn.armed {
+  background: #2e7d32 !important;
+  border-color: #2e7d32 !important;
+}
+
+.delivery-mark-active {
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #e8f5e9;
+  color: #1b5e20;
+  font-size: 13px;
+}
+
 .delivery-zones-map {
   width: 100%;
   border-radius: 8px;

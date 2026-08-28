@@ -162,6 +162,7 @@ export function DeliveryZonesFullView({
   const [selectedId, setSelectedId] = useState<string | null>(
     settings.deliveryZones?.[0]?.id || null,
   )
+  const [markMode, setMarkMode] = useState(false)
   useEffect(() => {
     setEnabled(settings.deliveryEnabled !== false)
     const incoming = settings.deliveryZones || []
@@ -201,12 +202,13 @@ export function DeliveryZonesFullView({
     }
     setZones((prev) => [...prev, next])
     setSelectedId(id)
+    setMarkMode(true)
   }
 
   return (
     <WizardCard
       title="Entrega"
-      subtitle="Mapa de Salto: zonas con o sin costo de envío. Si el cliente pide delivery desde una zona con costo, se suma automáticamente."
+      subtitle="Configuración → Horarios y servicios → Entrega. Marcá cada zona en el mapa de Salto y definí si suma (o no) el costo de envío."
       saving={saving}
       nextLabel="Guardar zonas"
       onNext={() => onSave({ deliveryEnabled: enabled, deliveryZones: zones })}
@@ -218,15 +220,20 @@ export function DeliveryZonesFullView({
             <DeliveryZonesMap
               zones={zones}
               selectedId={selectedId}
+              selectedName={selected?.name}
               restaurantLat={SALTO_CENTER.lat}
               restaurantLng={SALTO_CENTER.lng}
-              editable
-              onSelectZone={setSelectedId}
+              markMode={markMode && !!selectedId}
+              onSelectZone={(id) => {
+                setSelectedId(id)
+                setMarkMode(false)
+              }}
               onMoveSelectedCenter={(lat, lng) => {
                 if (!selectedId) return
                 patchZone(selectedId, { lat, lng })
               }}
-              height={420}
+              onMarkDone={() => setMarkMode(false)}
+              height={440}
             />
           </div>
 
@@ -236,13 +243,24 @@ export function DeliveryZonesFullView({
               <span className="admin-muted">{zones.filter((z) => z.active).length} activas</span>
             </div>
 
+            <ol className="delivery-zones-howto">
+              <li>Elegí una zona de la lista (o creá una nueva).</li>
+              <li>Tocá el botón verde <strong>Marcar en el mapa</strong>.</li>
+              <li>Hacé clic en el barrio en el mapa: ahí queda el círculo.</li>
+              <li>Ajustá el radio y si tiene (o no) costo de envío.</li>
+              <li>Guardá zonas.</li>
+            </ol>
+
             <ul className="delivery-zones-list">
               {zones.map((z) => (
                 <li key={z.id}>
                   <button
                     type="button"
                     className={`delivery-zone-item${selectedId === z.id ? ' selected' : ''}`}
-                    onClick={() => setSelectedId(z.id)}
+                    onClick={() => {
+                      setSelectedId(z.id)
+                      setMarkMode(false)
+                    }}
                   >
                     <span className="delivery-zone-dot" style={{ background: z.color }} />
                     <span className="delivery-zone-meta">
@@ -267,6 +285,22 @@ export function DeliveryZonesFullView({
             {selected ? (
               <div className="zone-row mod-group-edit delivery-zone-editor">
                 <h4>Editar: {selected.name}</h4>
+
+                <button
+                  type="button"
+                  className={`admin-btn primary delivery-mark-btn${markMode ? ' armed' : ''}`}
+                  onClick={() => setMarkMode((v) => !v)}
+                >
+                  {markMode
+                    ? 'Cancelar marcado'
+                    : '📍 Marcar esta zona en el mapa'}
+                </button>
+                {markMode ? (
+                  <p className="delivery-mark-active">
+                    Modo activo: hacé clic en el mapa donde querés ubicar{' '}
+                    <strong>{selected.name}</strong>.
+                  </p>
+                ) : null}
                 <label>
                   Nombre
                   <input

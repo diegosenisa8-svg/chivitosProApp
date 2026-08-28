@@ -7,24 +7,28 @@ import { SALTO_CENTER } from '../lib/deliveryZones'
 type Props = {
   zones: DeliveryZone[]
   selectedId: string | null
+  selectedName?: string
   restaurantLat?: number
   restaurantLng?: number
-  /** Si true, un clic en el mapa mueve el centro de la zona seleccionada. */
-  editable?: boolean
+  /** Modo marcar: el próximo clic ubica el centro de la zona seleccionada. */
+  markMode?: boolean
   onSelectZone?: (id: string) => void
   onMoveSelectedCenter?: (lat: number, lng: number) => void
+  onMarkDone?: () => void
   height?: number
 }
 
 export function DeliveryZonesMap({
   zones,
   selectedId,
+  selectedName,
   restaurantLat = SALTO_CENTER.lat,
   restaurantLng = SALTO_CENTER.lng,
-  editable = false,
+  markMode = false,
   onSelectZone,
   onMoveSelectedCenter,
-  height = 360,
+  onMarkDone,
+  height = 420,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<L.Map | null>(null)
@@ -44,26 +48,40 @@ export function DeliveryZonesMap({
     layersRef.current = L.layerGroup().addTo(map)
     mapRef.current = map
 
+    // Leaflet a veces queda en gris hasta forzar tamaño
+    window.setTimeout(() => map.invalidateSize(), 80)
+    window.setTimeout(() => map.invalidateSize(), 400)
+
     return () => {
       map.remove()
       mapRef.current = null
       layersRef.current = null
     }
-    // Solo al montar
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
     const map = mapRef.current
-    if (!map || !editable) return
+    if (!map) return
+    map.invalidateSize()
+    const el = map.getContainer()
+    if (markMode) el.classList.add('is-marking')
+    else el.classList.remove('is-marking')
+  }, [markMode, height])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
     const onClick = (e: L.LeafletMouseEvent) => {
+      if (!markMode || !selectedId) return
       onMoveSelectedCenter?.(e.latlng.lat, e.latlng.lng)
+      onMarkDone?.()
     }
     map.on('click', onClick)
     return () => {
       map.off('click', onClick)
     }
-  }, [editable, onMoveSelectedCenter, selectedId])
+  }, [markMode, selectedId, onMoveSelectedCenter, onMarkDone])
 
   useEffect(() => {
     const map = mapRef.current
@@ -88,7 +106,7 @@ export function DeliveryZonesMap({
         radius: radiusM,
         color: z.color,
         fillColor: z.color,
-        fillOpacity: selected ? 0.35 : 0.18,
+        fillOpacity: selected ? 0.4 : 0.18,
         weight: selected ? 3 : 2,
       })
       circle.bindTooltip(
@@ -96,22 +114,27 @@ export function DeliveryZonesMap({
         { sticky: true },
       )
       circle.on('click', (e) => {
+        if (markMode) return
         L.DomEvent.stopPropagation(e)
         onSelectZone?.(z.id)
       })
       circle.addTo(group)
     }
-  }, [zones, selectedId, restaurantLat, restaurantLng, onSelectZone])
+  }, [zones, selectedId, restaurantLat, restaurantLng, onSelectZone, markMode])
 
   return (
-    <div className="delivery-zones-map-wrap">
+    <div className={`delivery-zones-map-wrap${markMode ? ' marking' : ''}`}>
+      {markMode ? (
+        <div className="delivery-zones-mark-banner">
+          📍 Tocá el mapa para ubicar <strong>{selectedName || 'esta zona'}</strong>
+        </div>
+      ) : (
+        <div className="delivery-zones-mark-banner idle">
+          1) Elegí una zona a la derecha → 2) Tocá <strong>Marcar en el mapa</strong> → 3) Clic
+          donde va el círculo
+        </div>
+      )}
       <div ref={containerRef} className="delivery-zones-map" style={{ height }} />
-      {editable ? (
-        <p className="admin-muted delivery-zones-map-hint">
-          Seleccioná una zona en la lista y hacé clic en el mapa para ubicar su centro. Ajustá el
-          radio con el control de abajo.
-        </p>
-      ) : null}
     </div>
   )
 }
