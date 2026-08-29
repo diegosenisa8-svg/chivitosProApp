@@ -187,3 +187,12 @@ model OrderItem {
   lineTotal Float
   sizeLabel String @default("")
 }
+
+model MediaFile {
+  id        String   @id @default(cuid())
+  filename  String
+  mimeType  String
+  size      Int
+  data      Bytes
+  createdAt DateTime @default(now())
+}

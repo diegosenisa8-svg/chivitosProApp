@@ -172,5 +172,6 @@ railway domain
 - El start de la API corre `prisma migrate deploy` + seed (admin + menú si está vacío).
 - El Web sirve `dist` con `serve -s` (SPA OK).
 - No hace falta Cloudflare Pages si usás Railway para el front.
-- Las imágenes subidas van a `/uploads` en el disco del API. Sin un **Volume** en Railway se pierden al redeploy; montá un volume en `/app/uploads` (o la ruta del contenedor) si querés persistencia.
+- Las imágenes nuevas se guardan en Postgres (`MediaFile`) y se sirven en `/api/media/:id`, así sobreviven a los redeploys de Railway.
+- Rutas viejas `/uploads/...` pueden 404 si el disco efímero se borró; hay que volver a subir esas fotos desde el admin.
 - Mercado Pago: seteá `MP_PUBLIC_KEY` + `MP_ACCESS_TOKEN` en el API, activá el medio en admin → Pagos, y cargá los BIN BROU Recompensa. El front solo recibe la public key vía `/api/payments/config`.

@@ -13,14 +13,14 @@ export function apiUrl(path: string) {
   return `${base}${p}`
 }
 
-/** Resuelve imagen: absoluta, data URL, /uploads o path local. */
+/** Resuelve imagen: absoluta, data URL, /api/media, /uploads o path local. */
 export function mediaUrl(src?: string | null) {
   if (!src) return '/logo.png'
   if (src.startsWith('http') || src.startsWith('data:') || src.startsWith('blob:')) return src
 
   const path = src.startsWith('/') ? src : `/${src}`
 
-  if (path.startsWith('/uploads')) {
+  if (path.startsWith('/uploads') || path.startsWith('/api/media')) {
     const base = getApiBase()
     if (base && typeof window !== 'undefined') {
       // localhost en .env rompe imágenes vía ngrok/dominio: usar proxy same-origin

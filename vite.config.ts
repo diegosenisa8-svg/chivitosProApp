@@ -56,6 +56,14 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,json}'],
         runtimeCaching: [
           {
+            urlPattern: /\/api\/media\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'product-media-db',
+              expiration: { maxEntries: 120, maxAgeSeconds: 60 * 60 * 24 * 30 },
+            },
+          },
+          {
             urlPattern: /^https:\/\/nucleocheckprod\.blob\.core\.windows\.net\/.*/i,
             handler: 'CacheFirst',
             options: {

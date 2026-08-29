@@ -2,7 +2,7 @@ import 'dotenv/config'
 import cors from 'cors'
 import express from 'express'
 import path from 'node:path'
-import { getUploadDir } from './lib/uploads.js'
+import { getUploadDir, getMediaById } from './lib/uploads.js'
 import { z } from 'zod'
 import { prisma } from './lib/prisma.js'
 import { mapMenu } from './lib/menu.js'
@@ -70,9 +70,27 @@ app.use(
   express.static(uploadDir, {
     maxAge: '365d',
     immutable: true,
-    fallthrough: false,
+    fallthrough: true,
   }),
 )
+// Archivos viejos perdidos en redeploy: 404 silencioso (sin ENOENT en logs)
+app.use('/uploads', (_req, res) => {
+  res.status(404).end()
+})
+
+app.get('/api/media/:id', async (req, res) => {
+  try {
+    const file = await getMediaById(req.params.id)
+    if (!file) return res.status(404).json({ error: 'Imagen no encontrada' })
+    res.setHeader('Content-Type', file.mimeType || 'application/octet-stream')
+    res.setHeader('Content-Length', String(file.size))
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
+    res.send(Buffer.from(file.data))
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Error al servir imagen' })
+  }
+})
 
 app.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'chivitos-pro-api' })

@@ -1,8 +1,7 @@
 import { Router } from 'express'
 import multer from 'multer'
-import path from 'node:path'
 import { z } from 'zod'
-import { getUploadDir, uploadPublicPath } from '../lib/uploads.js'
+import { saveMediaBuffer } from '../lib/uploads.js'
 import { prisma } from '../lib/prisma.js'
 import { hashPassword, signToken, verifyPassword } from '../lib/auth.js'
 import { requireAdmin, requireFullAdmin } from '../middleware/auth.js'
@@ -26,17 +25,8 @@ import { checkRateLimit, resetRateLimit } from '../lib/rateLimit.js'
 
 const router = Router()
 
-const uploadDir = getUploadDir()
-
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, uploadDir),
-    filename: (_req, file, cb) => {
-      const ext = path.extname(file.originalname || '').toLowerCase() || '.jpg'
-      const safe = ext.match(/^\.(jpe?g|png|webp|gif)$/) ? ext : '.jpg'
-      cb(null, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${safe}`)
-    },
-  }),
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (!/^image\/(jpeg|png|webp|gif)$/i.test(file.mimetype)) {
@@ -48,16 +38,27 @@ const upload = multer({
 })
 
 router.post('/upload', requireAdmin, (req, res) => {
-  upload.single('file')(req, res, (err) => {
+  upload.single('file')(req, res, async (err) => {
     if (err) {
       return res.status(400).json({ error: err.message || 'Error al subir imagen' })
     }
-    if (!req.file) return res.status(400).json({ error: 'No se recibió archivo' })
-    res.status(201).json({
-      url: uploadPublicPath(req.file.filename),
-      filename: req.file.filename,
-      size: req.file.size,
-    })
+    if (!req.file?.buffer) return res.status(400).json({ error: 'No se recibió archivo' })
+    try {
+      const saved = await saveMediaBuffer({
+        buffer: req.file.buffer,
+        originalName: req.file.originalname,
+        mimeType: req.file.mimetype,
+      })
+      res.status(201).json({
+        url: saved.url,
+        filename: saved.filename,
+        size: saved.size,
+        id: saved.id,
+      })
+    } catch (e) {
+      console.error(e)
+      res.status(500).json({ error: 'No se pudo guardar la imagen' })
+    }
   })
 })
 
