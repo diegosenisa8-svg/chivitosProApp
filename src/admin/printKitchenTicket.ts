@@ -1,6 +1,16 @@
 import type { AdminOrder } from '../lib/adminApi'
 import { ORDER_STATUS_LABELS } from '../lib/adminApi'
 
+export type TicketRestaurant = {
+  name?: string
+  address?: string
+  city?: string
+  phone?: string
+  whatsapp?: string
+  etaMin?: number
+  etaMax?: number
+}
+
 function esc(s: unknown) {
   return String(s ?? '')
     .replace(/&/g, '&amp;')
@@ -9,11 +19,48 @@ function esc(s: unknown) {
     .replace(/"/g, '&quot;')
 }
 
-function money(n: number) {
-  return `$ ${Number(n || 0).toLocaleString('es-UY', {
+function money(n: number, withCurrency = false, currency = 'UYU') {
+  const v = Number(n || 0).toLocaleString('es-UY', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  })}`
+  })
+  return withCurrency ? `${v} ${currency}` : v
+}
+
+function formatLong(iso: string) {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '—'
+  const day = d.getDate()
+  const month = d.toLocaleDateString('es-UY', { month: 'long' })
+  const time = d
+    .toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit', hour12: true })
+    .toLowerCase()
+  return `${day}-${month} a las ${time}`
+}
+
+function paymentTitle(payment: string) {
+  const p = (payment || '').toLowerCase()
+  if (/mercado|mp|online|tarjeta|card|débito|debito|crédito|credito/.test(p)) return 'Pago Online'
+  if (/efectivo|cash/.test(p)) return 'Pago en efectivo'
+  if (/transfer/.test(p)) return 'Transferencia'
+  return payment || 'Pago'
+}
+
+function isPaid(payment: string, status: string) {
+  const p = (payment || '').toLowerCase()
+  if (/mercado|mp|online|tarjeta|card|pagado|paid|transfer/.test(p)) return true
+  if (['delivered', 'ready', 'delivering'].includes(status) && /online|mp/.test(p)) return true
+  return false
+}
+
+function splitName(full?: string | null) {
+  const parts = String(full || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+  if (!parts.length) return { first: '—', last: '—' }
+  if (parts.length === 1) return { first: parts[0], last: '—' }
+  return { first: parts[0], last: parts.slice(1).join(' ') }
 }
 
 function modifierLines(raw: unknown): string[] {
@@ -25,28 +72,35 @@ function modifierLines(raw: unknown): string[] {
       groupLabel?: string
       optionName?: string
       name?: string
-      price?: number
     }
     const qty = row.quantity && row.quantity > 1 ? `${row.quantity}x ` : ''
     const label = row.optionName || row.name || 'extra'
     const group = row.groupName || row.groupLabel ? `${row.groupName || row.groupLabel}: ` : ''
-    const price =
-      typeof row.price === 'number' && row.price > 0
-        ? ` (+${money(row.price * (row.quantity || 1))})`
-        : ''
-    return `+ ${qty}${group}${label}${price}`
+    return `${qty}${group}${label}`
   })
 }
 
-function buildTicketHtml(order: AdminOrder) {
-  const when = new Date(order.createdAt).toLocaleString('es-UY', {
-    dateStyle: 'short',
-    timeStyle: 'short',
-  })
-  const orderId = order.id.slice(0, 8).toUpperCase()
-  const status = ORDER_STATUS_LABELS[order.status] || order.status
+function buildTicketHtml(order: AdminOrder, restaurant?: TicketRestaurant | null) {
+  const name = splitName(order.customerName)
+  const paid = isPaid(order.payment, order.status)
+  const payTitle = paymentTitle(order.payment)
   const schedule =
     order.schedule === 'now' ? 'Lo antes posible' : order.scheduleTime || 'Programado'
+  const etaMax =
+    restaurant?.etaMax ?? (order.fulfillment === 'delivery' ? 30 : 15)
+  const etaMin = restaurant?.etaMin
+  const etaLabel = etaMin != null ? `${etaMin}-${etaMax} min` : `${etaMax} min`
+  const brand = restaurant?.name || 'ChivitosPro'
+  const footAddr =
+    [restaurant?.address, restaurant?.city].filter(Boolean).join(', ') ||
+    'Uruguay 1802, 50000 Salto'
+  const footPhone = restaurant?.phone || restaurant?.whatsapp || '+598 4735 4634'
+  const orderNum = (order.id.replace(/\D/g, '').slice(-10) || order.id.slice(0, 10)).toUpperCase()
+  const when = formatLong(order.createdAt)
+  const accepted = formatLong(order.updatedAt || order.createdAt)
+  const currency = order.currency || 'UYU'
+  const isDelivery = order.fulfillment === 'delivery'
+  const status = ORDER_STATUS_LABELS[order.status] || order.status
 
   const items = order.items
     .map((i) => {
@@ -56,9 +110,9 @@ function buildTicketHtml(order: AdminOrder) {
       const note = i.notes ? `<div class="mod">* ${esc(i.notes)}</div>` : ''
       const size = i.sizeLabel ? ` (${esc(i.sizeLabel)})` : ''
       return `<div class="item">
-        <table><tr>
-          <td class="l">${esc(i.quantity)}x ${esc(i.name)}${size}</td>
-          <td class="r">${esc(money(i.lineTotal))}</td>
+        <table class="line"><tr>
+          <td class="l"><b>${esc(i.quantity)}x ${esc(i.name)}${size}</b></td>
+          <td class="r"><b>${esc(money(i.lineTotal))}</b></td>
         </tr></table>
         ${mods}${note}
       </div>`
@@ -69,13 +123,10 @@ function buildTicketHtml(order: AdminOrder) {
 <html lang="es">
 <head>
 <meta charset="utf-8" />
-<title>Ticket ${esc(orderId)}</title>
+<title>Ticket ${esc(orderNum)}</title>
 <style>
-  /* Medida POS-80C: 80(72.1) x 210 mm, márgenes Ninguno */
-  @page {
-    size: 80mm 210mm;
-    margin: 0;
-  }
+  @page { size: 80mm 210mm; margin: 0; }
+  * { box-sizing: border-box; }
   html, body {
     margin: 0;
     padding: 0;
@@ -83,114 +134,159 @@ function buildTicketHtml(order: AdminOrder) {
     max-width: 72.1mm;
     background: #fff;
     color: #000;
-    font: 12px/1.28 "Courier New", Courier, monospace;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+    font: 11.5px/1.3 Arial, Helvetica, sans-serif;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
-  body {
-    padding: 2mm 1.5mm 3mm;
-  }
-  * { box-sizing: border-box; }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-  td {
-    padding: 0;
-    vertical-align: top;
-  }
+  body { padding: 1.5mm 2mm 4mm; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 0; vertical-align: top; }
   td.l { text-align: left; word-break: break-word; }
   td.r { text-align: right; white-space: nowrap; width: 1%; padding-left: 4px; }
-  .brand {
-    text-align: center;
+  .bar {
+    background: #000 !important;
+    color: #fff !important;
     font-weight: 700;
-    font-size: 16px;
-    letter-spacing: 0.04em;
-    margin: 0 0 2px;
+    padding: 4px 5px;
+    margin-top: 5px;
   }
-  .center {
-    text-align: center;
-    margin: 0;
+  .bar table td { color: #fff !important; font-weight: 700; }
+  .gray {
+    background: #e8e8e8 !important;
+    padding: 4px 5px;
   }
-  .sep {
-    margin: 5px 0;
-    border: 0;
-    border-top: 1px dashed #000;
-  }
-  .id {
+  .h {
     font-weight: 700;
-    font-size: 13px;
-    margin: 2px 0;
+    margin: 8px 0 3px;
+    font-size: 12.5px;
   }
-  .item { margin: 4px 0; }
+  .kv { margin: 1px 0; }
+  .item { margin: 5px 0 6px; }
   .mod {
-    padding-left: 8px;
-    font-size: 11px;
+    font-style: italic;
+    padding-left: 10px;
+    margin-top: 1px;
   }
-  .total td {
+  .box {
+    border: 1px solid #000;
+    padding: 5px;
+    margin-top: 6px;
+  }
+  .pill {
+    display: inline-block;
+    background: #000 !important;
+    color: #fff !important;
     font-weight: 700;
-    font-size: 14px;
-    padding-top: 3px;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    margin-top: 4px;
   }
-  .thanks {
+  .totals { margin-top: 8px; text-align: right; }
+  .totals .total { font-size: 15px; font-weight: 700; margin-top: 2px; }
+  .pay {
+    border: 1px solid #000;
+    margin-top: 8px;
+    padding: 6px 8px;
+  }
+  .pay table td { font-weight: 700; }
+  .foot {
     text-align: center;
-    font-weight: 700;
-    margin: 6px 0 2px;
+    margin-top: 10px;
+    font-size: 11px;
+    line-height: 1.35;
   }
 </style>
 </head>
 <body>
-  <p class="brand">CHIVITOSPRO</p>
-  <p class="center">Salto, Uruguay</p>
-  <hr class="sep" />
+  <div class="bar">${esc(payTitle)}</div>
+  <div class="gray">
+    <table><tr>
+      <td class="l">${esc(order.payment || '—')}</td>
+      <td class="r">${paid ? 'Confirmado' : 'Pendiente'}</td>
+    </tr></table>
+  </div>
 
-  <p class="id">PEDIDO #${esc(orderId)}</p>
-  <div>${esc(when)}</div>
-  <div>${esc(status)}</div>
-  <hr class="sep" />
-
-  <div>Cliente: ${esc(order.customerName || '—')}</div>
-  <div>Tel: ${esc(order.phone || '—')}</div>
-  <div>Tipo: ${order.fulfillment === 'delivery' ? 'DELIVERY' : 'RETIRO'}</div>
-  <div>Horario: ${esc(schedule)}</div>
-  <div>Pago: ${esc(order.payment)}</div>
-  ${order.address ? `<div>Dir: ${esc(order.address)}</div>` : ''}
-  ${order.notes ? `<div>Notas: ${esc(order.notes)}</div>` : ''}
-  <hr class="sep" />
-
-  ${items}
-  <hr class="sep" />
-
+  <div class="bar">
+    <table><tr>
+      <td class="l">${esc(schedule)}</td>
+      <td class="r">${esc(etaLabel)}</td>
+    </tr></table>
+  </div>
   ${
-    order.subtotal != null
-      ? `<table><tr><td class="l">Subtotal</td><td class="r">${esc(money(order.subtotal))}</td></tr></table>`
+    isDelivery
+      ? `<div class="bar"><table><tr>
+          <td class="l">Tiempo estimado</td>
+          <td class="r">~ ${esc(String(etaMax))} min</td>
+        </tr></table></div>
+        <div class="gray">Pedido ${esc(when)}</div>`
       : ''
   }
+
+  <div class="bar">
+    <table><tr>
+      <td class="l">${isDelivery ? 'Dirección' : 'Retiro en local'}</td>
+      <td class="r">${isDelivery ? 'Delivery' : ''}</td>
+    </tr></table>
+  </div>
+  ${isDelivery ? `<div class="gray">${esc(order.address || 'Sin dirección')}</div>` : ''}
+  ${order.notes ? `<div class="gray"><b>NOTAS:</b> ${esc(order.notes)}</div>` : ''}
+
+  <div class="h">Detalles del Pedido:</div>
+  <div class="kv">Número: ${esc(orderNum)}</div>
+  <div class="kv">Puesto en: ${esc(when)}</div>
+  <div class="kv">Actualizado: ${esc(accepted)}</div>
+  <div class="kv">Estado: ${esc(status)}</div>
+
+  <div class="h">Información Cliente:</div>
+  <div class="kv">Nombre: ${esc(name.first)}</div>
+  <div class="kv">Apellido: ${esc(name.last)}</div>
+  <div class="kv">Teléfono: ${esc(order.phone || '—')}</div>
+
+  <div class="h">Artículos:</div>
+  ${items}
+
   ${
     order.discount > 0
-      ? `<table><tr><td class="l">Descuento</td><td class="r">-${esc(money(order.discount))}</td></tr></table>`
+      ? `<div class="box">
+          <table><tr>
+            <td class="l"><b>Descuento</b></td>
+            <td class="r"><b>${esc(money(order.discount))}</b></td>
+          </tr></table>
+          <div class="pill">Ahorro: ${esc(money(order.discount, true, currency))}</div>
+        </div>`
       : ''
   }
-  ${
-    order.deliveryFee > 0
-      ? `<table><tr><td class="l">Envío</td><td class="r">${esc(money(order.deliveryFee))}</td></tr></table>`
-      : ''
-  }
-  <table class="total"><tr>
-    <td class="l">TOTAL</td>
-    <td class="r">${esc(money(order.total))}</td>
-  </tr></table>
-  <hr class="sep" />
 
-  <p class="thanks">Gracias por tu pedido</p>
-  <p class="center">ChivitosPro</p>
+  <div class="totals">
+    ${
+      order.deliveryFee > 0
+        ? `<div>Envío: ${esc(money(order.deliveryFee, true, currency))}</div>`
+        : ''
+    }
+    <div>Sub-total: ${esc(money(order.subtotal ?? order.total, true, currency))}</div>
+    <div class="total">Total: ${esc(money(order.total, true, currency))}</div>
+  </div>
+
+  <div class="pay">
+    <table><tr>
+      <td class="l">${paid ? '☑' : '☐'} Pagado</td>
+      <td class="r">${paid ? '☐' : '☑'} No Pagado</td>
+    </tr></table>
+  </div>
+
+  <div class="foot">
+    <div><b>${esc(brand)}</b></div>
+    <div>${esc(footAddr)}</div>
+    <div>${esc(footPhone)}</div>
+  </div>
 </body>
 </html>`
 }
 
 /** Imprime únicamente el ticket en medida POS-80C (80 x 210 mm / útil 72.1 mm). */
-export function printKitchenTicket(order: AdminOrder) {
-  const html = buildTicketHtml(order)
+export function printKitchenTicket(order: AdminOrder, restaurant?: TicketRestaurant | null) {
+  const html = buildTicketHtml(order, restaurant)
 
   const old = document.getElementById('pos80-print-frame')
   if (old) old.remove()

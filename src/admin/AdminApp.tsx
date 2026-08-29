@@ -255,6 +255,7 @@ export function AdminApp() {
           section === 'report-orders'
         ) {
           await refreshOrders()
+          if (!menu) await refreshMenu()
         }
         if (section === 'clients' || section === 'report-clients') await refreshCustomers()
         if (section === 'pagos' || section === 'pagos-providers') {
@@ -302,7 +303,7 @@ export function AdminApp() {
         setError(e instanceof Error ? e.message : 'Error')
       }
     })()
-  }, [admin, section, refreshDashboard, refreshOrders, refreshMenu, refreshLibrary, refreshCustomers])
+  }, [admin, section, menu, refreshDashboard, refreshOrders, refreshMenu, refreshLibrary, refreshCustomers])
 
   useEffect(() => {
     if (!admin) return
@@ -642,6 +643,7 @@ export function AdminApp() {
             kiosk={section === 'take-orders' || section === 'take-orders-app'}
             orders={orders}
             selectedOrder={selectedOrder}
+            restaurant={menu?.restaurant}
             setSelectedOrder={(o) => {
               setSelectedOrder(o)
               if (o) {
@@ -1119,6 +1121,7 @@ function OrdersView({
   kiosk,
   orders,
   selectedOrder,
+  restaurant,
   setSelectedOrder,
   flashOrderIds,
   orderFilter,
@@ -1132,6 +1135,15 @@ function OrdersView({
   kiosk: boolean
   orders: AdminOrder[]
   selectedOrder: AdminOrder | null
+  restaurant?: {
+    name?: string
+    address?: string
+    city?: string
+    phone?: string
+    whatsapp?: string
+    etaMin?: number
+    etaMax?: number
+  } | null
   setSelectedOrder: (o: AdminOrder | null) => void
   flashOrderIds: string[]
   orderFilter: string
@@ -1242,6 +1254,7 @@ function OrdersView({
               order={selectedOrder}
               saving={saving}
               kiosk={kiosk}
+              restaurant={restaurant}
               onUpdate={(patch) => onUpdate(selectedOrder.id, patch)}
             />
           )}
@@ -1255,11 +1268,21 @@ function OrderDetail({
   order,
   saving,
   kiosk,
+  restaurant,
   onUpdate,
 }: {
   order: AdminOrder
   saving: boolean
   kiosk?: boolean
+  restaurant?: {
+    name?: string
+    address?: string
+    city?: string
+    phone?: string
+    whatsapp?: string
+    etaMin?: number
+    etaMax?: number
+  } | null
   onUpdate: (patch: Record<string, unknown>) => Promise<void>
 }) {
   function modifierLines(raw: unknown): string[] {
@@ -1394,7 +1417,7 @@ function OrderDetail({
           <button
             type="button"
             className="admin-btn primary"
-            onClick={() => printKitchenTicket(order)}
+            onClick={() => printKitchenTicket(order, restaurant)}
           >
             Imprimir ticket POS-80C
           </button>
