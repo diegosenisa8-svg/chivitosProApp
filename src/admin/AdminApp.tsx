@@ -45,6 +45,7 @@ import type { Category, MenuData, MenuItem, ModifierGroup, ModifierLibraryGroup,
 import '../admin.css'
 import './menu-editor.css'
 import { DevPopup } from './DevPopup'
+import { printKitchenTicket } from './printKitchenTicket'
 import { ModifierLibraryPanel } from './ModifierLibraryPanel'
 import { MediaImage } from '../components/MediaImage'
 import {
@@ -1261,11 +1262,6 @@ function OrderDetail({
   kiosk?: boolean
   onUpdate: (patch: Record<string, unknown>) => Promise<void>
 }) {
-  const when = new Date(order.createdAt).toLocaleString('es-UY', {
-    dateStyle: 'short',
-    timeStyle: 'short',
-  })
-
   function modifierLines(raw: unknown): string[] {
     if (!Array.isArray(raw) || !raw.length) return []
     return raw.map((m) => {
@@ -1290,7 +1286,7 @@ function OrderDetail({
 
   return (
     <div className="order-detail">
-      <div className="order-detail-screen no-print">
+      <div className="order-detail-screen">
         <div className="order-detail-top">
           <div>
             <h3>{order.customerName || 'Cliente'}</h3>
@@ -1395,77 +1391,13 @@ function OrderDetail({
               Cancelar pedido
             </button>
           ) : null}
-          <button type="button" className="admin-btn" onClick={() => window.print()}>
-            Imprimir ticket 80mm
+          <button
+            type="button"
+            className="admin-btn primary"
+            onClick={() => printKitchenTicket(order)}
+          >
+            Imprimir ticket POS-80C
           </button>
-        </div>
-      </div>
-
-      <div className="pos-ticket" id="print-order" aria-hidden="true">
-        <div className="pos-ticket-inner">
-          <p className="pos-brand">CHIVITOSPRO</p>
-          <p className="pos-line">Salto, Uruguay</p>
-          <p className="pos-sep">--------------------------------</p>
-          <p>
-            <strong>PEDIDO #{order.id.slice(0, 8).toUpperCase()}</strong>
-          </p>
-          <p>{when}</p>
-          <p>{ORDER_STATUS_LABELS[order.status] || order.status}</p>
-          <p className="pos-sep">--------------------------------</p>
-          <p>Cliente: {order.customerName || '—'}</p>
-          <p>Tel: {order.phone || '—'}</p>
-          <p>Tipo: {order.fulfillment === 'delivery' ? 'DELIVERY' : 'RETIRO'}</p>
-          <p>
-            Horario:{' '}
-            {order.schedule === 'now' ? 'Lo antes posible' : order.scheduleTime || 'Programado'}
-          </p>
-          <p>Pago: {order.payment}</p>
-          {order.address ? <p>Dir: {order.address}</p> : null}
-          {order.notes ? <p>Notas: {order.notes}</p> : null}
-          <p className="pos-sep">--------------------------------</p>
-          {order.items.map((i) => (
-            <div key={i.id} className="pos-item">
-              <div className="pos-item-row">
-                <span>
-                  {i.quantity}x {i.name}
-                  {i.sizeLabel ? ` (${i.sizeLabel})` : ''}
-                </span>
-                <span>{formatMoney(i.lineTotal)}</span>
-              </div>
-              {modifierLines(i.modifiers).map((line, idx) => (
-                <p key={`${i.id}-m-${idx}`} className="pos-mod">
-                  {line}
-                </p>
-              ))}
-              {i.notes ? <p className="pos-mod">  * {i.notes}</p> : null}
-            </div>
-          ))}
-          <p className="pos-sep">--------------------------------</p>
-          {order.subtotal != null && (
-            <div className="pos-item-row">
-              <span>Subtotal</span>
-              <span>{formatMoney(order.subtotal)}</span>
-            </div>
-          )}
-          {order.discount > 0 && (
-            <div className="pos-item-row">
-              <span>Descuento</span>
-              <span>-{formatMoney(order.discount)}</span>
-            </div>
-          )}
-          {order.deliveryFee > 0 && (
-            <div className="pos-item-row">
-              <span>Envío</span>
-              <span>{formatMoney(order.deliveryFee)}</span>
-            </div>
-          )}
-          <div className="pos-item-row pos-total">
-            <span>TOTAL</span>
-            <span>{formatMoney(order.total)}</span>
-          </div>
-          <p className="pos-sep">--------------------------------</p>
-          <p className="pos-thanks">Gracias por tu pedido</p>
-          <p className="pos-line">www — ChivitosPro</p>
         </div>
       </div>
     </div>
