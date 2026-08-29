@@ -1,14 +1,36 @@
 #!/bin/sh
 set -e
 
-echo "==> Waiting for database (DATABASE_URL)..."
+# Si la red privada de Railway falla, se puede usar el proxy público.
+# En el servicio API: DATABASE_PUBLIC_URL = ${{Postgres.DATABASE_PUBLIC_URL}}
+use_public_db() {
+  if [ -n "${DATABASE_PUBLIC_URL:-}" ]; then
+    echo "==> Switching DATABASE_URL → DATABASE_PUBLIC_URL (Railway TCP proxy)"
+    export DATABASE_URL="$DATABASE_PUBLIC_URL"
+    return 0
+  fi
+  return 1
+}
+
+echo "==> Waiting for database..."
+echo "    DATABASE_URL host: $(echo "$DATABASE_URL" | sed -E 's#.*@([^/]+)/.*#\1#')"
+
 i=1
-max=30
+max=20
+switched=0
 until npx prisma migrate deploy; do
+  if [ "$switched" -eq 0 ] && use_public_db; then
+    switched=1
+    echo "==> Retrying migrate with public database URL..."
+    continue
+  fi
   if [ "$i" -ge "$max" ]; then
-    echo "ERROR: Prisma migrate failed after ${max} attempts (P1001 / DB unreachable)."
-    echo "Check Railway: API service Variables → DATABASE_URL = \${{Postgres.DATABASE_URL}}"
-    echo "Both services must be in the same project/environment, and Postgres Online."
+    echo "ERROR: Prisma migrate failed after ${max} attempts."
+    echo "Railway checklist:"
+    echo "  1) Postgres Online"
+    echo "  2) API Variables: DATABASE_URL=\${{Postgres.DATABASE_URL}}"
+    echo "  3) API Variables: DATABASE_PUBLIC_URL=\${{Postgres.DATABASE_PUBLIC_URL}}"
+    echo "  4) Same project + environment for API and Postgres"
     exit 1
   fi
   echo "Migrate attempt $i/$max failed — retry in 3s..."
