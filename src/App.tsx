@@ -1,11 +1,12 @@
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { ThemeToggle } from './components/ThemeToggle'
 import { CartProvider } from './context/CartContext'
 import { CustomerAuthProvider, useCustomerAuth } from './context/CustomerAuthContext'
 import { MenuProvider } from './context/MenuContext'
 import { MenuCartBridge } from './context/MenuCartBridge'
 import { ThemeProvider } from './context/ThemeContext'
+import { applyTheme } from './lib/theme'
 import { AdminPage } from './pages/AdminPage'
 import { CartPage } from './pages/CartPage'
 import { CheckoutPage } from './pages/CheckoutPage'
@@ -33,6 +34,16 @@ function CustomerGate({ children }: { children: ReactNode }) {
 function AppRoutes() {
   const location = useLocation()
   const isAdmin = location.pathname.startsWith('/admin')
+
+  useEffect(() => {
+    if (isAdmin) {
+      applyTheme('light')
+      document.documentElement.classList.add('admin-tm')
+      document.documentElement.style.colorScheme = 'light'
+    } else {
+      document.documentElement.classList.remove('admin-tm')
+    }
+  }, [isAdmin])
 
   return (
     <div className={isAdmin ? 'admin-root' : 'app-shell'}>

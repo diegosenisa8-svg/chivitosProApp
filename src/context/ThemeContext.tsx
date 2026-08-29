@@ -13,7 +13,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => getInitialTheme())
 
   useEffect(() => {
-    applyTheme(theme)
+    const onAdmin =
+      typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')
+    applyTheme(onAdmin ? 'light' : theme)
   }, [theme])
 
   const setTheme = (next: Theme) => setThemeState(next)

@@ -1,21 +1,5 @@
 .admin-root,
 .admin-shell {
-  --admin-bg: #0f1115;
-  --admin-elev: #171a21;
-  --admin-sidebar: #12151b;
-  --admin-panel: #1a1f28;
-  --admin-input: #10131a;
-  --admin-text: #f4f1ec;
-  --admin-muted: #9aa3b2;
-  --admin-line: #2a303b;
-  --admin-line-soft: #242a35;
-  --admin-danger-bg: #3a1515;
-  --admin-danger-border: #7a2a2a;
-  --admin-danger-text: #ffb4b4;
-}
-
-html[data-theme='light'] .admin-root,
-html[data-theme='light'] .admin-shell {
   --admin-bg: #f3f0eb;
   --admin-elev: #ffffff;
   --admin-sidebar: #ebe6df;
@@ -28,6 +12,22 @@ html[data-theme='light'] .admin-shell {
   --admin-danger-bg: #fdecee;
   --admin-danger-border: #f0b4b0;
   --admin-danger-text: #b42318;
+}
+
+html[data-theme='dark'] .admin-root,
+html[data-theme='dark'] .admin-shell {
+  --admin-bg: #0f1115;
+  --admin-elev: #171a21;
+  --admin-sidebar: #12151b;
+  --admin-panel: #1a1f28;
+  --admin-input: #10131a;
+  --admin-text: #f4f1ec;
+  --admin-muted: #9aa3b2;
+  --admin-line: #2a303b;
+  --admin-line-soft: #242a35;
+  --admin-danger-bg: #3a1515;
+  --admin-danger-border: #7a2a2a;
+  --admin-danger-text: #ffb4b4;
 }
 
 .admin-shell {
@@ -60,7 +60,7 @@ html[data-theme='light'] .admin-shell {
   padding: 28px;
   display: grid;
   gap: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 12px 40px rgba(40, 20, 10, 0.12);
 }
 
 .admin-brand {
@@ -2409,8 +2409,12 @@ th {
 }
 
 html.admin-tm,
-html.admin-tm body {
-  background: #f5f3f0;
+html.admin-tm body,
+html.admin-tm #root,
+html.admin-tm .admin-root {
+  background: #fffaf6 !important;
+  color: #1a1a1a;
+  color-scheme: light;
 }
 
 @media (max-width: 960px) {
