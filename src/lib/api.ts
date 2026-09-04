@@ -1,4 +1,3 @@
-import { cartLineTotal } from '../context/CartContext'
 import type { CartLine, CheckoutInfo } from '../types'
 import { apiUrl, getApiBase } from './apiBase'
 
@@ -37,24 +36,42 @@ export function isBinBlocked(bin: string, blockedBins: string[]) {
   })
 }
 
+export type SubmittedOrder = {
+  id: string
+  status: string
+  subtotal: number
+  discount: number
+  deliveryFee: number
+  total: number
+  coupon: string
+  /** Autoriza a pagar este pedido durante 30 minutos. */
+  paymentToken: string
+}
+
+/**
+ * Envía QUÉ se pidió, no cuánto cuesta: los precios, el descuento y el envío
+ * los calcula y devuelve el backend a partir de la base (backend/src/lib/pricing.js).
+ * Los totales que se muestran en pantalla son una previsualización.
+ */
 export async function submitOrder(
   lines: CartLine[],
   currency: string,
   checkout?: CheckoutInfo,
-  extras?: { subtotal: number; discount: number; deliveryFee: number },
+  extras?: { couponCode?: string },
   customerToken?: string | null,
 ) {
   if (getApiBase() === null || !lines.length) return null
 
   const items = lines.map((line) => ({
     productId: line.itemId,
-    name: line.name,
     quantity: line.quantity,
-    unitPrice: line.unitPrice,
     notes: line.notes,
-    modifiers: line.modifiers,
-    lineTotal: cartLineTotal(line),
     sizeLabel: line.sizeLabel || '',
+    modifiers: line.modifiers.map((m) => ({
+      groupId: m.groupId,
+      optionId: m.optionId,
+      quantity: m.quantity,
+    })),
   }))
 
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
@@ -74,17 +91,17 @@ export async function submitOrder(
       payment: checkout?.payment || 'efectivo',
       schedule: checkout?.schedule || 'now',
       scheduleTime: checkout?.scheduleTime,
-      subtotal: extras?.subtotal,
-      discount: extras?.discount || 0,
-      deliveryFee: extras?.deliveryFee || 0,
+      couponCode: extras?.couponCode || '',
+      deliveryZoneId: checkout?.deliveryZoneId || '',
     }),
   })
 
+  const data = await res.json().catch(() => ({}))
   if (!res.ok) {
-    throw new Error(`Order failed: ${res.status}`)
+    throw new Error(data.error || `No se pudo registrar el pedido (${res.status})`)
   }
 
-  return res.json() as Promise<{ id: string; total: number; status: string }>
+  return data as SubmittedOrder
 }
 
 export async function payWithMercadoPago(body: {
@@ -95,6 +112,7 @@ export async function payWithMercadoPago(body: {
   installments: number
   bin?: string
   payerEmail?: string
+  paymentToken?: string
 }) {
   const res = await fetch(apiUrl('/api/payments/mercadopago'), {
     method: 'POST',

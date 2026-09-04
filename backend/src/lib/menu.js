@@ -1,6 +1,41 @@
 import { mergeSettings } from './settings.js'
 
-export function mapMenu(restaurant, categories, { includeUnavailable = false } = {}) {
+/**
+ * Subconjunto de la configuración que la web pública necesita para funcionar.
+ *
+ * El objeto completo incluye emails del staff, teléfono de alertas, impresoras,
+ * integraciones, métricas internas y las promociones inactivas con su valor:
+ * nada de eso tiene por qué viajar en /api/menu. El panel admin sigue recibiendo
+ * todo a través de /api/admin/menu y /api/admin/settings.
+ */
+export function publicSettings(raw) {
+  const settings = mergeSettings(raw)
+  const paymentMethods = settings.paymentMethods || {}
+
+  return {
+    servicesPaused: !!settings.servicesPaused,
+    deliveryEnabled: settings.deliveryEnabled !== false,
+    pickupEnabled: settings.pickupEnabled !== false,
+    scheduledOrdersEnabled: !!settings.scheduledOrdersEnabled,
+    timezone: settings.timezone,
+    paymentMethods,
+    // Los datos bancarios son necesarios para pagar por transferencia, pero solo
+    // se publican si ese medio de pago está realmente habilitado.
+    ...(paymentMethods.transferencia ? { transferPayment: settings.transferPayment } : {}),
+    deliveryZones: (settings.deliveryZones || []).filter((z) => z && z.active),
+    promotions: (settings.promotions || [])
+      .filter((p) => p && p.active)
+      .map((p) => ({
+        code: p.code,
+        title: p.title,
+        type: p.type,
+        value: p.value,
+        active: true,
+      })),
+  }
+}
+
+export function mapMenu(restaurant, categories, { includeUnavailable = false, fullSettings = false } = {}) {
   return {
     restaurant: {
       name: restaurant.name,
@@ -24,7 +59,7 @@ export function mapMenu(restaurant, categories, { includeUnavailable = false } =
       deliveryFee: restaurant.deliveryFee,
       minOrder: restaurant.minOrder,
       phone: restaurant.phone,
-      settings: mergeSettings(restaurant.settings),
+      settings: fullSettings ? mergeSettings(restaurant.settings) : publicSettings(restaurant.settings),
     },
     categories: categories.map((cat) => ({
       id: cat.id,

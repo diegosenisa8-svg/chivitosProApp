@@ -22,6 +22,15 @@ export function loadBundledMenu() {
 
 /** Wipe categories/products/modifiers and insert catalog. Keeps restaurant settings. */
 export async function replaceMenuCatalog(menu, { wipeOrders = true } = {}) {
+  // Todo en una transacción: si algo falla a mitad de camino, antes el local se
+  // quedaba con el menú vacío y sin forma de volver atrás.
+  return prisma.$transaction(
+    async (tx) => replaceMenuCatalogTx(tx, menu, { wipeOrders }),
+    { timeout: 60000, maxWait: 15000 },
+  )
+}
+
+async function replaceMenuCatalogTx(prisma, menu, { wipeOrders }) {
   if (wipeOrders) {
     await prisma.orderItem.deleteMany()
     await prisma.order.deleteMany()

@@ -117,6 +117,19 @@ export async function adminMe() {
   return adminFetch<AdminUser>('/me')
 }
 
+/**
+ * Cambia la contraseña del admin logueado e invalida las demás sesiones.
+ * Devuelve un token nuevo para no cortar la sesión actual.
+ */
+export async function changeAdminPassword(currentPassword: string, newPassword: string) {
+  const data = await adminFetch<{ ok: boolean; token: string; admin: AdminUser }>(
+    '/change-password',
+    { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) },
+  )
+  if (data?.token) setAdminToken(data.token)
+  return data.admin
+}
+
 export async function fetchDashboard() {
   return adminFetch<DashboardData>('/dashboard')
 }
@@ -177,8 +190,15 @@ export async function updateCategory(id: string, patch: Record<string, unknown>)
   })
 }
 
-export async function deleteCategory(id: string) {
-  return adminFetch<{ ok: boolean }>(`/categories/${id}`, { method: 'DELETE' })
+/**
+ * El backend rechaza con 409 el borrado de una categoría que todavía tiene
+ * productos, salvo que se confirme la cascada explícitamente.
+ */
+export async function deleteCategory(id: string, cascade = false) {
+  return adminFetch<{ ok: boolean; deletedProducts?: number }>(
+    `/categories/${id}${cascade ? '?cascade=true' : ''}`,
+    { method: 'DELETE' },
+  )
 }
 
 export async function replaceMenuCatalog() {

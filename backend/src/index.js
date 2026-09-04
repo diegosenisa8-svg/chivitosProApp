@@ -6,7 +6,7 @@ import { getUploadDir, getMediaById } from './lib/uploads.js'
 import { z } from 'zod'
 import { prisma } from './lib/prisma.js'
 import { mapMenu } from './lib/menu.js'
-import { hashPassword } from './lib/auth.js'
+import { hashPassword, signPaymentToken, paymentTokenOrderId } from './lib/auth.js'
 import { upsertCustomerFromOrder } from './lib/customers.js'
 import { askAssistant } from './lib/assistant.js'
 import {
@@ -17,6 +17,8 @@ import {
   normalizeBin,
 } from './lib/mercadopago.js'
 import { mergeSettings } from './lib/settings.js'
+import { OrderError, priceOrder } from './lib/pricing.js'
+import { PAYMENT_METHODS, zodDetails } from './lib/validation.js'
 import {
   CUSTOMER_STATUS_LABELS,
   hashCustomerPassword,
@@ -26,8 +28,32 @@ import {
 import { optionalCustomer, requireCustomer } from './middleware/customerAuth.js'
 import { checkRateLimit, resetRateLimit } from './lib/rateLimit.js'
 import adminRoutes from './routes/admin.js'
+import { importLibraryFromProducts } from './lib/modifierLibrary.js'
 
 const app = express()
+// Railway (y cualquier proxy delante) agrega X-Forwarded-For. Declarar el proxy
+// hace que req.ip sea la IP real del cliente y no una cabecera que el propio
+// cliente pueda inventar: de eso depende que el rate limit del login sirva.
+app.set('trust proxy', 1)
+app.disable('x-powered-by')
+
+/**
+ * Cabeceras de seguridad. Se hacen a mano en vez de sumar helmet para no tocar
+ * las dependencias del servicio. public/_headers no cubre esto: ese formato lo
+ * lee Cloudflare Pages y el despliegue real es Railway.
+ */
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff')
+  res.setHeader('X-Frame-Options', 'DENY')
+  res.setHeader('Referrer-Policy', 'no-referrer')
+  // Las imágenes del menú se sirven a un front que puede estar en otro dominio.
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin')
+  if (req.secure) {
+    res.setHeader('Strict-Transport-Security', 'max-age=15552000; includeSubDomains')
+  }
+  next()
+})
+
 const port = Number(process.env.PORT || 8080)
 const uploadDir = getUploadDir()
 console.log(`Uploads: ${uploadDir}`)
@@ -139,33 +165,44 @@ app.get('/api/menu', async (_req, res) => {
   }
 })
 
+/**
+ * Lo que el cliente puede decir de su pedido: QUÉ pide, no CUÁNTO cuesta.
+ * Los importes (unitPrice, lineTotal, subtotal, discount, deliveryFee, total)
+ * los calcula el servidor en lib/pricing.js a partir de la base. Si un cliente
+ * viejo todavía los manda, Zod los descarta silenciosamente.
+ */
 const orderSchema = z.object({
-  customerName: z.string().optional(),
-  phone: z.string().optional(),
-  notes: z.string().optional(),
-  currency: z.string().default('UYU'),
+  customerName: z.string().max(120).optional(),
+  phone: z.string().max(40).optional(),
+  notes: z.string().max(1000).optional(),
+  currency: z.string().max(8).default('UYU'),
   fulfillment: z.enum(['delivery', 'pickup']).default('delivery'),
-  address: z.string().optional(),
-  payment: z.string().default('efectivo'),
+  address: z.string().max(400).optional(),
+  payment: PAYMENT_METHODS.default('efectivo'),
   schedule: z.enum(['now', 'later']).default('now'),
-  scheduleTime: z.string().optional(),
-  subtotal: z.number().nonnegative().optional(),
-  discount: z.number().nonnegative().default(0),
-  deliveryFee: z.number().nonnegative().default(0),
+  scheduleTime: z.string().max(40).optional(),
+  couponCode: z.string().max(40).optional(),
+  deliveryZoneId: z.string().max(60).optional(),
   items: z
     .array(
       z.object({
-        productId: z.string(),
-        name: z.string(),
-        quantity: z.number().int().positive(),
-        unitPrice: z.number().nonnegative(),
-        notes: z.string().default(''),
-        modifiers: z.array(z.any()).default([]),
-        lineTotal: z.number().nonnegative(),
-        sizeLabel: z.string().optional(),
+        productId: z.string().min(1).max(120),
+        quantity: z.number().int().positive().max(99),
+        notes: z.string().max(500).default(''),
+        sizeLabel: z.string().max(60).optional(),
+        modifiers: z
+          .array(
+            z.object({
+              groupId: z.string().min(1).max(120),
+              optionId: z.string().min(1).max(120),
+              quantity: z.number().int().positive().max(99).default(1),
+            }),
+          )
+          .default([]),
       }),
     )
-    .min(1),
+    .min(1)
+    .max(60),
 })
 
 app.post('/api/auth/register', async (req, res) => {
@@ -207,7 +244,7 @@ app.post('/api/auth/register', async (req, res) => {
     })
   } catch (err) {
     if (err?.name === 'ZodError') {
-      return res.status(400).json({ error: 'Datos inválidos', details: err.issues })
+      return res.status(400).json({ error: 'Datos inválidos', ...zodDetails(err) })
     }
     console.error(err)
     res.status(500).json({ error: 'No se pudo registrar' })
@@ -224,12 +261,16 @@ app.post('/api/auth/login', async (req, res) => {
       .parse(req.body)
 
     const email = body.email.trim().toLowerCase()
-    const ip = req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim() || req.ip || 'unknown'
+    // req.ip es confiable gracias a `trust proxy`; leer la cabecera a mano
+    // permitía saltear el límite mandando un X-Forwarded-For distinto cada vez.
+    const ip = req.ip || 'unknown'
+    const rlIp = checkRateLimit(`customer-login-ip:${ip}`, { limit: 20, windowMs: 15 * 60 * 1000 })
     const rl = checkRateLimit(`customer-login:${ip}:${email}`, { limit: 5, windowMs: 15 * 60 * 1000 })
-    if (!rl.ok) {
-      res.setHeader('Retry-After', String(rl.retryAfterSec))
+    const blocked = !rlIp.ok ? rlIp : !rl.ok ? rl : null
+    if (blocked) {
+      res.setHeader('Retry-After', String(blocked.retryAfterSec))
       return res.status(429).json({
-        error: `Demasiados intentos. Probá de nuevo en ${rl.retryAfterSec}s`,
+        error: `Demasiados intentos. Probá de nuevo en ${blocked.retryAfterSec}s`,
       })
     }
 
@@ -344,9 +385,21 @@ app.get('/api/me/orders/:id', requireCustomer, async (req, res) => {
 app.post('/api/orders', optionalCustomer, async (req, res) => {
   try {
     const body = orderSchema.parse(req.body)
-    const itemsTotal = body.items.reduce((s, i) => s + i.lineTotal, 0)
-    const subtotal = body.subtotal ?? itemsTotal
-    const total = Math.max(0, subtotal - (body.discount || 0) + (body.deliveryFee || 0))
+
+    const restaurant = await prisma.restaurant.findUnique({ where: { id: 1 } })
+    if (!restaurant) {
+      return res.status(503).json({ error: 'El local no está configurado' })
+    }
+
+    // Los productos y sus modificadores salen de la base: son la única fuente
+    // válida de precios. Lo que mande el cliente solo dice qué eligió.
+    const productIds = [...new Set(body.items.map((i) => i.productId))]
+    const products = await prisma.product.findMany({
+      where: { id: { in: productIds } },
+      include: { modifiers: { include: { options: true } } },
+    })
+
+    const priced = priceOrder({ restaurant, products, body })
 
     let accountId = null
     let customerName = body.customerName
@@ -366,27 +419,37 @@ app.post('/api/orders', optionalCustomer, async (req, res) => {
         phone,
         notes: body.notes,
         currency: body.currency,
-        fulfillment: body.fulfillment,
-        address: body.address,
+        fulfillment: priced.fulfillment,
+        address: priced.fulfillment === 'delivery' ? body.address : null,
         payment: body.payment,
         schedule: body.schedule,
         scheduleTime: body.scheduleTime,
-        subtotal,
-        discount: body.discount || 0,
-        deliveryFee: body.deliveryFee || 0,
-        total,
-        payload: body,
+        subtotal: priced.subtotal,
+        discount: priced.discount,
+        deliveryFee: priced.deliveryFee,
+        total: priced.total,
+        payload: {
+          request: body,
+          pricing: {
+            subtotal: priced.subtotal,
+            discount: priced.discount,
+            deliveryFee: priced.deliveryFee,
+            total: priced.total,
+            coupon: priced.coupon,
+            zone: priced.zone,
+          },
+        },
         customerAccountId: accountId,
         items: {
-          create: body.items.map((i) => ({
+          create: priced.items.map((i) => ({
             productId: i.productId,
             name: i.name,
             quantity: i.quantity,
             unitPrice: i.unitPrice,
-            notes: i.notes || '',
+            notes: i.notes,
             modifiers: i.modifiers,
             lineTotal: i.lineTotal,
-            sizeLabel: i.sizeLabel || '',
+            sizeLabel: i.sizeLabel,
           })),
         },
       },
@@ -403,13 +466,26 @@ app.post('/api/orders', optionalCustomer, async (req, res) => {
       console.warn('Customer upsert failed', e)
     }
 
-    res.status(201).json({ id: order.id, total: order.total, status: order.status })
+    res.status(201).json({
+      id: order.id,
+      status: order.status,
+      subtotal: order.subtotal,
+      discount: order.discount,
+      deliveryFee: order.deliveryFee,
+      total: order.total,
+      coupon: priced.coupon,
+      // Habilita a pagar ESTE pedido durante los próximos 30 minutos.
+      paymentToken: signPaymentToken(order.id),
+    })
   } catch (err) {
+    if (err instanceof OrderError) {
+      return res.status(err.status).json({ error: err.message, code: err.code })
+    }
     if (err?.name === 'ZodError') {
-      return res.status(400).json({ error: 'Invalid order', details: err.issues })
+      return res.status(400).json({ error: 'Pedido inválido', ...zodDetails(err) })
     }
     console.error(err)
-    res.status(500).json({ error: 'Failed to create order' })
+    res.status(500).json({ error: 'No se pudo crear el pedido' })
   }
 })
 
@@ -424,17 +500,18 @@ app.get('/api/payments/config', async (_req, res) => {
   }
 })
 
-app.post('/api/payments/mercadopago', async (req, res) => {
+app.post('/api/payments/mercadopago', optionalCustomer, async (req, res) => {
   try {
     const body = z
       .object({
-        orderId: z.string().min(1),
+        orderId: z.string().min(1).max(64),
         token: z.string().min(1),
-        paymentMethodId: z.string().min(1),
+        paymentMethodId: z.string().min(1).max(60),
         issuerId: z.union([z.string(), z.number()]).optional(),
-        installments: z.number().int().positive().default(1),
-        bin: z.string().optional(),
+        installments: z.number().int().positive().max(24).default(1),
+        bin: z.string().max(16).optional(),
         payerEmail: z.string().email().optional(),
+        paymentToken: z.string().optional(),
       })
       .parse(req.body)
 
@@ -460,8 +537,31 @@ app.post('/api/payments/mercadopago', async (req, res) => {
       include: { items: true },
     })
     if (!order) return res.status(404).json({ error: 'Pedido no encontrado' })
+
+    // Solo puede pagar quien creó el pedido: o bien es el dueño de la cuenta,
+    // o bien presenta el token de pago que devolvió POST /api/orders. Sin esto,
+    // cualquiera con un id de pedido podía operar sobre pedidos ajenos.
+    const ownedByCustomer =
+      Boolean(order.customerAccountId) && order.customerAccountId === req.customer?.sub
+    const hasPaymentToken = paymentTokenOrderId(body.paymentToken) === order.id
+    if (!ownedByCustomer && !hasPaymentToken) {
+      return res.status(403).json({ error: 'No podés pagar este pedido' })
+    }
+
     if (order.status === 'cancelled') {
       return res.status(400).json({ error: 'El pedido está cancelado' })
+    }
+
+    const previousMp =
+      order.payload && typeof order.payload === 'object' ? order.payload.mercadoPago : null
+    if (
+      previousMp?.paymentId &&
+      ['approved', 'pending', 'in_process', 'authorized'].includes(String(previousMp.status || ''))
+    ) {
+      return res.status(409).json({
+        error: 'Este pedido ya tiene un pago registrado',
+        status: previousMp.status,
+      })
     }
 
     const payment = await createMercadoPagoPayment({
@@ -523,7 +623,7 @@ app.post('/api/payments/mercadopago', async (req, res) => {
     })
   } catch (err) {
     if (err?.name === 'ZodError') {
-      return res.status(400).json({ error: 'Datos de pago inválidos', details: err.issues })
+      return res.status(400).json({ error: 'Datos de pago inválidos', ...zodDetails(err) })
     }
     console.error('MP payment error', err)
     res.status(500).json({ error: err?.message || 'No se pudo procesar el pago' })
@@ -532,6 +632,17 @@ app.post('/api/payments/mercadopago', async (req, res) => {
 
 app.post('/api/assistant/chat', async (req, res) => {
   try {
+    // El asistente consume cuota de Gemini y arma el menú completo en cada
+    // mensaje: sin límite, cualquiera podía vaciar la cuota con un bucle.
+    const ip = req.ip || 'unknown'
+    const rl = checkRateLimit(`assistant:${ip}`, { limit: 20, windowMs: 10 * 60 * 1000 })
+    if (!rl.ok) {
+      res.setHeader('Retry-After', String(rl.retryAfterSec))
+      return res.status(429).json({
+        error: `Estás yendo muy rápido. Probá de nuevo en ${rl.retryAfterSec}s`,
+      })
+    }
+
     const body = z
       .object({
         messages: z
@@ -562,34 +673,83 @@ app.post('/api/assistant/chat', async (req, res) => {
   }
 })
 
+/**
+ * Crea el usuario si no existe. NO pisa la contraseña de uno que ya existe:
+ * antes se reescribía en cada arranque, así que cualquier cambio de contraseña
+ * se revertía solo en el siguiente deploy.
+ *
+ * Única excepción (la red de seguridad que ya había): si la fila quedó con un
+ * hash que no es bcrypt, se repara desde la variable de entorno.
+ */
+async function ensureUser({ email, password, name, role, label }) {
+  const existing = await prisma.adminUser.findUnique({ where: { email } })
+
+  if (!existing) {
+    await prisma.adminUser.create({
+      data: { email, name, role, passwordHash: await hashPassword(password) },
+    })
+    console.log(`${label} creado: ${email}`)
+    return
+  }
+
+  if (!String(existing.passwordHash || '').startsWith('$2')) {
+    await prisma.adminUser.update({
+      where: { email },
+      data: { role, passwordHash: await hashPassword(password) },
+    })
+    console.warn(`${label} ${email}: hash inválido reparado desde el entorno`)
+    return
+  }
+
+  console.log(`${label} OK: ${email}`)
+}
+
 async function ensureAdmin() {
-  // Siempre sincroniza email/clave desde env (arregla hashes inválidos o filas manuales)
-  const email = (process.env.ADMIN_EMAIL || 'admin@chivitospro.com').toLowerCase()
-  const password = process.env.ADMIN_PASSWORD || 'chivitos2026'
-  const name = process.env.ADMIN_NAME || 'Admin ChivitosPro'
-  const passwordHash = await hashPassword(password)
-  await prisma.adminUser.upsert({
-    where: { email },
-    update: { name, passwordHash, role: 'admin' },
-    create: { email, name, passwordHash, role: 'admin' },
+  if (process.env.NODE_ENV === 'production' && !process.env.ADMIN_PASSWORD) {
+    console.warn(
+      'WARN: ADMIN_PASSWORD no está definida. Si el admin todavía no existe se creará ' +
+        'con la contraseña por defecto del código, que es pública. Definila en Railway.',
+    )
+  }
+  await ensureUser({
+    email: (process.env.ADMIN_EMAIL || 'admin@chivitospro.com').toLowerCase(),
+    password: process.env.ADMIN_PASSWORD || 'chivitos2026',
+    name: process.env.ADMIN_NAME || 'Admin ChivitosPro',
+    role: 'admin',
+    label: 'Admin',
   })
-  console.log(`Admin sync OK: ${email}`)
 }
 
 async function ensureEmployee() {
-  const email = (process.env.EMPLOYEE_EMAIL || 'empleado@chivitospro.com').toLowerCase()
-  const password = process.env.EMPLOYEE_PASSWORD || 'empleado2026'
-  const name = process.env.EMPLOYEE_NAME || 'Empleado ChivitosPro'
-  const passwordHash = await hashPassword(password)
-  await prisma.adminUser.upsert({
-    where: { email },
-    update: { name, passwordHash, role: 'empleado' },
-    create: { email, name, passwordHash, role: 'empleado' },
+  await ensureUser({
+    email: (process.env.EMPLOYEE_EMAIL || 'empleado@chivitospro.com').toLowerCase(),
+    password: process.env.EMPLOYEE_PASSWORD || 'empleado2026',
+    name: process.env.EMPLOYEE_NAME || 'Empleado ChivitosPro',
+    role: 'empleado',
+    label: 'Empleado',
   })
-  console.log(`Employee sync OK: ${email}`)
 }
 
-Promise.all([ensureAdmin(), ensureEmployee()])
+// Rutas de API inexistentes: 404 en JSON en vez del HTML por defecto de Express.
+app.use('/api', (_req, res) => {
+  res.status(404).json({ error: 'Recurso no encontrado' })
+})
+
+// Manejador de errores central. Registra el detalle del lado del servidor y
+// nunca devuelve stack traces al cliente.
+app.use((err, _req, res, _next) => {
+  console.error('Unhandled error', err)
+  if (res.headersSent) return
+  res.status(500).json({ error: 'Error interno' })
+})
+
+Promise.all([
+  ensureAdmin(),
+  ensureEmployee(),
+  // La biblioteca de extras se importaba desde un GET; ahora se hace una sola
+  // vez al arrancar (la función sale temprano si ya hay grupos cargados).
+  importLibraryFromProducts().catch((e) => console.warn('Library import skipped', e)),
+])
   .catch((err) => console.error('User bootstrap error', err))
   .finally(() => {
     app.listen(port, '0.0.0.0', () => {

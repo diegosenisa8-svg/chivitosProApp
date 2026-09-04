@@ -22,6 +22,15 @@ import {
   unsyncCategoryLibraryGroup,
 } from '../lib/modifierLibrary.js'
 import { checkRateLimit, resetRateLimit } from '../lib/rateLimit.js'
+import {
+  FULFILLMENT,
+  ORDER_STATUS,
+  PAYMENT_METHODS,
+  RESOURCE_ID,
+  canTransition,
+  prismaHttpError,
+  zodDetails,
+} from '../lib/validation.js'
 
 const router = Router()
 
@@ -37,7 +46,7 @@ const upload = multer({
   },
 })
 
-router.post('/upload', requireAdmin, (req, res) => {
+router.post('/upload', requireFullAdmin, (req, res) => {
   upload.single('file')(req, res, async (err) => {
     if (err) {
       return res.status(400).json({ error: err.message || 'Error al subir imagen' })
@@ -72,12 +81,18 @@ router.post('/login', async (req, res) => {
       .parse(req.body)
 
     const email = body.email.trim().toLowerCase()
-    const ip = req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim() || req.ip || 'unknown'
+    // req.ip es confiable gracias a `trust proxy` (ver src/index.js); leer la
+    // cabecera a mano permitía saltear el límite mandando un X-Forwarded-For
+    // distinto en cada intento. El segundo cubo, por IP sola, frena el probar
+    // una misma contraseña contra muchas cuentas.
+    const ip = req.ip || 'unknown'
+    const rlIp = checkRateLimit(`admin-login-ip:${ip}`, { limit: 20, windowMs: 15 * 60 * 1000 })
     const rl = checkRateLimit(`admin-login:${ip}:${email}`, { limit: 5, windowMs: 15 * 60 * 1000 })
-    if (!rl.ok) {
-      res.setHeader('Retry-After', String(rl.retryAfterSec))
+    const blocked = !rlIp.ok ? rlIp : !rl.ok ? rl : null
+    if (blocked) {
+      res.setHeader('Retry-After', String(blocked.retryAfterSec))
       return res.status(429).json({
-        error: `Demasiados intentos. Probá de nuevo en ${rl.retryAfterSec}s`,
+        error: `Demasiados intentos. Probá de nuevo en ${blocked.retryAfterSec}s`,
       })
     }
 
@@ -102,10 +117,57 @@ router.post('/login', async (req, res) => {
     })
   } catch (err) {
     if (err?.name === 'ZodError') {
-      return res.status(400).json({ error: 'Datos inválidos', details: err.issues })
+      return res.status(400).json({ error: 'Datos inválidos', ...zodDetails(err) })
     }
     console.error(err)
     res.status(500).json({ error: 'Error de login' })
+  }
+})
+
+/**
+ * Cambio de contraseña. Incrementar tokenVersion invalida cualquier sesión
+ * abierta con la contraseña vieja; se devuelve un token nuevo para no cortar la
+ * sesión de quien acaba de cambiarla.
+ */
+router.post('/change-password', requireAdmin, async (req, res) => {
+  try {
+    const body = z
+      .object({
+        currentPassword: z.string().min(1),
+        newPassword: z.string().min(8).max(200),
+      })
+      .parse(req.body)
+
+    const admin = await prisma.adminUser.findUnique({ where: { id: req.admin.sub } })
+    if (!admin) return res.status(401).json({ error: 'No autorizado' })
+
+    const hash = String(admin.passwordHash || '')
+    const ok =
+      hash.startsWith('$2') && (await verifyPassword(body.currentPassword, hash).catch(() => false))
+    if (!ok) return res.status(401).json({ error: 'La contraseña actual no es correcta' })
+
+    const updated = await prisma.adminUser.update({
+      where: { id: admin.id },
+      data: {
+        passwordHash: await hashPassword(body.newPassword),
+        tokenVersion: { increment: 1 },
+      },
+    })
+
+    res.json({
+      ok: true,
+      token: signToken(updated),
+      admin: { id: updated.id, email: updated.email, name: updated.name, role: updated.role },
+    })
+  } catch (err) {
+    if (err?.name === 'ZodError') {
+      return res.status(400).json({
+        error: 'La contraseña nueva debe tener al menos 8 caracteres',
+        ...zodDetails(err),
+      })
+    }
+    console.error(err)
+    res.status(500).json({ error: 'No se pudo cambiar la contraseña' })
   }
 })
 
@@ -227,7 +289,7 @@ router.get('/menu', requireAdmin, async (_req, res) => {
       list.push({ id: a.libraryGroup.id, name: a.libraryGroup.name })
       groupsByCategory.set(a.categoryId, list)
     }
-    const menu = mapMenu(restaurant, categories, { includeUnavailable: true })
+    const menu = mapMenu(restaurant, categories, { includeUnavailable: true, fullSettings: true })
     menu.categories = menu.categories.map((c) => ({
       ...c,
       modifierGroups: groupsByCategory.get(c.id) || [],
@@ -301,7 +363,7 @@ router.patch('/restaurant', requireFullAdmin, async (req, res) => {
     })
   } catch (err) {
     if (err?.name === 'ZodError') {
-      return res.status(400).json({ error: 'Datos inválidos', details: err.issues })
+      return res.status(400).json({ error: 'Datos inválidos', ...zodDetails(err) })
     }
     console.error(err)
     res.status(500).json({ error: 'No se pudo actualizar el local' })
@@ -333,16 +395,28 @@ router.patch('/products/:id', requireAdmin, async (req, res) => {
   try {
     const body = z
       .object({
-        name: z.string().min(1).optional(),
-        description: z.string().optional(),
+        name: z.string().min(1).max(160).optional(),
+        description: z.string().max(2000).optional(),
         price: z.number().nonnegative().optional(),
         priceMax: z.number().nonnegative().nullable().optional(),
-        image: z.string().min(1).optional(),
+        image: z.string().min(1).max(500).optional(),
         available: z.boolean().optional(),
         featured: z.boolean().optional(),
         sortOrder: z.number().int().optional(),
       })
       .parse(req.body)
+
+    // El empleado puede marcar un producto como disponible o sin stock (es la
+    // acción que ya usa desde "Configuración del menú"), pero no editar precios,
+    // nombres ni imágenes: eso es del admin.
+    if (req.admin?.role !== 'admin') {
+      const otros = Object.keys(body).filter((k) => k !== 'available')
+      if (otros.length > 0) {
+        return res.status(403).json({
+          error: 'Como empleado solo podés marcar productos como disponibles o sin stock',
+        })
+      }
+    }
 
     const product = await prisma.product.update({
       where: { id: req.params.id },
@@ -351,30 +425,34 @@ router.patch('/products/:id', requireAdmin, async (req, res) => {
     })
     res.json(product)
   } catch (err) {
-    if (err?.code === 'P2025') return res.status(404).json({ error: 'Producto no encontrado' })
+    const mapped = prismaHttpError(err, { notFound: 'Producto no encontrado' })
+    if (mapped) return res.status(mapped.status).json(mapped.body)
     if (err?.name === 'ZodError') {
-      return res.status(400).json({ error: 'Datos inválidos', details: err.issues })
+      return res.status(400).json({ error: 'Datos inválidos', ...zodDetails(err) })
     }
     console.error(err)
     res.status(500).json({ error: 'No se pudo actualizar el producto' })
   }
 })
 
-router.post('/products', requireAdmin, async (req, res) => {
+router.post('/products', requireFullAdmin, async (req, res) => {
   try {
     const body = z
       .object({
-        id: z.string().min(1).optional(),
-        categoryId: z.string().min(1),
-        name: z.string().min(1),
-        description: z.string().default(''),
+        id: RESOURCE_ID.optional(),
+        categoryId: z.string().min(1).max(64),
+        name: z.string().min(1).max(160),
+        description: z.string().max(2000).default(''),
         price: z.number().nonnegative(),
         priceMax: z.number().nonnegative().nullable().optional(),
-        image: z.string().min(1).default('/logo.png'),
+        image: z.string().min(1).max(500).default('/logo.png'),
         available: z.boolean().default(true),
         featured: z.boolean().default(false),
       })
       .parse(req.body)
+
+    const category = await prisma.category.findUnique({ where: { id: body.categoryId } })
+    if (!category) return res.status(400).json({ error: 'La categoría no existe' })
 
     const id = body.id || `${slugify(body.name) || 'producto'}-${Date.now().toString(36)}`
     const count = await prisma.product.count({ where: { categoryId: body.categoryId } })
@@ -388,15 +466,20 @@ router.post('/products', requireAdmin, async (req, res) => {
     })
     res.status(201).json(withModifiers)
   } catch (err) {
+    const mapped = prismaHttpError(err, {
+      conflict: 'Ya existe un producto con ese identificador',
+      badRef: 'La categoría no existe',
+    })
+    if (mapped) return res.status(mapped.status).json(mapped.body)
     if (err?.name === 'ZodError') {
-      return res.status(400).json({ error: 'Datos inválidos', details: err.issues })
+      return res.status(400).json({ error: 'Datos inválidos', ...zodDetails(err) })
     }
     console.error(err)
     res.status(500).json({ error: 'No se pudo crear el producto' })
   }
 })
 
-router.delete('/products/:id', requireAdmin, async (req, res) => {
+router.delete('/products/:id', requireFullAdmin, async (req, res) => {
   try {
     await prisma.product.delete({ where: { id: req.params.id } })
     res.json({ ok: true })
@@ -407,14 +490,14 @@ router.delete('/products/:id', requireAdmin, async (req, res) => {
   }
 })
 
-router.post('/categories', requireAdmin, async (req, res) => {
+router.post('/categories', requireFullAdmin, async (req, res) => {
   try {
     const body = z
       .object({
-        id: z.string().min(1).optional(),
-        name: z.string().min(1),
-        subtitle: z.string().default(''),
-        banner: z.string().default('/hero.png'),
+        id: RESOURCE_ID.optional(),
+        name: z.string().min(1).max(120),
+        subtitle: z.string().max(300).default(''),
+        banner: z.string().max(500).default('/hero.png'),
       })
       .parse(req.body)
     const id = body.id || slugify(body.name) || `cat-${Date.now().toString(36)}`
@@ -424,15 +507,19 @@ router.post('/categories', requireAdmin, async (req, res) => {
     })
     res.status(201).json(category)
   } catch (err) {
+    const mapped = prismaHttpError(err, {
+      conflict: 'Ya existe una categoría con ese identificador',
+    })
+    if (mapped) return res.status(mapped.status).json(mapped.body)
     if (err?.name === 'ZodError') {
-      return res.status(400).json({ error: 'Datos inválidos', details: err.issues })
+      return res.status(400).json({ error: 'Datos inválidos', ...zodDetails(err) })
     }
     console.error(err)
     res.status(500).json({ error: 'No se pudo crear la categoría' })
   }
 })
 
-router.patch('/categories/:id', requireAdmin, async (req, res) => {
+router.patch('/categories/:id', requireFullAdmin, async (req, res) => {
   try {
     const body = z
       .object({
@@ -450,26 +537,38 @@ router.patch('/categories/:id', requireAdmin, async (req, res) => {
   } catch (err) {
     if (err?.code === 'P2025') return res.status(404).json({ error: 'Categoría no encontrada' })
     if (err?.name === 'ZodError') {
-      return res.status(400).json({ error: 'Datos inválidos', details: err.issues })
+      return res.status(400).json({ error: 'Datos inválidos', ...zodDetails(err) })
     }
     console.error(err)
     res.status(500).json({ error: 'No se pudo actualizar la categoría' })
   }
 })
 
-router.delete('/categories/:id', requireAdmin, async (req, res) => {
+router.delete('/categories/:id', requireFullAdmin, async (req, res) => {
   try {
+    // Borrar una categoría arrastra sus productos (onDelete: Cascade). Que eso
+    // pase tiene que ser una decisión explícita, no un efecto colateral.
+    const products = await prisma.product.count({ where: { categoryId: req.params.id } })
+    if (products > 0 && req.query.cascade !== 'true') {
+      return res.status(409).json({
+        error: `La categoría tiene ${products} producto(s). Confirmá que querés eliminarlos también.`,
+        code: 'CATEGORY_NOT_EMPTY',
+        products,
+      })
+    }
+
     await prisma.category.delete({ where: { id: req.params.id } })
-    res.json({ ok: true })
+    res.json({ ok: true, deletedProducts: products })
   } catch (err) {
-    if (err?.code === 'P2025') return res.status(404).json({ error: 'Categoría no encontrada' })
+    const mapped = prismaHttpError(err, { notFound: 'Categoría no encontrada' })
+    if (mapped) return res.status(mapped.status).json(mapped.body)
     console.error(err)
     res.status(500).json({ error: 'No se pudo eliminar la categoría' })
   }
 })
 
 /** Reemplaza todo el menú con el catálogo embebido (TuMenuWeb). Borra pedidos. */
-router.post('/menu/replace-catalog', requireAdmin, async (req, res) => {
+router.post('/menu/replace-catalog', requireFullAdmin, async (req, res) => {
   try {
     const confirm = String(req.body?.confirm || '')
     if (confirm !== 'REEMPLAZAR') {
@@ -491,7 +590,7 @@ router.post('/menu/replace-catalog', requireAdmin, async (req, res) => {
   }
 })
 
-router.post('/reorder', requireAdmin, async (req, res) => {
+router.post('/reorder', requireFullAdmin, async (req, res) => {
   try {
     const body = z
       .object({
@@ -525,14 +624,14 @@ router.post('/reorder', requireAdmin, async (req, res) => {
     res.json({ ok: true })
   } catch (err) {
     if (err?.name === 'ZodError') {
-      return res.status(400).json({ error: 'Datos inválidos', details: err.issues })
+      return res.status(400).json({ error: 'Datos inválidos', ...zodDetails(err) })
     }
     console.error(err)
     res.status(500).json({ error: 'No se pudo reordenar' })
   }
 })
 
-router.put('/products/:id/modifiers', requireAdmin, async (req, res) => {
+router.put('/products/:id/modifiers', requireFullAdmin, async (req, res) => {
   try {
     const body = z
       .object({
@@ -557,35 +656,45 @@ router.put('/products/:id/modifiers', requireAdmin, async (req, res) => {
       .parse(req.body)
 
     const productId = req.params.id
-    await prisma.modifierGroup.deleteMany({ where: { productId } })
-    for (const g of body.modifiers) {
-      await prisma.modifierGroup.create({
-        data: {
-          externalId: g.id,
-          name: g.name,
-          required: g.required,
-          min: g.min,
-          max: g.max,
-          allowQuantity: !!g.allowQuantity,
-          productId,
-          options: {
-            create: g.options.map((o) => ({
-              externalId: o.id,
-              name: o.name,
-              price: o.price,
-            })),
+    const exists = await prisma.product.findUnique({ where: { id: productId }, select: { id: true } })
+    if (!exists) return res.status(404).json({ error: 'Producto no encontrado' })
+
+    // Borrar y recrear en una transacción: si falla a mitad de camino, el
+    // producto se quedaba sin ningún modificador.
+    await prisma.$transaction(async (tx) => {
+      await tx.modifierGroup.deleteMany({ where: { productId } })
+      for (const g of body.modifiers) {
+        await tx.modifierGroup.create({
+          data: {
+            externalId: g.id,
+            name: g.name,
+            required: g.required,
+            min: g.min,
+            max: g.max,
+            allowQuantity: !!g.allowQuantity,
+            productId,
+            options: {
+              create: g.options.map((o) => ({
+                externalId: o.id,
+                name: o.name,
+                price: o.price,
+              })),
+            },
           },
-        },
-      })
-    }
+        })
+      }
+    })
+
     const product = await prisma.product.findUnique({
       where: { id: productId },
       include: { modifiers: { include: { options: true } } },
     })
     res.json(product)
   } catch (err) {
+    const mapped = prismaHttpError(err, { notFound: 'Producto no encontrado' })
+    if (mapped) return res.status(mapped.status).json(mapped.body)
     if (err?.name === 'ZodError') {
-      return res.status(400).json({ error: 'Datos inválidos', details: err.issues })
+      return res.status(400).json({ error: 'Datos inválidos', ...zodDetails(err) })
     }
     console.error(err)
     res.status(500).json({ error: 'No se pudieron guardar los modifiers' })
@@ -594,11 +703,23 @@ router.put('/products/:id/modifiers', requireAdmin, async (req, res) => {
 
 router.get('/modifier-library', requireAdmin, async (_req, res) => {
   try {
-    await importLibraryFromProducts()
+    // Solo lectura: la importación inicial corre al arrancar el servidor y
+    // después de reemplazar el catálogo. Un GET no debería escribir en la base.
     res.json(await buildLibraryResponse())
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'Error al cargar biblioteca de extras' })
+  }
+})
+
+/** Reconstruye la biblioteca a partir de los modificadores ya cargados en productos. */
+router.post('/modifier-library/import', requireFullAdmin, async (_req, res) => {
+  try {
+    await importLibraryFromProducts()
+    res.json(await buildLibraryResponse())
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'No se pudo importar la biblioteca' })
   }
 })
 
@@ -617,7 +738,7 @@ const libraryGroupBody = z.object({
   ),
 })
 
-router.post('/modifier-library', requireAdmin, async (req, res) => {
+router.post('/modifier-library', requireFullAdmin, async (req, res) => {
   try {
     const body = libraryGroupBody.parse(req.body)
     const group = await prisma.modifierLibraryGroup.create({
@@ -651,39 +772,44 @@ router.post('/modifier-library', requireAdmin, async (req, res) => {
     })
   } catch (err) {
     if (err?.name === 'ZodError') {
-      return res.status(400).json({ error: 'Datos inválidos', details: err.issues })
+      return res.status(400).json({ error: 'Datos inválidos', ...zodDetails(err) })
     }
     console.error(err)
     res.status(500).json({ error: 'No se pudo crear el grupo' })
   }
 })
 
-router.put('/modifier-library/:id', requireAdmin, async (req, res) => {
+router.put('/modifier-library/:id', requireFullAdmin, async (req, res) => {
   try {
     const body = libraryGroupBody.parse(req.body)
     const id = req.params.id
     const existing = await prisma.modifierLibraryGroup.findUnique({ where: { id } })
     if (!existing) return res.status(404).json({ error: 'Grupo no encontrado' })
 
-    await prisma.modifierLibraryOption.deleteMany({ where: { groupId: id } })
-    const group = await prisma.modifierLibraryGroup.update({
-      where: { id },
-      data: {
-        name: body.name.trim(),
-        required: body.required,
-        min: body.min,
-        max: body.max,
-        allowQuantity: !!body.allowQuantity,
-        options: {
-          create: body.options.map((o, i) => ({
-            ...(o.id ? { id: o.id } : {}),
-            name: o.name.trim(),
-            price: o.price,
-            sortOrder: i,
-          })),
+    const group = await prisma.$transaction(async (tx) => {
+      await tx.modifierLibraryOption.deleteMany({ where: { groupId: id } })
+      return tx.modifierLibraryGroup.update({
+        where: { id },
+        data: {
+          name: body.name.trim(),
+          required: body.required,
+          min: body.min,
+          max: body.max,
+          allowQuantity: !!body.allowQuantity,
+          options: {
+            create: body.options.map((o, i) => ({
+              ...(o.id ? { id: o.id } : {}),
+              name: o.name.trim(),
+              price: o.price,
+              sortOrder: i,
+            })),
+          },
         },
-      },
-      include: { options: { orderBy: { sortOrder: 'asc' } }, categories: { include: { category: true } } },
+        include: {
+          options: { orderBy: { sortOrder: 'asc' } },
+          categories: { include: { category: true } },
+        },
+      })
     })
 
     await propagateLibraryGroupUpdate(id)
@@ -692,14 +818,14 @@ router.put('/modifier-library/:id', requireAdmin, async (req, res) => {
     res.json(updated || group)
   } catch (err) {
     if (err?.name === 'ZodError') {
-      return res.status(400).json({ error: 'Datos inválidos', details: err.issues })
+      return res.status(400).json({ error: 'Datos inválidos', ...zodDetails(err) })
     }
     console.error(err)
     res.status(500).json({ error: 'No se pudo actualizar el grupo' })
   }
 })
 
-router.delete('/modifier-library/:id', requireAdmin, async (req, res) => {
+router.delete('/modifier-library/:id', requireFullAdmin, async (req, res) => {
   try {
     const id = req.params.id
     const existing = await prisma.modifierLibraryGroup.findUnique({ where: { id } })
@@ -712,7 +838,7 @@ router.delete('/modifier-library/:id', requireAdmin, async (req, res) => {
   }
 })
 
-router.post('/categories/:categoryId/modifier-groups/:libraryGroupId', requireAdmin, async (req, res) => {
+router.post('/categories/:categoryId/modifier-groups/:libraryGroupId', requireFullAdmin, async (req, res) => {
   try {
     const { categoryId, libraryGroupId } = req.params
     const category = await prisma.category.findUnique({ where: { id: categoryId } })
@@ -725,7 +851,7 @@ router.post('/categories/:categoryId/modifier-groups/:libraryGroupId', requireAd
   }
 })
 
-router.delete('/categories/:categoryId/modifier-groups/:libraryGroupId', requireAdmin, async (req, res) => {
+router.delete('/categories/:categoryId/modifier-groups/:libraryGroupId', requireFullAdmin, async (req, res) => {
   try {
     const { categoryId, libraryGroupId } = req.params
     await unsyncCategoryLibraryGroup(categoryId, libraryGroupId)
@@ -736,7 +862,7 @@ router.delete('/categories/:categoryId/modifier-groups/:libraryGroupId', require
   }
 })
 
-router.post('/products/:productId/modifier-groups/:libraryGroupId', requireAdmin, async (req, res) => {
+router.post('/products/:productId/modifier-groups/:libraryGroupId', requireFullAdmin, async (req, res) => {
   try {
     const { productId, libraryGroupId } = req.params
     const product = await prisma.product.findUnique({ where: { id: productId } })
@@ -754,7 +880,7 @@ router.post('/products/:productId/modifier-groups/:libraryGroupId', requireAdmin
   }
 })
 
-router.delete('/products/:productId/modifier-groups/:libraryGroupId', requireAdmin, async (req, res) => {
+router.delete('/products/:productId/modifier-groups/:libraryGroupId', requireFullAdmin, async (req, res) => {
   try {
     const { productId, libraryGroupId } = req.params
     await removeLibraryGroupFromProduct(productId, libraryGroupId)
@@ -767,7 +893,7 @@ router.delete('/products/:productId/modifier-groups/:libraryGroupId', requireAdm
 
 router.get('/reports', requireFullAdmin, async (req, res) => {
   try {
-    const days = Math.min(Number(req.query.days) || 30, 90)
+    const days = z.coerce.number().int().min(1).max(90).catch(30).parse(req.query.days)
     const since = new Date()
     since.setHours(0, 0, 0, 0)
     since.setDate(since.getDate() - (days - 1))
@@ -865,13 +991,13 @@ router.get('/customers', requireFullAdmin, async (req, res) => {
 
 router.get('/orders', requireAdmin, async (req, res) => {
   try {
-    const status = typeof req.query.status === 'string' ? req.query.status : undefined
-    const q = typeof req.query.q === 'string' ? req.query.q.trim() : ''
-    const take = Math.min(Number(req.query.take) || 100, 300)
+    const status = ORDER_STATUS.optional().catch(undefined).parse(req.query.status)
+    const q = typeof req.query.q === 'string' ? req.query.q.trim().slice(0, 120) : ''
+    const take = z.coerce.number().int().min(1).max(300).catch(100).parse(req.query.take)
 
     const orders = await prisma.order.findMany({
       where: {
-        ...(status && status !== 'all' ? { status } : {}),
+        ...(status ? { status } : {}),
         ...(q
           ? {
               OR: [
@@ -911,25 +1037,31 @@ router.patch('/orders/:id', requireAdmin, async (req, res) => {
   try {
     const body = z
       .object({
-        status: z
-          .enum([
-            'pending',
-            'confirmed',
-            'preparing',
-            'ready',
-            'delivering',
-            'delivered',
-            'cancelled',
-          ])
-          .optional(),
-        notes: z.string().optional(),
-        customerName: z.string().optional(),
-        phone: z.string().optional(),
-        address: z.string().nullable().optional(),
-        payment: z.string().optional(),
-        fulfillment: z.string().optional(),
+        // Mismos enums que al crear el pedido: antes payment y fulfillment eran
+        // strings libres acá, y un valor cualquiera ensuciaba los reportes.
+        status: ORDER_STATUS.optional(),
+        notes: z.string().max(1000).optional(),
+        customerName: z.string().max(120).optional(),
+        phone: z.string().max(40).optional(),
+        address: z.string().max(400).nullable().optional(),
+        payment: PAYMENT_METHODS.optional(),
+        fulfillment: FULFILLMENT.optional(),
       })
       .parse(req.body)
+
+    if (body.status) {
+      const current = await prisma.order.findUnique({
+        where: { id: req.params.id },
+        select: { status: true },
+      })
+      if (!current) return res.status(404).json({ error: 'Pedido no encontrado' })
+      if (!canTransition(current.status, body.status)) {
+        return res.status(409).json({
+          error: `No se puede pasar un pedido de "${current.status}" a "${body.status}"`,
+          code: 'INVALID_TRANSITION',
+        })
+      }
+    }
 
     const order = await prisma.order.update({
       where: { id: req.params.id },
@@ -938,75 +1070,21 @@ router.patch('/orders/:id', requireAdmin, async (req, res) => {
     })
     res.json(order)
   } catch (err) {
-    if (err?.code === 'P2025') return res.status(404).json({ error: 'Pedido no encontrado' })
+    const mapped = prismaHttpError(err, { notFound: 'Pedido no encontrado' })
+    if (mapped) return res.status(mapped.status).json(mapped.body)
     if (err?.name === 'ZodError') {
-      return res.status(400).json({ error: 'Datos inválidos', details: err.issues })
+      return res.status(400).json({ error: 'Datos inválidos', ...zodDetails(err) })
     }
     console.error(err)
     res.status(500).json({ error: 'No se pudo actualizar el pedido' })
   }
 })
 
-router.post('/bootstrap', async (req, res) => {
-  try {
-    const existing = await prisma.adminUser.count()
-    if (existing > 0) {
-      return res.status(400).json({ error: 'Ya existe un admin' })
-    }
-    const email = (process.env.ADMIN_EMAIL || 'admin@chivitospro.com').toLowerCase()
-    const password = process.env.ADMIN_PASSWORD || 'chivitos2026'
-    const name = process.env.ADMIN_NAME || 'Admin ChivitosPro'
-    const passwordHash = await hashPassword(password)
-    const admin = await prisma.adminUser.create({
-      data: { email, name, passwordHash },
-    })
-    res.status(201).json({ id: admin.id, email: admin.email, password })
-  } catch (err) {
-    console.error(err)
-    res.status(500).json({ error: 'Bootstrap falló' })
-  }
-})
-
-/** Resetea admin/empleado a env cuando el body.secret coincide con JWT_SECRET. */
-router.post('/sync-users', async (req, res) => {
-  try {
-    const secret = String(req.body?.secret || '')
-    const expected = process.env.JWT_SECRET || ''
-    if (!expected || secret !== expected) {
-      return res.status(401).json({ error: 'Secret inválido' })
-    }
-    const email = (process.env.ADMIN_EMAIL || 'admin@chivitospro.com').toLowerCase()
-    const password = process.env.ADMIN_PASSWORD || 'chivitos2026'
-    const name = process.env.ADMIN_NAME || 'Admin ChivitosPro'
-    const passwordHash = await hashPassword(password)
-    const admin = await prisma.adminUser.upsert({
-      where: { email },
-      update: { name, passwordHash, role: 'admin' },
-      create: { email, name, passwordHash, role: 'admin' },
-    })
-    const empEmail = (process.env.EMPLOYEE_EMAIL || 'empleado@chivitospro.com').toLowerCase()
-    const empPassword = process.env.EMPLOYEE_PASSWORD || 'empleado2026'
-    const empName = process.env.EMPLOYEE_NAME || 'Empleado ChivitosPro'
-    const empHash = await hashPassword(empPassword)
-    await prisma.adminUser.upsert({
-      where: { email: empEmail },
-      update: { name: empName, passwordHash: empHash, role: 'empleado' },
-      create: { email: empEmail, name: empName, passwordHash: empHash, role: 'empleado' },
-    })
-    // También fuerza el email canónico documentado por si ADMIN_EMAIL apunta a otro
-    if (email !== 'admin@chivitospro.com') {
-      const canonHash = await hashPassword(password)
-      await prisma.adminUser.upsert({
-        where: { email: 'admin@chivitospro.com' },
-        update: { name, passwordHash: canonHash, role: 'admin' },
-        create: { email: 'admin@chivitospro.com', name, passwordHash: canonHash, role: 'admin' },
-      })
-    }
-    res.json({ ok: true, admin: admin.email })
-  } catch (err) {
-    console.error(err)
-    res.status(500).json({ error: 'Sync falló' })
-  }
-})
+// Eliminados: POST /bootstrap y POST /sync-users.
+// Eran endpoints publicos sin autenticacion: el primero devolvia la contraseña del
+// admin en la respuesta y el segundo reseteaba admin y empleado comparando un
+// campo del body contra JWT_SECRET, lo que permitia adivinar por HTTP el secreto
+// que firma todos los tokens. Para recuperar un admin roto, usar un script de
+// mantenimiento desde la consola del servidor, no una ruta HTTP.
 
 export default router

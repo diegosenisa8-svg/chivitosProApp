@@ -35,9 +35,14 @@ type CustomerAuthValue = {
 
 const CustomerAuthContext = createContext<CustomerAuthValue | null>(null)
 
+/**
+ * El token vive solo en localStorage: antes se guardaba duplicado también en
+ * sessionStorage, así que había dos copias que podían quedar desincronizadas.
+ * (El paso siguiente, más adelante, sería moverlo a una cookie httpOnly.)
+ */
 function getStoredToken() {
   try {
-    return sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY)
+    return localStorage.getItem(TOKEN_KEY)
   } catch {
     return null
   }
@@ -45,13 +50,13 @@ function getStoredToken() {
 
 function storeToken(token: string | null) {
   try {
+    // Limpia la copia vieja en sessionStorage de sesiones anteriores.
+    sessionStorage.removeItem(TOKEN_KEY)
     if (!token) {
-      sessionStorage.removeItem(TOKEN_KEY)
       localStorage.removeItem(TOKEN_KEY)
       return
     }
     localStorage.setItem(TOKEN_KEY, token)
-    sessionStorage.setItem(TOKEN_KEY, token)
   } catch {
     /* ignore */
   }

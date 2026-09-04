@@ -26,6 +26,7 @@ export function CheckoutPage() {
     discount,
     deliveryFee,
     fulfillment,
+    coupon,
     checkout,
     setCheckout,
     clear,
@@ -122,21 +123,28 @@ export function CheckoutPage() {
     if (!lines.length || busy) return
     if (!validate()) return
     setBusy(true)
+    setMpError('')
 
+    let order
     try {
-      await submitOrder(
+      order = await submitOrder(
         lines,
         r.currency,
         checkoutWithZone(),
-        {
-          subtotal,
-          discount,
-          deliveryFee,
-        },
+        { couponCode: coupon },
         getToken(),
       )
-    } catch {
-      // En local igual mostramos el popup de prueba
+    } catch (e) {
+      // Nunca confirmar un pedido que no llegó a la API: antes se mostraba
+      // "¡Pedido confirmado!" igual y el cliente esperaba comida que nadie
+      // estaba preparando.
+      setBusy(false)
+      if (isLocal) {
+        setTestPopup(true)
+        return
+      }
+      setMpError(e instanceof Error ? e.message : 'No se pudo registrar el pedido')
+      return
     }
 
     if (isLocal) {
@@ -147,7 +155,9 @@ export function CheckoutPage() {
 
     clear()
     setBusy(false)
-    navigate('/confirm', { state: { total, eta: `${r.etaMin}–${r.etaMax}` } })
+    navigate('/confirm', {
+      state: { total: order?.total ?? total, eta: `${r.etaMin}–${r.etaMax}` },
+    })
   }
 
   async function handleMpPay(data: {
@@ -171,13 +181,14 @@ export function CheckoutPage() {
         lines,
         r.currency,
         { ...checkoutWithZone(), payment: 'mercadopago' },
-        { subtotal, discount, deliveryFee },
+        { couponCode: coupon },
         getToken(),
       )
       if (!order?.id) throw new Error('No se pudo crear el pedido')
 
       const result = await payWithMercadoPago({
         orderId: order.id,
+        paymentToken: order.paymentToken,
         token: data.token,
         paymentMethodId: data.paymentMethodId,
         issuerId: data.issuerId,
@@ -189,7 +200,7 @@ export function CheckoutPage() {
       clear()
       navigate('/confirm', {
         state: {
-          total,
+          total: order.total ?? total,
           eta: `${r.etaMin}–${r.etaMax}`,
           mp: result.mpStatus,
           paid: result.approved,

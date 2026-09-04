@@ -1747,7 +1747,7 @@ function MenuConfigView({
     if (!confirm(`¿Seguro que deseas retirar la categoría "${cat.name}" y todos sus productos?`)) return
     setSaving(true)
     try {
-      await deleteCategory(cat.id)
+      await deleteCategory(cat.id, true)
       if (editCategoryId === cat.id) setEditCategoryId(null)
       if (focusCategoryId === cat.id) setFocusCategoryId(null)
       await refreshMenu()
@@ -2026,11 +2026,15 @@ function MenuConfigView({
                           saving={saving}
                           onCancel={() => setEditCategoryId(null)}
                           onDelete={async () => {
-                            if (!confirm(`¿Seguro que deseas eliminar la categoría "${editCategory.name}"?`))
+                            if (
+                              !confirm(
+                                `¿Seguro que deseas eliminar la categoría "${editCategory.name}" y todos los productos que contiene?`,
+                              )
+                            )
                               return
                             setSaving(true)
                             try {
-                              await deleteCategory(editCategory.id)
+                              await deleteCategory(editCategory.id, true)
                               setEditCategoryId(null)
                               setFocusCategoryId(null)
                               await refreshMenu()

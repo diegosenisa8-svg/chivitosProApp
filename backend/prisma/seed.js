@@ -15,7 +15,7 @@ async function ensureAdmin() {
     update: { name, passwordHash, role: 'admin' },
     create: { email, name, passwordHash, role: 'admin' },
   })
-  console.log(`Admin OK: ${email} / ${password}`)
+  console.log(`Admin OK: ${email}`)
 }
 
 async function ensureEmployee() {

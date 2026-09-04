@@ -13,6 +13,8 @@ model AdminUser {
   name         String
   passwordHash String
   role         String   @default("admin")
+  /// Sube al cambiar la contraseña: invalida los tokens ya emitidos.
+  tokenVersion Int      @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
@@ -100,6 +102,8 @@ model Product {
   category    Category         @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   modifiers   ModifierGroup[]
   updatedAt   DateTime         @updatedAt
+
+  @@index([categoryId])
 }
 
 model ModifierGroup {
@@ -115,6 +119,7 @@ model ModifierGroup {
   options       ModifierOption[]
 
   @@unique([productId, externalId])
+  @@index([externalId])
 }
 
 model ModifierOption {
@@ -148,6 +153,8 @@ model Customer {
   lastOrderAt  DateTime
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  @@index([lastOrderAt])
 }
 
 model Order {
@@ -172,6 +179,10 @@ model Order {
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
   items             OrderItem[]
+
+  @@index([createdAt])
+  @@index([status])
+  @@index([customerAccountId])
 }
 
 model OrderItem {
@@ -186,6 +197,8 @@ model OrderItem {
   modifiers Json
   lineTotal Float
   sizeLabel String @default("")
+
+  @@index([orderId])
 }
 
 model MediaFile {

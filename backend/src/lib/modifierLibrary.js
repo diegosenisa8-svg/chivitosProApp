@@ -10,24 +10,26 @@ export async function applyLibraryGroupToProduct(productId, libraryGroup) {
     where: { productId, externalId: libraryGroup.id },
   })
 
-  const optionRows = libraryGroup.options.map((o, i) => ({
+  const optionRows = libraryGroup.options.map((o) => ({
     externalId: o.id,
     name: o.name,
     price: o.price,
   }))
 
   if (existing) {
-    await prisma.modifierOption.deleteMany({ where: { groupId: existing.id } })
-    await prisma.modifierGroup.update({
-      where: { id: existing.id },
-      data: {
-        name: libraryGroup.name,
-        required: libraryGroup.required,
-        min: libraryGroup.min,
-        max: libraryGroup.max,
-        allowQuantity: libraryGroup.allowQuantity,
-        options: { create: optionRows },
-      },
+    await prisma.$transaction(async (tx) => {
+      await tx.modifierOption.deleteMany({ where: { groupId: existing.id } })
+      await tx.modifierGroup.update({
+        where: { id: existing.id },
+        data: {
+          name: libraryGroup.name,
+          required: libraryGroup.required,
+          min: libraryGroup.min,
+          max: libraryGroup.max,
+          allowQuantity: libraryGroup.allowQuantity,
+          options: { create: optionRows },
+        },
+      })
     })
     return
   }
@@ -119,25 +121,6 @@ export async function deleteLibraryGroupEverywhere(libraryGroupId) {
   await prisma.modifierLibraryGroup.delete({ where: { id: libraryGroupId } })
 }
 
-export function mapLibraryGroup(group) {
-  const productGroups = new Map()
-  return {
-    id: group.id,
-    name: group.name,
-    required: group.required,
-    min: group.min,
-    max: group.max,
-    allowQuantity: group.allowQuantity,
-    sortOrder: group.sortOrder,
-    options: group.options.map((o) => ({ id: o.id, name: o.name, price: o.price })),
-    usedByCategories: (group.categories || []).map((a) => ({
-      id: a.category.id,
-      name: a.category.name,
-    })),
-    usedByProducts: [...productGroups.values()],
-  }
-}
-
 export async function buildLibraryResponse() {
   const groups = await prisma.modifierLibraryGroup.findMany({
     include: libraryGroupInclude,
@@ -214,7 +197,7 @@ export async function importLibraryFromProducts() {
         allowQuantity: entry.allowQuantity,
         options: {
           create: entry.options.map((o, i) => ({
-            id: o.id.length > 8 ? o.id : undefined,
+            id: o.id && o.id.length > 8 ? o.id : undefined,
             name: o.name,
             price: o.price,
             sortOrder: i,

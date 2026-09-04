@@ -15,6 +15,22 @@ const dist = path.join(__dirname, 'dist')
 
 const app = express()
 
+app.disable('x-powered-by')
+
+/**
+ * public/_headers solo lo interpreta Cloudflare Pages. Como el despliegue real
+ * es este servidor en Railway, las cabeceras se aplican acá.
+ */
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff')
+  res.setHeader('X-Frame-Options', 'DENY')
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
+  if (req.headers['x-forwarded-proto'] === 'https') {
+    res.setHeader('Strict-Transport-Security', 'max-age=15552000; includeSubDomains')
+  }
+  next()
+})
+
 if (apiTarget) {
   console.log(`Proxy /api + /health → ${apiTarget}`)
   app.use(
