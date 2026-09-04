@@ -70,3 +70,34 @@ export function findZoneAtPoint(zones: DeliveryZone[], point: LatLng): DeliveryZ
 export function activeDeliveryZones(zones: DeliveryZone[] | undefined): DeliveryZone[] {
   return (zones || []).filter((z) => z.active)
 }
+
+export type DeliveryResolution = {
+  zone: DeliveryZone | null
+  outOfRange: boolean
+  fee: number
+}
+
+/**
+ * Espejo exacto de backend/src/lib/pricing.js: resuelve zona y costo de envío a
+ * partir de la ubicación. Acá es solo para mostrárselo al cliente; lo que se
+ * cobra lo decide el servidor con esta misma regla.
+ */
+export function resolveDelivery(
+  zones: DeliveryZone[] | undefined,
+  point: LatLng | null | undefined,
+  fallbackFee: number,
+): DeliveryResolution {
+  const active = activeDeliveryZones(zones)
+  if (!point) return { zone: null, outOfRange: false, fee: 0 }
+  if (active.length === 0) {
+    return { zone: null, outOfRange: false, fee: Math.max(0, fallbackFee || 0) }
+  }
+  const zone = findZoneAtPoint(active, point)
+  if (zone) return { zone, outOfRange: false, fee: zoneDeliveryFee(zone) }
+  // Fuera de todas las zonas: se cobra la tarifa más alta y el local decide.
+  return {
+    zone: null,
+    outOfRange: true,
+    fee: active.reduce((max, z) => Math.max(max, zoneDeliveryFee(z)), 0),
+  }
+}

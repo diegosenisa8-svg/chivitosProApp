@@ -246,12 +246,21 @@ export type CartLine = {
 
 export type Fulfillment = 'delivery' | 'pickup'
 
+export type GeoPoint = { lat: number; lng: number; accuracy?: number }
+
 export type CheckoutInfo = {
   name: string
   phone: string
   fulfillment: Fulfillment
+  /** Texto legible que arma el servidor. El cliente ya no lo escribe. */
   address: string
-  /** Zona de entrega elegida (solo delivery). */
+  /** Ubicación del dispositivo. Obligatoria para delivery. */
+  location?: GeoPoint | null
+  /** Número de casa o apartamento. Obligatorio para delivery. */
+  addressDetail: string
+  /** Referencia opcional para el repartidor. */
+  addressReference: string
+  /** Zona resuelta desde la ubicación. Solo para mostrar: la decide el servidor. */
   deliveryZoneId?: string
   schedule: 'now' | 'later'
   scheduleTime: string

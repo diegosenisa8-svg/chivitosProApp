@@ -44,6 +44,9 @@ export type SubmittedOrder = {
   deliveryFee: number
   total: number
   coupon: string
+  zone: { id: string; name: string } | null
+  /** La ubicación cayó fuera de todas las zonas de reparto. */
+  outOfRange: boolean
   /** Autoriza a pagar este pedido durante 30 minutos. */
   paymentToken: string
 }
@@ -92,7 +95,10 @@ export async function submitOrder(
       schedule: checkout?.schedule || 'now',
       scheduleTime: checkout?.scheduleTime,
       couponCode: extras?.couponCode || '',
-      deliveryZoneId: checkout?.deliveryZoneId || '',
+      // La zona la resuelve el servidor desde la ubicación.
+      location: checkout?.location || undefined,
+      addressDetail: checkout?.addressDetail || '',
+      addressReference: checkout?.addressReference || '',
     }),
   })
 

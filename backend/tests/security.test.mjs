@@ -63,8 +63,10 @@ const restaurant = {
   settings: {
     promotions: [{ code: 'PIZZA20', type: 'percent', value: 20, active: true }],
     deliveryZones: [
-      { id: 'z1', name: 'Centro', fee: 0, minOrder: 250, active: true, freeDelivery: true },
-      { id: 'z2', name: 'Cerro', fee: 100, minOrder: 300, active: true },
+      { id: 'z1', name: 'Centro', fee: 0, minOrder: 250, active: true, freeDelivery: true,
+        shape: 'circle', lat: -31.3883, lng: -57.9601, radiusKm: 1.4 },
+      { id: 'z2', name: 'Cerro', fee: 100, minOrder: 300, active: true,
+        shape: 'circle', lat: -31.372, lng: -57.978, radiusKm: 1.6 },
     ],
   },
 }
@@ -95,9 +97,14 @@ const products = [
   { id: 'agotado', name: 'Agotado', price: 100, priceMax: null, available: false, modifiers: [] },
 ]
 
+const EN_CERRO = { lat: -31.372, lng: -57.978, accuracy: 12 }
+const EN_CENTRO = { lat: -31.3883, lng: -57.9601, accuracy: 8 }
+const LEJOS = { lat: -31.62, lng: -58.25, accuracy: 20 }
+
 const baseBody = {
   fulfillment: 'delivery',
-  deliveryZoneId: 'z2',
+  location: EN_CERRO,
+  addressDetail: 'Casa 1234',
   items: [{ productId: 'chivito', quantity: 1, notes: '', modifiers: [] }],
 }
 
@@ -213,22 +220,59 @@ test('el cupón se resuelve contra la configuración, no contra el body', () => 
   assert.equal(inventado.discount, 0)
 })
 
-test('el envío sale de la zona elegida y la zona tiene que existir', () => {
-  const gratis = priceOrder({ restaurant, products, body: { ...baseBody, deliveryZoneId: 'z1' } })
-  assert.equal(gratis.deliveryFee, 0)
+test('la zona la resuelven las coordenadas, no el cliente', () => {
+  const centro = priceOrder({ restaurant, products, body: { ...baseBody, location: EN_CENTRO } })
+  assert.equal(centro.zone.id, 'z1')
+  assert.equal(centro.deliveryFee, 0) // Centro tiene envío gratis
+  assert.equal(centro.outOfRange, false)
 
+  const cerro = priceOrder({ restaurant, products, body: baseBody })
+  assert.equal(cerro.zone.id, 'z2')
+  assert.equal(cerro.deliveryFee, 100)
+})
+
+test('sin ubicación no se puede pedir delivery', () => {
+  const sinUbicacion = { ...baseBody }
+  delete sinUbicacion.location
+  assert.throws(() => priceOrder({ restaurant, products, body: sinUbicacion }), OrderError)
+
+  // Una coordenada inventada fuera de rango terrestre tampoco vale.
   assert.throws(
-    () => priceOrder({ restaurant, products, body: { ...baseBody, deliveryZoneId: 'zona-falsa' } }),
+    () => priceOrder({ restaurant, products, body: { ...baseBody, location: { lat: 0, lng: 0 } } }),
     OrderError,
   )
 })
 
-test('se aplica el mínimo de pedido de la zona', () => {
+test('el número de casa o apto es obligatorio en delivery', () => {
+  const sinDetalle = { ...baseBody, addressDetail: '   ' }
+  assert.throws(() => priceOrder({ restaurant, products, body: sinDetalle }), OrderError)
+})
+
+test('fuera de todas las zonas: entra marcado y paga la tarifa más alta', () => {
+  const lejos = priceOrder({ restaurant, products, body: { ...baseBody, location: LEJOS } })
+  assert.equal(lejos.outOfRange, true)
+  assert.equal(lejos.zone, null)
+  assert.equal(lejos.deliveryFee, 100) // la más cara de las zonas activas
+  assert.equal(lejos.location.lat, LEJOS.lat)
+  assert.equal(lejos.location.accuracy, 20)
+})
+
+test('se aplica el mínimo de pedido de la zona resuelta', () => {
   // Agua ($60) contra el mínimo de $300 de la zona Cerro.
   assert.throws(
     () => priceOrder({ restaurant, products, body: { ...baseBody, items: [{ productId: 'agua', quantity: 1, notes: '', modifiers: [] }] } }),
     OrderError,
   )
+})
+
+test('el retiro en el local no pide ubicación ni número de casa', () => {
+  const pickup = priceOrder({
+    restaurant,
+    products,
+    body: { fulfillment: 'pickup', items: [{ productId: 'chivito', quantity: 1, notes: '', modifiers: [] }] },
+  })
+  assert.equal(pickup.location, null)
+  assert.equal(pickup.outOfRange, false)
 })
 
 test('con el local cerrado o los servicios pausados no se toman pedidos', () => {
@@ -252,6 +296,37 @@ test('retiro en el local no paga envío ni mínimo de delivery', () => {
   })
   assert.equal(pickup.deliveryFee, 0)
   assert.equal(pickup.total, 60)
+})
+
+// --------------------------------------------------- geometría de zonas ---
+
+const { findZoneAtPoint, pointInPolygon, haversineKm } = await import('../src/lib/geo.js')
+
+test('zona con polígono: adentro entra, afuera no', () => {
+  const cuadrado = [
+    { lat: -31.40, lng: -57.98 },
+    { lat: -31.40, lng: -57.94 },
+    { lat: -31.36, lng: -57.94 },
+    { lat: -31.36, lng: -57.98 },
+  ]
+  assert.equal(pointInPolygon({ lat: -31.38, lng: -57.96 }, cuadrado), true)
+  assert.equal(pointInPolygon({ lat: -31.50, lng: -57.96 }, cuadrado), false)
+
+  const zonas = [{ id: 'p1', name: 'Polígono', active: true, shape: 'polygon', polygon: cuadrado, fee: 55 }]
+  assert.equal(findZoneAtPoint(zonas, { lat: -31.38, lng: -57.96 }).id, 'p1')
+  assert.equal(findZoneAtPoint(zonas, { lat: -31.50, lng: -57.96 }), null)
+})
+
+test('las zonas inactivas se ignoran', () => {
+  const zonas = [
+    { id: 'off', name: 'Apagada', active: false, shape: 'circle', lat: -31.38, lng: -57.96, radiusKm: 5 },
+  ]
+  assert.equal(findZoneAtPoint(zonas, { lat: -31.38, lng: -57.96 }), null)
+})
+
+test('haversine mide distancias razonables', () => {
+  const d = haversineKm({ lat: -31.3883, lng: -57.9601 }, { lat: -31.372, lng: -57.978 })
+  assert.ok(d > 1 && d < 4, `distancia inesperada: ${d}`)
 })
 
 // ------------------------------------------ configuración pública ---------

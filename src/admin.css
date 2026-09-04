@@ -2488,3 +2488,40 @@ html.admin-tm .admin-root {
 .tm-user-dropdown button:hover {
   background: #f5f3f0;
 }
+
+/* --- Aviso de pedido fuera de las zonas de reparto -------------------- */
+.range-warning {
+  color: #9a3412;
+  font-weight: 600;
+}
+
+.range-warning--inline {
+  display: inline-block;
+  font-size: 0.78rem;
+  margin-top: 2px;
+}
+
+.range-warning--block {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  margin: 10px 0;
+  border-radius: 10px;
+  background: #fff4e5;
+  border: 1px solid #f5b678;
+}
+
+.range-warning--block span {
+  font-weight: 400;
+  font-size: 0.86rem;
+  color: #7c2d12;
+}
+
+.order-location p {
+  margin: 4px 0;
+}
+
+.order-location-accuracy {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}

@@ -4,6 +4,12 @@ import { ORDER_STATUS_LABELS } from '../lib/adminApi'
 export type TicketRestaurant = {
   name?: string
   address?: string
+  addressDetail?: string | null
+  addressReference?: string | null
+  outOfRange?: boolean
+  deliveryZoneName?: string | null
+  lat?: number | null
+  lng?: number | null
   city?: string
   phone?: string
   whatsapp?: string
@@ -229,7 +235,10 @@ function buildTicketHtml(order: AdminOrder, restaurant?: TicketRestaurant | null
       <td class="r">${isDelivery ? 'Delivery' : ''}</td>
     </tr></table>
   </div>
-  ${isDelivery ? `<div class="gray">${esc(order.address || 'Sin dirección')}</div>` : ''}
+  ${isDelivery ? `<div class="gray">${esc(order.addressDetail || order.address || 'Sin dirección')}</div>` : ''}
+  ${isDelivery && order.addressReference ? `<div class="gray">Ref: ${esc(order.addressReference)}</div>` : ''}
+  ${isDelivery && order.outOfRange ? `<div><b>** FUERA DE RANGO - CONFIRMAR **</b></div>` : ''}
+  ${isDelivery && order.lat != null && order.lng != null ? `<div class="gray">${order.lat.toFixed(5)}, ${order.lng.toFixed(5)}</div>` : ''}
   ${order.notes ? `<div class="gray"><b>NOTAS:</b> ${esc(order.notes)}</div>` : ''}
 
   <div class="h">Detalles del Pedido:</div>

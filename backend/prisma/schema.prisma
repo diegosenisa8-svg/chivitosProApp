@@ -174,6 +174,20 @@ model Order {
   total             Float
   currency          String           @default("UYU")
   payload           Json
+  /// Coordenada reportada por el navegador del cliente (solo delivery).
+  lat               Float?
+  lng               Float?
+  /// Precisión del GPS en metros, tal como la informó el dispositivo.
+  locationAccuracy  Float?
+  /// Zona resuelta por el servidor a partir de la coordenada, no elegida por el cliente.
+  deliveryZoneId    String?
+  deliveryZoneName  String?
+  /// La coordenada cayó fuera de todas las zonas activas.
+  outOfRange        Boolean          @default(false)
+  /// Número de casa o apartamento (obligatorio en delivery).
+  addressDetail     String?
+  /// Referencia opcional para el repartidor.
+  addressReference  String?
   customerAccountId String?
   customerAccount   CustomerAccount? @relation(fields: [customerAccountId], references: [id], onDelete: SetNull)
   createdAt         DateTime         @default(now())

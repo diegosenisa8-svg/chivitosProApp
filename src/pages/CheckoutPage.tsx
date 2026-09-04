@@ -13,7 +13,7 @@ import {
   type PaymentConfig,
 } from '../lib/api'
 import { formatMoney } from '../lib/format'
-import { activeDeliveryZones, zoneDeliveryFee } from '../lib/deliveryZones'
+import { resolveDelivery } from '../lib/deliveryZones'
 import type { CheckoutInfo } from '../types'
 
 export function CheckoutPage() {
@@ -37,11 +37,19 @@ export function CheckoutPage() {
   const [payConfig, setPayConfig] = useState<PaymentConfig | null>(null)
   const [binBlocked, setBinBlocked] = useState(false)
   const [mpError, setMpError] = useState('')
+  const [geoState, setGeoState] = useState<'idle' | 'asking' | 'ok' | 'error'>('idle')
+  const [geoError, setGeoError] = useState('')
 
   const total = Math.max(0, subtotal - discount + deliveryFee)
   const r = menu.restaurant
-  const deliveryZones = activeDeliveryZones(r.settings?.deliveryZones)
-  const selectedZone = deliveryZones.find((z) => z.id === checkout.deliveryZoneId) || null
+  // La zona sale de la ubicación del cliente con la misma regla que aplica el
+  // backend. Acá es solo para mostrarla; lo que se cobra lo decide el servidor.
+  const delivery = resolveDelivery(
+    r.settings?.deliveryZones,
+    checkout.location ? { lat: checkout.location.lat, lng: checkout.location.lng } : null,
+    r.deliveryFee ?? 80,
+  )
+  const selectedZone = delivery.zone
   const pm = r.settings?.paymentMethods || {}
   const transfer = r.settings?.transferPayment || {}
   const isLocal =
@@ -78,23 +86,71 @@ export function CheckoutPage() {
     if (blocked) setMpError('')
   }, [])
 
+  const requestLocation = useCallback(() => {
+    if (!('geolocation' in navigator)) {
+      setGeoState('error')
+      setGeoError('Este navegador no permite compartir la ubicación. Probá desde el celular.')
+      return
+    }
+    setGeoState('asking')
+    setGeoError('')
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setCheckout({
+          location: {
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            accuracy: pos.coords.accuracy,
+          },
+        })
+        setGeoState('ok')
+        setErrors((prev) => {
+          if (!prev.location) return prev
+          const next = { ...prev }
+          delete next.location
+          return next
+        })
+      },
+      (err) => {
+        setGeoState('error')
+        setGeoError(
+          err.code === err.PERMISSION_DENIED
+            ? 'Necesitamos tu ubicación para llevarte el pedido. Activala en los permisos del navegador y tocá Reintentar.'
+            : 'No pudimos obtener tu ubicación. Salí al aire libre o probá de nuevo.',
+        )
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 },
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Se pide apenas entra al checkout con delivery: sin ubicación no hay pedido.
+  useEffect(() => {
+    if (fulfillment === 'delivery' && !checkout.location && geoState === 'idle') {
+      requestLocation()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fulfillment])
+
   function validate() {
     const next: Record<string, string> = {}
     if (!checkout.name.trim()) next.name = 'Ingresá tu nombre'
     if (!checkout.phone.trim() || checkout.phone.replace(/\D/g, '').length < 8) {
       next.phone = 'Ingresá un teléfono válido'
     }
-    if (fulfillment === 'delivery' && !checkout.address.trim()) {
-      next.address = 'Ingresá la dirección'
+    if (fulfillment === 'delivery' && !checkout.location) {
+      next.location = 'Activá tu ubicación para poder pedir delivery'
     }
-    if (fulfillment === 'delivery' && deliveryZones.length > 0 && !checkout.deliveryZoneId) {
-      next.zone = 'Elegí tu zona de entrega'
+    if (fulfillment === 'delivery' && !checkout.addressDetail.trim()) {
+      next.addressDetail = 'Ingresá el número de casa o apartamento'
     }
     if (checkout.schedule === 'later' && !checkout.scheduleTime) {
       next.scheduleTime = 'Elegí un horario'
     }
+    // Fuera de rango no hay zona de la cual tomar el mínimo: se usa el general,
+    // igual que en backend/src/lib/pricing.js.
     const minOrder =
-      fulfillment === 'delivery' && selectedZone?.minOrder
+      fulfillment === 'delivery' && !delivery.outOfRange && selectedZone?.minOrder
         ? selectedZone.minOrder
         : r.minOrder || 0
     if (fulfillment === 'delivery' && subtotal < minOrder) {
@@ -105,18 +161,16 @@ export function CheckoutPage() {
   }
 
   function checkoutWithZone(): CheckoutInfo {
-    const zoneLabel = selectedZone
-      ? `Zona: ${selectedZone.name}${
-          zoneDeliveryFee(selectedZone) > 0
-            ? ` (envío ${formatMoney(zoneDeliveryFee(selectedZone))})`
-            : ' (envío gratis)'
-        }`
-      : ''
+    if (fulfillment !== 'delivery') return { ...checkout, fulfillment }
+    const zoneLabel = delivery.outOfRange
+      ? 'FUERA DE ZONA — confirmar con el cliente si se puede llegar'
+      : selectedZone
+        ? `Zona: ${selectedZone.name}${
+            delivery.fee > 0 ? ` (envío ${formatMoney(delivery.fee)})` : ' (envío gratis)'
+          }`
+        : ''
     const notes = [checkout.notes.trim(), zoneLabel].filter(Boolean).join(' · ')
-    const address = selectedZone
-      ? `${checkout.address.trim()} [${selectedZone.name}]`
-      : checkout.address
-    return { ...checkout, fulfillment, address, notes }
+    return { ...checkout, fulfillment, notes }
   }
 
   async function finishNonCard() {
@@ -290,69 +344,91 @@ export function CheckoutPage() {
 
         {fulfillment === 'delivery' && (
           <>
-            {deliveryZones.length > 0 && (
-              <fieldset className="field">
-                <legend>Zona de entrega</legend>
-                <p className="field-hint">
-                  Elegí tu barrio. Si la zona tiene costo de envío, se suma solo en delivery (no
-                  en retiro).
-                </p>
-                <div className="checkout-zones">
-                  {deliveryZones.map((z) => {
-                    const fee = zoneDeliveryFee(z)
-                    const selected = checkout.deliveryZoneId === z.id
-                    return (
-                      <label
-                        key={z.id}
-                        className={`checkout-zone-option${selected ? ' selected' : ''}`}
-                      >
-                        <input
-                          type="radio"
-                          name="deliveryZone"
-                          checked={selected}
-                          onChange={() => {
-                            setCheckout({ deliveryZoneId: z.id })
-                            setErrors((prev) => {
-                              if (!prev.zone && !prev.min) return prev
-                              const next = { ...prev }
-                              delete next.zone
-                              delete next.min
-                              return next
-                            })
-                          }}
-                        />
-                        <span className="dot" style={{ background: z.color }} />
-                        <span>
-                          <strong>{z.name}</strong>
-                        </span>
-                        <span className="fee">{fee > 0 ? formatMoney(fee) : 'Gratis'}</span>
-                      </label>
-                    )
-                  })}
+            <fieldset className="field geo-box">
+              <legend>Ubicación de entrega</legend>
+              <p className="field-hint">
+                Necesitamos tu ubicación exacta para llevarte el pedido. No hace falta que
+                escribas la calle.
+              </p>
+
+              {!checkout.location ? (
+                <>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={requestLocation}
+                    disabled={geoState === 'asking'}
+                  >
+                    {geoState === 'asking'
+                      ? 'Obteniendo ubicación…'
+                      : geoState === 'error'
+                        ? 'Reintentar'
+                        : 'Usar mi ubicación'}
+                  </button>
+                  {geoError && <em>{geoError}</em>}
+                  {errors.location && <em>{errors.location}</em>}
+                </>
+              ) : (
+                <div className={`geo-status${delivery.outOfRange ? ' geo-status--warn' : ''}`}>
+                  <strong>
+                    {delivery.outOfRange
+                      ? 'Estás fuera de las zonas de reparto'
+                      : `Zona: ${selectedZone?.name}`}
+                  </strong>
+                  <span>
+                    {delivery.outOfRange
+                      ? `Se cobra el envío más alto (${formatMoney(delivery.fee)}) y el local confirma si puede llegar.`
+                      : delivery.fee > 0
+                        ? `Envío ${formatMoney(delivery.fee)}`
+                        : 'Envío gratis'}
+                  </span>
+                  {checkout.location.accuracy != null && (
+                    <span
+                      className={checkout.location.accuracy > 150 ? 'geo-accuracy-poor' : undefined}
+                    >
+                      Precisión ±{Math.round(checkout.location.accuracy)} m
+                      {checkout.location.accuracy > 150
+                        ? ' — poco precisa. Si no es tu dirección, actualizá la ubicación.'
+                        : ''}
+                    </span>
+                  )}
+                  <button type="button" className="linkish" onClick={requestLocation}>
+                    Actualizar ubicación
+                  </button>
                 </div>
-                {errors.zone && <em>{errors.zone}</em>}
-              </fieldset>
-            )}
+              )}
+            </fieldset>
 
             <label className="field">
-              <span>Dirección</span>
+              <span>Número de casa o apartamento</span>
               <input
-                value={checkout.address}
+                value={checkout.addressDetail}
                 onChange={(e) => {
-                  const address = e.target.value
-                  setCheckout({ address })
-                  if (address.trim()) {
+                  const addressDetail = e.target.value
+                  setCheckout({ addressDetail })
+                  if (addressDetail.trim()) {
                     setErrors((prev) => {
-                      if (!prev.address) return prev
+                      if (!prev.addressDetail) return prev
                       const next = { ...prev }
-                      delete next.address
+                      delete next.addressDetail
                       return next
                     })
                   }
                 }}
-                placeholder="Calle, número, referencia"
+                placeholder="Ej: 1234, apto 3"
               />
-              {errors.address && <em>{errors.address}</em>}
+              {errors.addressDetail && <em>{errors.addressDetail}</em>}
+            </label>
+
+            <label className="field">
+              <span>
+                Referencia para el repartidor <small>(opcional)</small>
+              </span>
+              <input
+                value={checkout.addressReference}
+                onChange={(e) => setCheckout({ addressReference: e.target.value })}
+                placeholder="Ej: casa de reja verde, timbre del fondo"
+              />
             </label>
           </>
         )}

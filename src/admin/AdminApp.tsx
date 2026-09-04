@@ -1217,6 +1217,11 @@ function OrdersView({
                   {o.fulfillment === 'delivery' ? 'Delivery' : 'Retiro'} ·{' '}
                   {new Date(o.createdAt).toLocaleString('es-UY')}
                 </span>
+                {o.outOfRange && (
+                  <span className="range-warning range-warning--inline">
+                    ⚠ Distancia fuera de rango
+                  </span>
+                )}
                 <span className="order-row-items">
                   {o.items
                     .map((i) => {
@@ -1338,10 +1343,58 @@ function OrderDetail({
             <strong>{formatMoney(order.total)}</strong>
           </div>
         </div>
-        {order.address && (
-          <p>
-            <strong>Dirección:</strong> {order.address}
-          </p>
+        {order.outOfRange && (
+          <div className="range-warning range-warning--block">
+            <strong>⚠ Distancia fuera de rango</strong>
+            <span>
+              La ubicación del cliente no cae en ninguna zona de reparto activa. Se le cobró el
+              envío más alto configurado. Confirmá con el cliente si pueden llegar antes de
+              aceptar el pedido.
+            </span>
+          </div>
+        )}
+        {order.fulfillment === 'delivery' && (
+          <div className="order-location">
+            {order.addressDetail && (
+              <p>
+                <strong>Casa / apto:</strong> {order.addressDetail}
+              </p>
+            )}
+            {order.addressReference && (
+              <p>
+                <strong>Referencia:</strong> {order.addressReference}
+              </p>
+            )}
+            {order.deliveryZoneName && !order.outOfRange && (
+              <p>
+                <strong>Zona:</strong> {order.deliveryZoneName}
+              </p>
+            )}
+            {order.lat != null && order.lng != null ? (
+              <p>
+                <a
+                  className="btn btn-ghost btn-sm"
+                  href={`https://www.google.com/maps/search/?api=1&query=${order.lat},${order.lng}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Abrir ubicación en el mapa
+                </a>
+                {order.locationAccuracy != null && (
+                  <span className="order-location-accuracy">
+                    {' '}
+                    precisión ±{Math.round(order.locationAccuracy)} m
+                  </span>
+                )}
+              </p>
+            ) : (
+              order.address && (
+                <p>
+                  <strong>Dirección:</strong> {order.address}
+                </p>
+              )
+            )}
+          </div>
         )}
         {order.notes && (
           <p>

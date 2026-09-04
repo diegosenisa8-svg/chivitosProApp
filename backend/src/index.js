@@ -182,7 +182,17 @@ const orderSchema = z.object({
   schedule: z.enum(['now', 'later']).default('now'),
   scheduleTime: z.string().max(40).optional(),
   couponCode: z.string().max(40).optional(),
-  deliveryZoneId: z.string().max(60).optional(),
+  // Ubicación del cliente. La zona la resuelve el servidor a partir de esto: el
+  // cliente ya no elige zona de una lista ni escribe la calle a mano.
+  location: z
+    .object({
+      lat: z.number().min(-90).max(90),
+      lng: z.number().min(-180).max(180),
+      accuracy: z.number().nonnegative().max(100000).optional(),
+    })
+    .optional(),
+  addressDetail: z.string().max(120).optional(),
+  addressReference: z.string().max(300).optional(),
   items: z
     .array(
       z.object({
@@ -382,6 +392,19 @@ app.get('/api/me/orders/:id', requireCustomer, async (req, res) => {
   }
 })
 
+/**
+ * Texto legible de la dirección, para el panel y el ticket de cocina. La
+ * ubicación real del pedido es la coordenada; esto es lo que lee una persona.
+ */
+function composeAddress(body, priced) {
+  const partes = [
+    (body.addressDetail || '').trim(),
+    (body.addressReference || '').trim(),
+    priced.outOfRange ? 'FUERA DE ZONA' : priced.zone?.name,
+  ].filter(Boolean)
+  return partes.join(' · ') || null
+}
+
 app.post('/api/orders', optionalCustomer, async (req, res) => {
   try {
     const body = orderSchema.parse(req.body)
@@ -420,7 +443,17 @@ app.post('/api/orders', optionalCustomer, async (req, res) => {
         notes: body.notes,
         currency: body.currency,
         fulfillment: priced.fulfillment,
-        address: priced.fulfillment === 'delivery' ? body.address : null,
+        address: priced.fulfillment === 'delivery' ? composeAddress(body, priced) : null,
+        addressDetail:
+          priced.fulfillment === 'delivery' ? (body.addressDetail || '').trim() : null,
+        addressReference:
+          priced.fulfillment === 'delivery' ? (body.addressReference || '').trim() || null : null,
+        lat: priced.location?.lat ?? null,
+        lng: priced.location?.lng ?? null,
+        locationAccuracy: priced.location?.accuracy ?? null,
+        deliveryZoneId: priced.zone?.id ?? null,
+        deliveryZoneName: priced.zone?.name ?? null,
+        outOfRange: priced.outOfRange,
         payment: body.payment,
         schedule: body.schedule,
         scheduleTime: body.scheduleTime,
@@ -474,6 +507,8 @@ app.post('/api/orders', optionalCustomer, async (req, res) => {
       deliveryFee: order.deliveryFee,
       total: order.total,
       coupon: priced.coupon,
+      zone: priced.zone,
+      outOfRange: priced.outOfRange,
       // Habilita a pagar ESTE pedido durante los próximos 30 minutos.
       paymentToken: signPaymentToken(order.id),
     })

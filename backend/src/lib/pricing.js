@@ -1,4 +1,5 @@
 import { mergeSettings } from './settings.js'
+import { findZoneAtPoint, isValidPoint } from './geo.js'
 
 /**
  * Cálculo de precios de un pedido — la fuente de verdad es SIEMPRE la base.
@@ -197,26 +198,66 @@ export function priceOrder({ restaurant, products, body }) {
 
   const subtotal = round2(items.reduce((s, i) => s + i.lineTotal, 0))
 
-  // --- envío (espeja MenuCartBridge + CartContext) ---------------------------
+  // --- ubicación y zona ------------------------------------------------------
+  // La zona ya no la elige el cliente: se deduce de las coordenadas que manda el
+  // navegador. Antes viajaba el id de la zona en el body, así que se podía
+  // elegir la más barata desde cualquier dirección.
   const zones = activeZones(settings)
   let zone = null
+  let outOfRange = false
   let deliveryFee = 0
+  let location = null
 
-  if (fulfillment === 'delivery' && subtotal > 0) {
-    if (zones.length === 0) {
-      deliveryFee = Math.max(0, Number(restaurant.deliveryFee) || 0)
-    } else {
-      zone = zones.find((z) => z.id === body.deliveryZoneId) || null
-      if (!zone) {
-        throw new OrderError('Elegí una zona de entrega válida', { code: 'ZONE_REQUIRED' })
+  if (fulfillment === 'delivery') {
+    const point = body.location
+      ? { lat: Number(body.location.lat), lng: Number(body.location.lng) }
+      : null
+
+    if (!isValidPoint(point)) {
+      throw new OrderError(
+        'Necesitamos tu ubicación para poder entregarte. Activá la ubicación y volvé a intentar.',
+        { code: 'LOCATION_REQUIRED' },
+      )
+    }
+
+    const accuracy = Number(body.location.accuracy)
+    location = {
+      lat: point.lat,
+      lng: point.lng,
+      accuracy: Number.isFinite(accuracy) ? accuracy : null,
+    }
+
+    if (!String(body.addressDetail || '').trim()) {
+      throw new OrderError('Ingresá el número de casa o apartamento', {
+        code: 'ADDRESS_DETAIL_REQUIRED',
+      })
+    }
+
+    if (subtotal > 0) {
+      if (zones.length === 0) {
+        deliveryFee = Math.max(0, Number(restaurant.deliveryFee) || 0)
+      } else {
+        zone = findZoneAtPoint(zones, point)
+        if (zone) {
+          deliveryFee = zoneDeliveryFee(zone)
+        } else {
+          // Fuera de todas las zonas: el pedido entra igual pero marcado, y se
+          // cobra la tarifa más alta configurada. El local decide si lo acepta.
+          outOfRange = true
+          deliveryFee = zones.reduce((max, z) => Math.max(max, zoneDeliveryFee(z)), 0)
+        }
       }
-      deliveryFee = zoneDeliveryFee(zone)
     }
   }
 
   // --- mínimo de pedido (espeja CheckoutPage.validate) -----------------------
   if (fulfillment === 'delivery') {
-    const minOrder = Math.max(0, Number(zone?.minOrder ?? restaurant.minOrder ?? 0) || 0)
+    // Fuera de rango no hay zona de la cual tomar el mínimo: se usa el general
+    // del local, para no bloquear un pedido que el local igual podría aceptar.
+    const minOrder = Math.max(
+      0,
+      Number((outOfRange ? restaurant.minOrder : zone?.minOrder ?? restaurant.minOrder) ?? 0) || 0,
+    )
     if (subtotal < minOrder) {
       throw new OrderError(`El mínimo de pedido para delivery es ${minOrder}`, {
         code: 'MIN_ORDER',
@@ -244,5 +285,7 @@ export function priceOrder({ restaurant, products, body }) {
     total,
     coupon: coupon ? coupon.code : '',
     zone: zone ? { id: zone.id, name: zone.name } : null,
+    outOfRange,
+    location,
   }
 }

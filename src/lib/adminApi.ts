@@ -34,6 +34,17 @@ export type AdminOrder = {
   notes?: string | null
   fulfillment: string
   address?: string | null
+  /** Número de casa o apto que escribió el cliente. */
+  addressDetail?: string | null
+  /** Referencia opcional para el repartidor. */
+  addressReference?: string | null
+  /** Coordenada del cliente (solo delivery). */
+  lat?: number | null
+  lng?: number | null
+  locationAccuracy?: number | null
+  deliveryZoneName?: string | null
+  /** La ubicación cayó fuera de todas las zonas de reparto. */
+  outOfRange?: boolean
   payment: string
   schedule: string
   scheduleTime?: string | null

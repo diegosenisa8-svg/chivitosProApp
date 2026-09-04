@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { zoneDeliveryFee } from '../lib/deliveryZones'
+import { resolveDelivery } from '../lib/deliveryZones'
 import { useCart } from './CartContext'
 import { useMenu } from './MenuContext'
 
@@ -8,19 +8,22 @@ export function MenuCartBridge() {
   const { menu } = useMenu()
   const { setDeliveryFeeBase, registerPromotions, fulfillment, checkout } = useCart()
 
+  const lat = checkout.location?.lat
+  const lng = checkout.location?.lng
+
   useEffect(() => {
-    const zones = (menu.restaurant.settings?.deliveryZones || []).filter((z) => z.active)
-    if (zones.length === 0) {
-      setDeliveryFeeBase(menu.restaurant.deliveryFee ?? 80)
-      return
-    }
     if (fulfillment !== 'delivery') {
       setDeliveryFeeBase(0)
       return
     }
-    const zone = zones.find((z) => z.id === checkout.deliveryZoneId)
-    setDeliveryFeeBase(zoneDeliveryFee(zone))
-  }, [menu, setDeliveryFeeBase, fulfillment, checkout.deliveryZoneId])
+    // El costo sale de la ubicación del cliente, no de una zona que él elija.
+    const { fee } = resolveDelivery(
+      menu.restaurant.settings?.deliveryZones,
+      lat != null && lng != null ? { lat, lng } : null,
+      menu.restaurant.deliveryFee ?? 80,
+    )
+    setDeliveryFeeBase(fee)
+  }, [menu, setDeliveryFeeBase, fulfillment, lat, lng])
 
   useEffect(() => {
     const promos = (menu.restaurant.settings?.promotions || []).map((p) => ({
