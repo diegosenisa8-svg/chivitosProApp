@@ -1,5 +1,5 @@
 import { mergeSettings } from './settings.js'
-import { findZoneAtPoint, isValidPoint } from './geo.js'
+import { findZoneAtPoint, isValidPoint, zonesWithGeometry } from './geo.js'
 
 /**
  * Cálculo de precios de un pedido — la fuente de verdad es SIEMPRE la base.
@@ -234,17 +234,22 @@ export function priceOrder({ restaurant, products, body }) {
     }
 
     if (subtotal > 0) {
-      if (zones.length === 0) {
+      // Solo cuentan zonas con geometría real. Si ninguna la tiene (caso típico
+      // tras cargar solo nombre+tarifa en el panel), no marcamos fuera de rango:
+      // cobramos el envío general del local.
+      const usableZones = zonesWithGeometry(zones)
+      if (usableZones.length === 0) {
         deliveryFee = Math.max(0, Number(restaurant.deliveryFee) || 0)
+        outOfRange = false
+        zone = null
       } else {
-        zone = findZoneAtPoint(zones, point)
+        zone = findZoneAtPoint(usableZones, point)
         if (zone) {
           deliveryFee = zoneDeliveryFee(zone)
         } else {
-          // Fuera de todas las zonas: el pedido entra igual pero marcado, y se
-          // cobra la tarifa más alta configurada. El local decide si lo acepta.
+          // Fuera de todas las zonas con geometría: entra marcado y paga la más cara.
           outOfRange = true
-          deliveryFee = zones.reduce((max, z) => Math.max(max, zoneDeliveryFee(z)), 0)
+          deliveryFee = usableZones.reduce((max, z) => Math.max(max, zoneDeliveryFee(z)), 0)
         }
       }
     }

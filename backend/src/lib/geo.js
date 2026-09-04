@@ -76,3 +76,21 @@ export function isValidPoint(point) {
     !(point.lat === 0 && point.lng === 0)
   )
 }
+
+/**
+ * ¿La zona tiene geometría usable para resolver por GPS?
+ * Sin centro+radio ni polígono, findZoneAtPoint nunca puede matchearla.
+ */
+export function zoneHasGeometry(zone) {
+  if (!zone) return false
+  if (zone.shape === 'polygon' && Array.isArray(zone.polygon) && zone.polygon.length >= 3) {
+    return true
+  }
+  const lat = Number(zone.lat)
+  const lng = Number(zone.lng)
+  return Number.isFinite(lat) && Number.isFinite(lng)
+}
+
+export function zonesWithGeometry(zones) {
+  return (zones || []).filter((z) => z && z.active !== false && zoneHasGeometry(z))
+}

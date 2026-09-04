@@ -115,7 +115,7 @@ img {
   border-radius: 14px;
 }
 
-.field--error input,
+.field--error input:not([type='radio']):not([type='checkbox']),
 .field--error textarea,
 .field--error select {
   border-color: var(--red);
@@ -1033,7 +1033,7 @@ img {
 }
 
 .notes textarea,
-.field input,
+.field input:not([type='radio']):not([type='checkbox']),
 .field textarea,
 .field select,
 .coupon-box input,
@@ -1241,8 +1241,20 @@ img {
 .radio {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 10px;
+  margin-bottom: 10px;
+  width: 100%;
+  cursor: pointer;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.radio input[type='radio'] {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin: 0;
+  accent-color: var(--primary);
 }
 
 .fieldset,

@@ -30,7 +30,7 @@ import {
   verifyGoogleIdToken,
 } from './lib/googleAuth.js'
 import { optionalCustomer, requireCustomer } from './middleware/customerAuth.js'
-import { checkRateLimit, resetRateLimit } from './lib/rateLimit.js'
+import { checkRateLimit, clientIp, resetRateLimit } from './lib/rateLimit.js'
 import adminRoutes from './routes/admin.js'
 import { importLibraryFromProducts } from './lib/modifierLibrary.js'
 
@@ -308,8 +308,8 @@ app.post('/api/auth/google', async (req, res) => {
       })
       .parse(req.body)
 
-    const ip = req.ip || 'unknown'
-    const rl = checkRateLimit(`customer-google:${ip}`, { limit: 30, windowMs: 15 * 60 * 1000 })
+    const ip = clientIp(req)
+    const rl = await checkRateLimit(`customer-google:${ip}`, { limit: 30, windowMs: 15 * 60 * 1000 })
     if (!rl.ok) {
       res.setHeader('Retry-After', String(rl.retryAfterSec))
       return res.status(429).json({
@@ -385,11 +385,10 @@ app.post('/api/auth/login', async (req, res) => {
       .parse(req.body)
 
     const email = body.email.trim().toLowerCase()
-    // req.ip es confiable gracias a `trust proxy`; leer la cabecera a mano
-    // permitía saltear el límite mandando un X-Forwarded-For distinto cada vez.
-    const ip = req.ip || 'unknown'
-    const rlIp = checkRateLimit(`customer-login-ip:${ip}`, { limit: 20, windowMs: 15 * 60 * 1000 })
-    const rl = checkRateLimit(`customer-login:${ip}:${email}`, { limit: 5, windowMs: 15 * 60 * 1000 })
+    // Última entrada de X-Forwarded-For (Railway); el cliente no puede falsificarla.
+    const ip = clientIp(req)
+    const rlIp = await checkRateLimit(`customer-login-ip:${ip}`, { limit: 20, windowMs: 15 * 60 * 1000 })
+    const rl = await checkRateLimit(`customer-login:${ip}:${email}`, { limit: 5, windowMs: 15 * 60 * 1000 })
     const blocked = !rlIp.ok ? rlIp : !rl.ok ? rl : null
     if (blocked) {
       res.setHeader('Retry-After', String(blocked.retryAfterSec))
@@ -411,7 +410,7 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Email o contraseña incorrectos' })
     }
 
-    resetRateLimit(`customer-login:${ip}:${email}`)
+    await resetRateLimit(`customer-login:${ip}:${email}`)
     await upsertCustomerFromAccount(account).catch((e) =>
       console.warn('customer CRM sync', e?.message || e),
     )
@@ -790,8 +789,8 @@ app.post('/api/assistant/chat', async (req, res) => {
   try {
     // El asistente consume cuota de Gemini y arma el menú completo en cada
     // mensaje: sin límite, cualquiera podía vaciar la cuota con un bucle.
-    const ip = req.ip || 'unknown'
-    const rl = checkRateLimit(`assistant:${ip}`, { limit: 20, windowMs: 10 * 60 * 1000 })
+    const ip = clientIp(req)
+    const rl = await checkRateLimit(`assistant:${ip}`, { limit: 20, windowMs: 10 * 60 * 1000 })
     if (!rl.ok) {
       res.setHeader('Retry-After', String(rl.retryAfterSec))
       return res.status(429).json({
@@ -896,6 +895,10 @@ app.use('/api', (_req, res) => {
 app.use((err, _req, res, _next) => {
   console.error('Unhandled error', err)
   if (res.headersSent) return
+  // express.json({ limit }) emite este tipo cuando el body supera el tope.
+  if (err?.type === 'entity.too.large' || err?.status === 413 || err?.statusCode === 413) {
+    return res.status(413).json({ error: 'El pedido es demasiado grande' })
+  }
   res.status(500).json({ error: 'Error interno' })
 })
 

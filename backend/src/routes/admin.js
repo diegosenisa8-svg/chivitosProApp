@@ -28,7 +28,7 @@ import {
   syncCategoryLibraryGroup,
   unsyncCategoryLibraryGroup,
 } from '../lib/modifierLibrary.js'
-import { checkRateLimit, resetRateLimit } from '../lib/rateLimit.js'
+import { checkRateLimit, clientIp, resetRateLimit } from '../lib/rateLimit.js'
 import {
   FULFILLMENT,
   ORDER_STATUS,
@@ -88,13 +88,10 @@ router.post('/login', async (req, res) => {
       .parse(req.body)
 
     const email = body.email.trim().toLowerCase()
-    // req.ip es confiable gracias a `trust proxy` (ver src/index.js); leer la
-    // cabecera a mano permitía saltear el límite mandando un X-Forwarded-For
-    // distinto en cada intento. El segundo cubo, por IP sola, frena el probar
-    // una misma contraseña contra muchas cuentas.
-    const ip = req.ip || 'unknown'
-    const rlIp = checkRateLimit(`admin-login-ip:${ip}`, { limit: 20, windowMs: 15 * 60 * 1000 })
-    const rl = checkRateLimit(`admin-login:${ip}:${email}`, { limit: 5, windowMs: 15 * 60 * 1000 })
+    // Última entrada de X-Forwarded-For (Railway); contador en Postgres entre réplicas.
+    const ip = clientIp(req)
+    const rlIp = await checkRateLimit(`admin-login-ip:${ip}`, { limit: 20, windowMs: 15 * 60 * 1000 })
+    const rl = await checkRateLimit(`admin-login:${ip}:${email}`, { limit: 5, windowMs: 15 * 60 * 1000 })
     const blocked = !rlIp.ok ? rlIp : !rl.ok ? rl : null
     if (blocked) {
       res.setHeader('Retry-After', String(blocked.retryAfterSec))
@@ -116,7 +113,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Email o contraseña incorrectos' })
     }
 
-    resetRateLimit(`admin-login:${ip}:${email}`)
+    await resetRateLimit(`admin-login:${ip}:${email}`)
     const token = signToken(admin)
     res.json({
       token,
@@ -1017,7 +1014,7 @@ router.post('/customers/:id/send-email', requireFullAdmin, async (req, res) => {
 
     const id = RESOURCE_ID.parse(req.params.id)
     const adminId = req.admin?.id || 'unknown'
-    const rl = checkRateLimit(`admin-customer-mail:${adminId}`, {
+    const rl = await checkRateLimit(`admin-customer-mail:${adminId}`, {
       limit: 20,
       windowMs: 15 * 60 * 1000,
     })

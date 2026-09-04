@@ -257,6 +257,24 @@ test('fuera de todas las zonas: entra marcado y paga la tarifa más alta', () =>
   assert.equal(lejos.location.accuracy, 20)
 })
 
+test('si las zonas activas no tienen geometría, usa el envío general y no marca fuera de rango', () => {
+  const sinGeo = {
+    ...restaurant,
+    deliveryFee: 80,
+    settings: {
+      ...restaurant.settings,
+      deliveryZones: [
+        { id: 'z1', name: 'Centro', fee: 80, active: true },
+        { id: 'z2', name: 'Este', fee: 130, active: true },
+      ],
+    },
+  }
+  const priced = priceOrder({ restaurant: sinGeo, products, body: baseBody })
+  assert.equal(priced.outOfRange, false)
+  assert.equal(priced.zone, null)
+  assert.equal(priced.deliveryFee, 80)
+})
+
 test('se aplica el mínimo de pedido de la zona resuelta', () => {
   // Agua ($60) contra el mínimo de $300 de la zona Cerro.
   assert.throws(

@@ -67,6 +67,13 @@ export function findZoneAtPoint(zones: DeliveryZone[], point: LatLng): DeliveryZ
   return best?.zone || null
 }
 
+/** ¿La zona tiene centro+radio o polígono usable? */
+export function zoneHasGeometry(zone: DeliveryZone | null | undefined): boolean {
+  if (!zone) return false
+  if (zone.shape === 'polygon' && zone.polygon && zone.polygon.length >= 3) return true
+  return zone.lat != null && zone.lng != null && Number.isFinite(zone.lat) && Number.isFinite(zone.lng)
+}
+
 export function activeDeliveryZones(zones: DeliveryZone[] | undefined): DeliveryZone[] {
   return (zones || []).filter((z) => z.active)
 }
@@ -89,15 +96,16 @@ export function resolveDelivery(
 ): DeliveryResolution {
   const active = activeDeliveryZones(zones)
   if (!point) return { zone: null, outOfRange: false, fee: 0 }
-  if (active.length === 0) {
+  const usable = active.filter(zoneHasGeometry)
+  // Sin geometría cargada: no asustar con "fuera de rango"; usar envío general.
+  if (usable.length === 0) {
     return { zone: null, outOfRange: false, fee: Math.max(0, fallbackFee || 0) }
   }
-  const zone = findZoneAtPoint(active, point)
+  const zone = findZoneAtPoint(usable, point)
   if (zone) return { zone, outOfRange: false, fee: zoneDeliveryFee(zone) }
-  // Fuera de todas las zonas: se cobra la tarifa más alta y el local decide.
   return {
     zone: null,
     outOfRange: true,
-    fee: active.reduce((max, z) => Math.max(max, zoneDeliveryFee(z)), 0),
+    fee: usable.reduce((max, z) => Math.max(max, zoneDeliveryFee(z)), 0),
   }
 }
