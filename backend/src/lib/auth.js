@@ -61,7 +61,7 @@ export function signToken(admin) {
 }
 
 export function verifyToken(token) {
-  return jwt.verify(token, JWT_SECRET)
+  return jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] })
 }
 
 /**
@@ -99,7 +99,7 @@ export function signPaymentToken(orderId) {
 export function paymentTokenOrderId(token) {
   if (!token) return null
   try {
-    const payload = jwt.verify(token, JWT_SECRET)
+    const payload = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] })
     if (payload?.typ !== TOKEN_TYPE_PAYMENT) return null
     return payload.sub || null
   } catch {

@@ -4,13 +4,24 @@ import { formatMoney } from '../lib/format'
 export function ConfirmPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const state = (location.state || {}) as { total?: number; eta?: string; test?: boolean }
+  const state = (location.state || {}) as {
+    total?: number
+    eta?: string
+    test?: boolean
+    orderId?: string
+  }
+  const shortId = state.orderId ? String(state.orderId).slice(0, 8).toUpperCase() : null
 
   return (
     <div className="page confirm-page">
       <main className="confirm-card">
         <div className="confirm-check">✓</div>
         <h1>¡Pedido confirmado!</h1>
+        {shortId && (
+          <p className="confirm-order-number" aria-label={`Número de pedido ${shortId}`}>
+            Pedido <strong>#{shortId}</strong>
+          </p>
+        )}
         <p>
           {state.test
             ? 'Pedido de prueba registrado. Podés seguir el estado en Mis pedidos.'

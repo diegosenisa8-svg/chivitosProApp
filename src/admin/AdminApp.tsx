@@ -136,6 +136,14 @@ export function AdminApp() {
   const knownOrderIds = useRef<Set<string>>(new Set())
   const [flashOrderIds, setFlashOrderIds] = useState<string[]>([])
   const audioCtx = useRef<AudioContext | null>(null)
+  const MUTE_KEY = 'chivitos-admin-mute-orders'
+  const [ordersMuted, setOrdersMuted] = useState(() => {
+    try {
+      return localStorage.getItem(MUTE_KEY) === '1'
+    } catch {
+      return false
+    }
+  })
 
   const notify = (msg: string) => {
     setToast(msg)
@@ -166,6 +174,18 @@ export function AdminApp() {
     } catch {
       /* ignore */
     }
+  }
+
+  const toggleOrdersMute = () => {
+    setOrdersMuted((prev) => {
+      const next = !prev
+      try {
+        localStorage.setItem(MUTE_KEY, next ? '1' : '0')
+      } catch {
+        /* ignore */
+      }
+      return next
+    })
   }
 
   useEffect(() => {
@@ -309,21 +329,26 @@ export function AdminApp() {
   useEffect(() => {
     if (!admin) return
     const isEmployee = admin.role === 'empleado'
-    const onOrdersView =
-      section === 'orders' ||
-      section === 'take-orders' ||
-      section === 'take-orders-app' ||
-      section === 'report-orders'
     const onDashboard = section === 'dashboard' && !isEmployee
-    const pollOrders = onOrdersView || isEmployee || section === 'dashboard'
-    if (!pollOrders && !onDashboard) return
-
+    // Siempre refrescar pedidos: aviso sonoro de pendientes en cualquier sección.
     const id = window.setInterval(() => {
       if (onDashboard) refreshDashboard().catch(() => {})
-      if (pollOrders) refreshOrders().catch(() => {})
+      refreshOrders().catch(() => {})
     }, 8000)
     return () => window.clearInterval(id)
   }, [admin, section, refreshDashboard, refreshOrders])
+
+  const hasPendingOrders = useMemo(
+    () => orders.some((o) => o.status === 'pending'),
+    [orders],
+  )
+
+  useEffect(() => {
+    if (!admin || ordersMuted || !hasPendingOrders) return
+    beep()
+    const id = window.setInterval(() => beep(), 2800)
+    return () => window.clearInterval(id)
+  }, [admin, ordersMuted, hasPendingOrders])
 
   async function onLogin(e: FormEvent) {
     e.preventDefault()
@@ -477,6 +502,15 @@ export function AdminApp() {
     <div className="admin-shell wide tm-shell">
       <DevPopup open={devOpen} title={devTitle} onClose={() => setDevOpen(false)} />
       {toast && <div className="admin-toast">{toast}</div>}
+      {hasPendingOrders && (
+        <button
+          type="button"
+          className={`admin-mute-orders${ordersMuted ? ' is-muted' : ''}`}
+          onClick={toggleOrdersMute}
+        >
+          {ordersMuted ? 'Activar sonido' : 'Silenciar'}
+        </button>
+      )}
 
       <aside className="tm-rail" aria-label="Navegación principal">
         {modules.map((mod) => (
@@ -1230,6 +1264,19 @@ function ClientsView({
   )
 }
 
+function relativeTimeEs(iso: string | Date) {
+  const t = new Date(iso).getTime()
+  if (!Number.isFinite(t)) return ''
+  const mins = Math.max(0, Math.round((Date.now() - t) / 60000))
+  if (mins < 1) return 'hace un momento'
+  if (mins === 1) return 'hace 1 min'
+  if (mins < 60) return `hace ${mins} min`
+  const hours = Math.floor(mins / 60)
+  if (hours === 1) return 'hace 1 h'
+  if (hours < 24) return `hace ${hours} h`
+  return new Date(t).toLocaleString('es-UY')
+}
+
 function OrdersView({
   kiosk,
   orders,
@@ -1318,17 +1365,18 @@ function OrdersView({
               type="button"
               className={`order-row ${selectedOrder?.id === o.id ? 'active' : ''} ${
                 flashSet.has(o.id) ? 'order-flash' : ''
-              }`}
+              } ${o.status === 'pending' ? 'order-row--pending' : ''}`}
               onClick={() => setSelectedOrder(o)}
             >
               <div>
                 <strong>
                   {flashSet.has(o.id) ? '● NUEVO · ' : ''}
+                  {o.status === 'pending' ? '⏳ ' : ''}
                   {o.customerName || 'Cliente'}
                 </strong>
                 <span>
                   {o.fulfillment === 'delivery' ? 'Delivery' : 'Retiro'} ·{' '}
-                  {new Date(o.createdAt).toLocaleString('es-UY')}
+                  {relativeTimeEs(o.createdAt)}
                 </span>
                 {o.outOfRange && (
                   <span className="range-warning range-warning--inline">

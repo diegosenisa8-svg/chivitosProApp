@@ -1731,6 +1731,38 @@ th {
   background: color-mix(in srgb, #e8a317 18%, transparent);
 }
 
+.order-row.order-row--pending {
+  border-left: 4px solid #e85d04;
+  background: color-mix(in srgb, #e85d04 10%, transparent);
+  font-weight: 600;
+}
+
+.order-row.order-row--pending strong {
+  font-size: 1.05em;
+}
+
+.admin-mute-orders {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 40;
+  border: 1px solid #c45c12;
+  background: #fff7ed;
+  color: #9a3412;
+  border-radius: 999px;
+  padding: 0.55rem 1rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.admin-mute-orders.is-muted {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+  color: #374151;
+}
+
 .order-row.order-flash strong {
   color: #ffd666;
 }

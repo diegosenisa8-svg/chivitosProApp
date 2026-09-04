@@ -140,7 +140,7 @@ export function MenuPage() {
             <div className="featured-row">
               {featured.map((item) => (
                 <Link key={item.id} to={`/product/${item.id}`} className="featured-card">
-                  <MediaImage src={item.image} alt="" loading="lazy" />
+                  <MediaImage src={item.image} alt="" loading="lazy" placeholderLabel={item.name} />
                   <strong>{item.name}</strong>
                   <span>{formatPrice(item.price)}</span>
                 </Link>
@@ -201,7 +201,13 @@ export function MenuPage() {
                     {cat.items.map((item) => (
                       <li key={item.id}>
                         <Link to={`/product/${item.id}`} className="item-row">
-                          <MediaImage src={item.image} alt="" className="item-thumb" loading="lazy" />
+                          <MediaImage
+                            src={item.image}
+                            alt=""
+                            className="item-thumb"
+                            loading="lazy"
+                            placeholderLabel={item.name}
+                          />
                           <div className="item-body">
                             <div className="item-line">
                               <h3>

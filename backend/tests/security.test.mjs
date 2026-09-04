@@ -216,8 +216,31 @@ test('el cupón se resuelve contra la configuración, no contra el body', () => 
   assert.equal(conCupon.discount, 60) // 20% de 300
   assert.equal(conCupon.coupon, 'PIZZA20')
 
-  const inventado = priceOrder({ restaurant, products, body: { ...baseBody, couponCode: 'NO-EXISTE' } })
-  assert.equal(inventado.discount, 0)
+  assert.throws(
+    () => priceOrder({ restaurant, products, body: { ...baseBody, couponCode: 'NO-EXISTE' } }),
+    (err) => err instanceof OrderError && err.code === 'INVALID_COUPON',
+  )
+
+  const vacio = priceOrder({ restaurant, products, body: { ...baseBody, couponCode: '  ' } })
+  assert.equal(vacio.discount, 0)
+})
+
+test('pedido programado exige horario', () => {
+  assert.throws(
+    () =>
+      priceOrder({
+        restaurant,
+        products,
+        body: { ...baseBody, schedule: 'later', scheduleTime: '' },
+      }),
+    (err) => err instanceof OrderError && err.code === 'SCHEDULE_TIME_REQUIRED',
+  )
+  const ok = priceOrder({
+    restaurant,
+    products,
+    body: { ...baseBody, schedule: 'later', scheduleTime: '21:00' },
+  })
+  assert.ok(ok.total > 0)
 })
 
 test('la zona la resuelven las coordenadas, no el cliente', () => {

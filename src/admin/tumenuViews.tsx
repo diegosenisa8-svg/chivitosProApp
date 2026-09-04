@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { formatMoney } from '../lib/format'
-import { SALTO_CENTER, zoneDeliveryFee } from '../lib/deliveryZones'
+import { SALTO_CENTER, zoneDeliveryFee, zoneHasGeometry } from '../lib/deliveryZones'
 import type {
   DeliveryZone,
   MenuData,
@@ -349,6 +349,11 @@ export function DeliveryZonesFullView({
             {selected ? (
               <div className="mod-group-edit delivery-zone-editor">
                 <h4>Editar: {selected.name}</h4>
+                {!zoneHasGeometry(selected) && (
+                  <p className="range-warning" role="status">
+                    Esta zona todavía no tiene límite dibujado — no se está aplicando
+                  </p>
+                )}
 
                 <label>
                   Forma de la zona

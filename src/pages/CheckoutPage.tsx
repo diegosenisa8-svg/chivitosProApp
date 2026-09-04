@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Toast } from '../components/Toast'
 import { FulfillmentToggle } from '../components/FulfillmentToggle'
@@ -40,6 +40,18 @@ export function CheckoutPage() {
   const [mpError, setMpError] = useState('')
   const [geoState, setGeoState] = useState<'idle' | 'asking' | 'ok' | 'error'>('idle')
   const [geoError, setGeoError] = useState('')
+  const orderIdempotencyKey = useRef(
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `ord-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+  )
+
+  function nextIdempotencyKey() {
+    orderIdempotencyKey.current =
+      typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `ord-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+  }
 
   const total = Math.max(0, subtotal - discount + deliveryFee)
   const r = menu.restaurant
@@ -174,11 +186,13 @@ export function CheckoutPage() {
     if (fulfillment !== 'delivery') return { ...checkout, fulfillment }
     const zoneLabel = delivery.outOfRange
       ? 'FUERA DE ZONA — confirmar con el cliente si se puede llegar'
-      : selectedZone
+      : selectedZone?.name
         ? `Zona: ${selectedZone.name}${
             delivery.fee > 0 ? ` (envío ${formatMoney(delivery.fee)})` : ' (envío gratis)'
           }`
-        : ''
+        : delivery.fee > 0
+          ? `Envío ${formatMoney(delivery.fee)}`
+          : ''
     const notes = [checkout.notes.trim(), zoneLabel].filter(Boolean).join(' · ')
     return { ...checkout, fulfillment, notes }
   }
@@ -195,7 +209,7 @@ export function CheckoutPage() {
         lines,
         r.currency,
         checkoutWithZone(),
-        { couponCode: coupon },
+        { couponCode: coupon, idempotencyKey: orderIdempotencyKey.current },
         getToken(),
       )
     } catch (e) {
@@ -217,10 +231,15 @@ export function CheckoutPage() {
       return
     }
 
+    nextIdempotencyKey()
     clear()
     setBusy(false)
     navigate('/confirm', {
-      state: { total: order?.total ?? total, eta: `${r.etaMin}–${r.etaMax}` },
+      state: {
+        orderId: order?.id,
+        total: order?.total ?? total,
+        eta: `${r.etaMin}–${r.etaMax}`,
+      },
     })
   }
 
@@ -245,7 +264,7 @@ export function CheckoutPage() {
         lines,
         r.currency,
         { ...checkoutWithZone(), payment: 'mercadopago' },
-        { couponCode: coupon },
+        { couponCode: coupon, idempotencyKey: orderIdempotencyKey.current },
         getToken(),
       )
       if (!order?.id) throw new Error('No se pudo crear el pedido')
@@ -261,9 +280,11 @@ export function CheckoutPage() {
         payerEmail: data.payerEmail,
       })
 
+      nextIdempotencyKey()
       clear()
       navigate('/confirm', {
         state: {
+          orderId: order.id,
           total: order.total ?? total,
           eta: `${r.etaMin}–${r.etaMax}`,
           mp: result.mpStatus,
@@ -388,7 +409,9 @@ export function CheckoutPage() {
                   <strong>
                     {delivery.outOfRange
                       ? 'Estás fuera de las zonas de reparto'
-                      : `Zona: ${selectedZone?.name}`}
+                      : selectedZone?.name
+                        ? `Zona: ${selectedZone.name}`
+                        : 'Ubicación lista'}
                   </strong>
                   <span>
                     {delivery.outOfRange

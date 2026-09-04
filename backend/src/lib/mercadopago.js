@@ -84,10 +84,16 @@ export async function createMercadoPagoPayment({
 
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
-    const msg = data?.message || data?.error || `Mercado Pago error ${res.status}`
-    const err = new Error(msg)
+    const msg =
+      data?.message ||
+      data?.cause?.[0]?.description ||
+      data?.error ||
+      `Mercado Pago error ${res.status}`
+    const err = new Error(typeof msg === 'string' ? msg : 'Error de Mercado Pago')
     err.code = 'MP_API'
     err.details = data
+    // Errores de tarjeta / token / validación de MP → cliente (no 500).
+    err.httpStatus = res.status >= 400 && res.status < 500 ? (res.status === 402 ? 402 : 400) : 502
     throw err
   }
   return data

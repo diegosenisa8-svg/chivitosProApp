@@ -240,6 +240,14 @@ export const MODULES: NavModule[] = [
     icon: 'reports',
     groups: [
       {
+        id: 'orders-clients',
+        label: 'Reporte de pedidos y clientes',
+        items: [
+          { id: 'report-orders', label: 'Pedidos', roles: ['admin', 'empleado'] },
+          { id: 'report-clients', label: 'Clientes' },
+        ],
+      },
+      {
         id: 'dash',
         label: 'Panel',
         items: [{ id: 'dashboard', label: 'Panel principal' }],
@@ -276,14 +284,6 @@ export const MODULES: NavModule[] = [
           { id: 'delivery-map', label: 'Mapa de pedidos a domicilio' },
           { id: 'connectivity-health', label: 'Salud de conectividad' },
           { id: 'promotions-stats', label: 'Estadísticas de promociones' },
-        ],
-      },
-      {
-        id: 'orders-clients',
-        label: 'Reporte de pedidos y clientes',
-        items: [
-          { id: 'report-orders', label: 'Pedidos', roles: ['admin', 'empleado'] },
-          { id: 'report-clients', label: 'Clientes' },
         ],
       },
     ],
@@ -386,8 +386,9 @@ export function modulesForRole(role: string): NavModule[] {
   })).filter((m) => m.groups.length > 0)
 }
 
-export function defaultSectionForRole(role: string): AdminSection {
-  return role === 'empleado' ? 'report-orders' : 'dashboard'
+export function defaultSectionForRole(_role: string): AdminSection {
+  // Pedidos primero: operación diaria (admin y empleado).
+  return 'report-orders'
 }
 
 export function moduleOfSection(section: AdminSection): NavModule['id'] | null {

@@ -1,8 +1,5 @@
 import { prisma } from './prisma.js'
 
-/** Fallback in-memory si Postgres no responde (no ideal con varias réplicas). */
-const memoryBuckets = new Map()
-
 /**
  * IP del cliente detrás de Railway / proxies.
  * Tomamos la ÚLTIMA entrada de X-Forwarded-For: es la que agrega la plataforma
@@ -21,72 +18,69 @@ export function clientIp(req) {
   return req.ip || req.socket?.remoteAddress || 'unknown'
 }
 
-function memoryCheck(key, limit, windowMs) {
-  const now = Date.now()
-  let entry = memoryBuckets.get(key)
-  if (!entry || now - entry.start >= windowMs) {
-    entry = { start: now, count: 0 }
-    memoryBuckets.set(key, entry)
-  }
-  entry.count += 1
-  const remaining = Math.max(0, limit - entry.count)
-  if (entry.count > limit) {
-    return {
-      ok: false,
-      retryAfterSec: Math.ceil((entry.start + windowMs - now) / 1000),
-      remaining: 0,
-    }
-  }
-  return { ok: true, retryAfterSec: 0, remaining }
-}
-
 /**
+ * Rate limit atómico en Postgres (una sola sentencia).
+ * Si la base no responde: fail-closed (ok=false) — no hay fallback en memoria.
+ *
  * @param {string} key
  * @param {{ limit?: number, windowMs?: number }} [opts]
- * @returns {Promise<{ ok: boolean, retryAfterSec: number, remaining: number }>}
+ * @returns {Promise<{ ok: boolean, retryAfterSec: number, remaining: number, unavailable?: boolean }>}
  */
 export async function checkRateLimit(key, opts = {}) {
   const limit = opts.limit ?? 5
   const windowMs = opts.windowMs ?? 15 * 60 * 1000
   const now = new Date()
+  const windowStartIso = now.toISOString()
 
   try {
-    const existing = await prisma.rateLimitBucket.findUnique({ where: { key } })
-    const expired = !existing || now.getTime() - existing.windowStart.getTime() >= windowMs
+    // Una sola operación: inserta o incrementa / reinicia ventana.
+    const rows = await prisma.$queryRaw`
+      INSERT INTO "RateLimitBucket" ("key", "windowStart", "count", "updatedAt")
+      VALUES (${key}, ${now}::timestamp, 1, ${now}::timestamp)
+      ON CONFLICT ("key") DO UPDATE SET
+        "count" = CASE
+          WHEN (EXTRACT(EPOCH FROM (${now}::timestamp - "RateLimitBucket"."windowStart")) * 1000) >= ${windowMs}
+          THEN 1
+          ELSE "RateLimitBucket"."count" + 1
+        END,
+        "windowStart" = CASE
+          WHEN (EXTRACT(EPOCH FROM (${now}::timestamp - "RateLimitBucket"."windowStart")) * 1000) >= ${windowMs}
+          THEN ${now}::timestamp
+          ELSE "RateLimitBucket"."windowStart"
+        END,
+        "updatedAt" = ${now}::timestamp
+      RETURNING "count", "windowStart"
+    `
 
-    if (expired) {
-      await prisma.rateLimitBucket.upsert({
-        where: { key },
-        create: { key, windowStart: now, count: 1 },
-        update: { windowStart: now, count: 1 },
-      })
-      return { ok: true, retryAfterSec: 0, remaining: Math.max(0, limit - 1) }
-    }
+    const row = Array.isArray(rows) ? rows[0] : rows
+    const count = Number(row?.count) || 1
+    const windowStart = row?.windowStart ? new Date(row.windowStart) : now
 
-    const updated = await prisma.rateLimitBucket.update({
-      where: { key },
-      data: { count: { increment: 1 } },
-    })
-
-    if (updated.count > limit) {
-      const retryAfterSec = Math.ceil(
-        (existing.windowStart.getTime() + windowMs - now.getTime()) / 1000,
+    if (count > limit) {
+      const retryAfterSec = Math.max(
+        1,
+        Math.ceil((windowStart.getTime() + windowMs - now.getTime()) / 1000),
       )
-      return { ok: false, retryAfterSec: Math.max(1, retryAfterSec), remaining: 0 }
+      return { ok: false, retryAfterSec, remaining: 0 }
     }
     return {
       ok: true,
       retryAfterSec: 0,
-      remaining: Math.max(0, limit - updated.count),
+      remaining: Math.max(0, limit - count),
     }
   } catch (err) {
-    console.warn('rateLimit DB fallback', err?.message || err)
-    return memoryCheck(key, limit, windowMs)
+    console.error('rateLimit unavailable', err?.message || err)
+    // Fail-closed: no dejar pasar intentos si no podemos contarlos.
+    return {
+      ok: false,
+      retryAfterSec: 60,
+      remaining: 0,
+      unavailable: true,
+    }
   }
 }
 
 export async function resetRateLimit(key) {
-  memoryBuckets.delete(key)
   try {
     await prisma.rateLimitBucket.delete({ where: { key } }).catch(() => null)
   } catch {

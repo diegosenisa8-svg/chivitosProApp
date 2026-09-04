@@ -21,7 +21,7 @@ export function signCustomerToken(account) {
 }
 
 export function verifyCustomerToken(token) {
-  const payload = jwt.verify(token, JWT_SECRET)
+  const payload = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] })
   if (payload?.typ !== 'customer') {
     const err = new Error('Token inválido')
     err.name = 'JsonWebTokenError'

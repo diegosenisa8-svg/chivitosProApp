@@ -33,6 +33,7 @@ import { optionalCustomer, requireCustomer } from './middleware/customerAuth.js'
 import { checkRateLimit, clientIp, resetRateLimit } from './lib/rateLimit.js'
 import adminRoutes from './routes/admin.js'
 import { importLibraryFromProducts } from './lib/modifierLibrary.js'
+import { isMailConfigured, sendEmail } from './lib/mail.js'
 
 const app = express()
 // Railway (y cualquier proxy delante) agrega X-Forwarded-For. Declarar el proxy
@@ -179,13 +180,15 @@ const orderSchema = z.object({
   customerName: z.string().max(120).optional(),
   phone: z.string().max(40).optional(),
   notes: z.string().max(1000).optional(),
-  currency: z.string().max(8).default('UYU'),
+  // Moneda la fija el local; se ignora lo que mande el cliente.
+  currency: z.string().max(8).optional(),
   fulfillment: z.enum(['delivery', 'pickup']).default('delivery'),
   address: z.string().max(400).optional(),
   payment: PAYMENT_METHODS.default('efectivo'),
   schedule: z.enum(['now', 'later']).default('now'),
   scheduleTime: z.string().max(40).optional(),
   couponCode: z.string().max(40).optional(),
+  idempotencyKey: z.string().min(8).max(128).optional(),
   // Ubicación del cliente. La zona la resuelve el servidor a partir de esto: el
   // cliente ya no elige zona de una lista ni escribe la calle a mano.
   location: z
@@ -389,6 +392,9 @@ app.post('/api/auth/login', async (req, res) => {
     const ip = clientIp(req)
     const rlIp = await checkRateLimit(`customer-login-ip:${ip}`, { limit: 20, windowMs: 15 * 60 * 1000 })
     const rl = await checkRateLimit(`customer-login:${ip}:${email}`, { limit: 5, windowMs: 15 * 60 * 1000 })
+    if (rlIp.unavailable || rl.unavailable) {
+      return res.status(503).json({ error: 'Servicio de seguridad temporalmente no disponible. Probá de nuevo.' })
+    }
     const blocked = !rlIp.ok ? rlIp : !rl.ok ? rl : null
     if (blocked) {
       res.setHeader('Retry-After', String(blocked.retryAfterSec))
@@ -525,9 +531,92 @@ function composeAddress(body, priced) {
   return partes.join(' · ') || null
 }
 
+function orderCreateResponse(order, priced, { idempotent = false } = {}) {
+  return {
+    id: order.id,
+    status: order.status,
+    subtotal: order.subtotal,
+    discount: order.discount,
+    deliveryFee: order.deliveryFee,
+    total: order.total,
+    coupon: priced?.coupon ?? (order.payload?.pricing?.coupon || ''),
+    zone: priced?.zone ?? order.payload?.pricing?.zone ?? null,
+    outOfRange: priced?.outOfRange ?? Boolean(order.outOfRange),
+    paymentToken: signPaymentToken(order.id),
+    ...(idempotent ? { idempotent: true } : {}),
+  }
+}
+
+function notifyStaffNewOrder(restaurant, order) {
+  try {
+    if (!isMailConfigured()) return
+    const settings = mergeSettings(restaurant.settings)
+    const emails = (settings.notifications?.staffEmails || [])
+      .map((e) => String(e || '').trim().toLowerCase())
+      .filter((e) => e.includes('@'))
+    if (!emails.length) return
+
+    const shortId = String(order.id).slice(0, 8).toUpperCase()
+    const fulfillment = order.fulfillment === 'pickup' ? 'Retiro' : 'Delivery'
+    const subject = `Nuevo pedido #${shortId}`
+    const text = [
+      `Pedido #${shortId}`,
+      `Total: ${order.total} ${order.currency || 'UYU'}`,
+      `Modalidad: ${fulfillment}`,
+      `Cliente: ${order.customerName || '—'}`,
+      `Teléfono: ${order.phone || '—'}`,
+      order.address ? `Dirección: ${order.address}` : null,
+      order.notes ? `Notas: ${order.notes}` : null,
+    ]
+      .filter(Boolean)
+      .join('\n')
+
+    for (const to of emails) {
+      void sendEmail({ to, subject, text }).catch((e) =>
+        console.warn('staff order mail failed', to, e?.message || e),
+      )
+    }
+  } catch (e) {
+    console.warn('staff order notify failed', e?.message || e)
+  }
+}
+
 app.post('/api/orders', optionalCustomer, async (req, res) => {
   try {
     const body = orderSchema.parse(req.body)
+
+    const ip = clientIp(req)
+    const rl = await checkRateLimit(`orders-ip:${ip}`, { limit: 10, windowMs: 10 * 60 * 1000 })
+    if (rl.unavailable) {
+      return res
+        .status(503)
+        .json({ error: 'Servicio temporalmente no disponible. Probá de nuevo.' })
+    }
+    if (!rl.ok) {
+      res.setHeader('Retry-After', String(rl.retryAfterSec))
+      return res.status(429).json({
+        error: `Demasiados pedidos desde esta red. Probá de nuevo en ${rl.retryAfterSec}s`,
+      })
+    }
+
+    const idemKey = String(
+      req.headers['idempotency-key'] || body.idempotencyKey || '',
+    )
+      .trim()
+      .slice(0, 128)
+
+    if (idemKey) {
+      const existing = await prisma.orderIdempotency.findUnique({ where: { key: idemKey } })
+      if (existing) {
+        const prior = await prisma.order.findUnique({
+          where: { id: existing.orderId },
+          include: { items: true },
+        })
+        if (prior) {
+          return res.status(200).json(orderCreateResponse(prior, null, { idempotent: true }))
+        }
+      }
+    }
 
     const restaurant = await prisma.restaurant.findUnique({ where: { id: 1 } })
     if (!restaurant) {
@@ -543,6 +632,7 @@ app.post('/api/orders', optionalCustomer, async (req, res) => {
     })
 
     const priced = priceOrder({ restaurant, products, body })
+    const currency = restaurant.currency || 'UYU'
 
     let accountId = null
     let customerName = body.customerName
@@ -561,7 +651,7 @@ app.post('/api/orders', optionalCustomer, async (req, res) => {
         customerName,
         phone,
         notes: body.notes,
-        currency: body.currency,
+        currency,
         fulfillment: priced.fulfillment,
         address: priced.fulfillment === 'delivery' ? composeAddress(body, priced) : null,
         addressDetail:
@@ -609,6 +699,26 @@ app.post('/api/orders', optionalCustomer, async (req, res) => {
       include: { items: true },
     })
 
+    if (idemKey) {
+      try {
+        await prisma.orderIdempotency.create({
+          data: { key: idemKey, orderId: order.id },
+        })
+      } catch {
+        const winner = await prisma.orderIdempotency.findUnique({ where: { key: idemKey } })
+        if (winner && winner.orderId !== order.id) {
+          await prisma.order.delete({ where: { id: order.id } }).catch(() => null)
+          const prior = await prisma.order.findUnique({
+            where: { id: winner.orderId },
+            include: { items: true },
+          })
+          if (prior) {
+            return res.status(200).json(orderCreateResponse(prior, null, { idempotent: true }))
+          }
+        }
+      }
+    }
+
     try {
       await upsertCustomerFromOrder({
         name: customerName,
@@ -619,19 +729,9 @@ app.post('/api/orders', optionalCustomer, async (req, res) => {
       console.warn('Customer upsert failed', e)
     }
 
-    res.status(201).json({
-      id: order.id,
-      status: order.status,
-      subtotal: order.subtotal,
-      discount: order.discount,
-      deliveryFee: order.deliveryFee,
-      total: order.total,
-      coupon: priced.coupon,
-      zone: priced.zone,
-      outOfRange: priced.outOfRange,
-      // Habilita a pagar ESTE pedido durante los próximos 30 minutos.
-      paymentToken: signPaymentToken(order.id),
-    })
+    notifyStaffNewOrder(restaurant, order)
+
+    res.status(201).json(orderCreateResponse(order, priced))
   } catch (err) {
     if (err instanceof OrderError) {
       return res.status(err.status).json({ error: err.message, code: err.code })
@@ -779,6 +879,14 @@ app.post('/api/payments/mercadopago', optionalCustomer, async (req, res) => {
   } catch (err) {
     if (err?.name === 'ZodError') {
       return res.status(400).json({ error: 'Datos de pago inválidos', ...zodDetails(err) })
+    }
+    if (err?.code === 'MP_API' || err?.code === 'NO_MP') {
+      const status = err.httpStatus || (err.code === 'NO_MP' ? 503 : 400)
+      return res.status(status).json({
+        error: err.message || 'No se pudo procesar el pago con Mercado Pago',
+        code: err.code,
+        details: err.details || undefined,
+      })
     }
     console.error('MP payment error', err)
     res.status(500).json({ error: err?.message || 'No se pudo procesar el pago' })

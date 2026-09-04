@@ -239,3 +239,12 @@ model RateLimitBucket {
   count       Int      @default(0)
   updatedAt   DateTime @updatedAt
 }
+
+/// Idempotencia de creación de pedidos (doble clic / reintentos de red).
+model OrderIdempotency {
+  key       String   @id
+  orderId   String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}

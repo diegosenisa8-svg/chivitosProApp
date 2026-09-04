@@ -18,14 +18,60 @@ export function uploadPublicPath(filename) {
   return `/uploads/${filename}`
 }
 
+/** Detecta JPEG / PNG / WebP por magic bytes (no confiar solo en MIME del cliente). */
+export function detectImageMime(buffer) {
+  if (!buffer || buffer.length < 12) return null
+  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return 'image/jpeg'
+  if (
+    buffer[0] === 0x89 &&
+    buffer[1] === 0x50 &&
+    buffer[2] === 0x4e &&
+    buffer[3] === 0x47 &&
+    buffer[4] === 0x0d &&
+    buffer[5] === 0x0a &&
+    buffer[6] === 0x1a &&
+    buffer[7] === 0x0a
+  ) {
+    return 'image/png'
+  }
+  // RIFF....WEBP
+  if (
+    buffer[0] === 0x52 &&
+    buffer[1] === 0x49 &&
+    buffer[2] === 0x46 &&
+    buffer[3] === 0x46 &&
+    buffer[8] === 0x57 &&
+    buffer[9] === 0x45 &&
+    buffer[10] === 0x42 &&
+    buffer[11] === 0x50
+  ) {
+    return 'image/webp'
+  }
+  return null
+}
+
 export async function saveMediaBuffer({ buffer, originalName, mimeType }) {
-  const ext = path.extname(originalName || '').toLowerCase() || '.jpg'
-  const safeExt = ext.match(/^\.(jpe?g|png|webp|gif)$/) ? ext : '.jpg'
+  if (!buffer || buffer.length === 0) {
+    const err = new Error('El archivo está vacío')
+    err.code = 'EMPTY_FILE'
+    throw err
+  }
+  const detected = detectImageMime(buffer)
+  if (!detected) {
+    const err = new Error('Solo se permiten imágenes JPEG, PNG o WebP')
+    err.code = 'INVALID_IMAGE'
+    throw err
+  }
+
+  const extFromMime =
+    detected === 'image/png' ? '.png' : detected === 'image/webp' ? '.webp' : '.jpg'
+  const ext = path.extname(originalName || '').toLowerCase()
+  const safeExt = ext.match(/^\.(jpe?g|png|webp)$/) ? ext : extFromMime
   const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${safeExt}`
   const row = await prisma.mediaFile.create({
     data: {
       filename,
-      mimeType: mimeType || 'image/jpeg',
+      mimeType: detected || mimeType || 'image/jpeg',
       size: buffer.length,
       data: buffer,
     },

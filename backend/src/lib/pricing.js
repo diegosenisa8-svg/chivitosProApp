@@ -270,8 +270,19 @@ export function priceOrder({ restaurant, products, body }) {
     }
   }
 
+  // --- horario programado ---------------------------------------------------
+  if (body.schedule === 'later' && !String(body.scheduleTime || '').trim()) {
+    throw new OrderError('Indicá la hora del pedido programado', {
+      code: 'SCHEDULE_TIME_REQUIRED',
+    })
+  }
+
   // --- descuento ------------------------------------------------------------
+  const rawCoupon = String(body.couponCode || '').trim()
   const coupon = resolveCoupon(body.couponCode, settings)
+  if (rawCoupon && !coupon) {
+    throw new OrderError('Cupón inválido o vencido', { code: 'INVALID_COUPON' })
+  }
   let discount = 0
   if (coupon) {
     discount =

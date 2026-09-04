@@ -29,6 +29,7 @@ import {
   unsyncCategoryLibraryGroup,
 } from '../lib/modifierLibrary.js'
 import { checkRateLimit, clientIp, resetRateLimit } from '../lib/rateLimit.js'
+import { startOfDayInTimeZone, addLocalDays, localDateKey } from '../lib/timezone.js'
 import {
   FULFILLMENT,
   ORDER_STATUS,
@@ -38,6 +39,8 @@ import {
   prismaHttpError,
   zodDetails,
 } from '../lib/validation.js'
+
+const MAX_PRODUCT_PRICE = 1_000_000
 
 const router = Router()
 
@@ -72,6 +75,9 @@ router.post('/upload', requireFullAdmin, (req, res) => {
         id: saved.id,
       })
     } catch (e) {
+      if (e?.code === 'EMPTY_FILE' || e?.code === 'INVALID_IMAGE') {
+        return res.status(400).json({ error: e.message })
+      }
       console.error(e)
       res.status(500).json({ error: 'No se pudo guardar la imagen' })
     }
@@ -92,6 +98,9 @@ router.post('/login', async (req, res) => {
     const ip = clientIp(req)
     const rlIp = await checkRateLimit(`admin-login-ip:${ip}`, { limit: 20, windowMs: 15 * 60 * 1000 })
     const rl = await checkRateLimit(`admin-login:${ip}:${email}`, { limit: 5, windowMs: 15 * 60 * 1000 })
+    if (rlIp.unavailable || rl.unavailable) {
+      return res.status(503).json({ error: 'Servicio de seguridad temporalmente no disponible. Probá de nuevo.' })
+    }
     const blocked = !rlIp.ok ? rlIp : !rl.ok ? rl : null
     if (blocked) {
       res.setHeader('Retry-After', String(blocked.retryAfterSec))
@@ -183,11 +192,12 @@ router.get('/me', requireAdmin, async (req, res) => {
 
 router.get('/dashboard', requireFullAdmin, async (_req, res) => {
   try {
+    const restaurant = await prisma.restaurant.findUnique({ where: { id: 1 } })
+    const settings = mergeSettings(restaurant?.settings)
+    const tz = settings.timezone || 'America/Montevideo'
     const now = new Date()
-    const startOfDay = new Date(now)
-    startOfDay.setHours(0, 0, 0, 0)
-    const startOfWeek = new Date(startOfDay)
-    startOfWeek.setDate(startOfWeek.getDate() - 6)
+    const startOfDay = startOfDayInTimeZone(now, tz)
+    const startOfWeek = addLocalDays(startOfDay, -6, tz)
 
     const counted = { in: ['confirmed', 'preparing', 'ready', 'delivering', 'delivered'] }
     const [todayOrders, weekOrders, allRecent, byStatus, products] = await Promise.all([
@@ -229,13 +239,11 @@ router.get('/dashboard', requireFullAdmin, async (_req, res) => {
 
     const days = []
     for (let i = 6; i >= 0; i--) {
-      const d = new Date(startOfDay)
-      d.setDate(d.getDate() - i)
-      const key = d.toISOString().slice(0, 10)
-      days.push({ date: key, sales: 0, orders: 0 })
+      const d = addLocalDays(startOfDay, -i, tz)
+      days.push({ date: localDateKey(d, tz), sales: 0, orders: 0 })
     }
     for (const order of weekOrders) {
-      const key = order.createdAt.toISOString().slice(0, 10)
+      const key = localDateKey(order.createdAt, tz)
       const bucket = days.find((d) => d.date === key)
       if (bucket) {
         bucket.sales += order.total
@@ -264,6 +272,7 @@ router.get('/dashboard', requireFullAdmin, async (_req, res) => {
       })),
       topProducts,
       recentOrders: allRecent,
+      timezone: tz,
     })
   } catch (err) {
     console.error(err)
@@ -401,8 +410,8 @@ router.patch('/products/:id', requireAdmin, async (req, res) => {
       .object({
         name: z.string().min(1).max(160).optional(),
         description: z.string().max(2000).optional(),
-        price: z.number().nonnegative().optional(),
-        priceMax: z.number().nonnegative().nullable().optional(),
+        price: z.number().nonnegative().max(MAX_PRODUCT_PRICE).optional(),
+        priceMax: z.number().nonnegative().max(MAX_PRODUCT_PRICE).nullable().optional(),
         image: z.string().min(1).max(500).optional(),
         available: z.boolean().optional(),
         featured: z.boolean().optional(),
@@ -447,8 +456,8 @@ router.post('/products', requireFullAdmin, async (req, res) => {
         categoryId: z.string().min(1).max(64),
         name: z.string().min(1).max(160),
         description: z.string().max(2000).default(''),
-        price: z.number().nonnegative(),
-        priceMax: z.number().nonnegative().nullable().optional(),
+        price: z.number().nonnegative().max(MAX_PRODUCT_PRICE),
+        priceMax: z.number().nonnegative().max(MAX_PRODUCT_PRICE).nullable().optional(),
         image: z.string().min(1).max(500).default('/logo.png'),
         available: z.boolean().default(true),
         featured: z.boolean().default(false),

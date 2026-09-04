@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import type { DeliveryZone, LatLng } from '../types'
-import { SALTO_CENTER } from '../lib/deliveryZones'
+import { SALTO_CENTER, zoneHasGeometry } from '../lib/deliveryZones'
 
 type Props = {
   zones: DeliveryZone[]
@@ -113,7 +113,7 @@ export function DeliveryZonesMap({
       .bindTooltip('Local', { permanent: false })
       .addTo(group)
 
-    for (const z of zones.filter((x) => x.active)) {
+    for (const z of zones.filter((x) => x.active && zoneHasGeometry(x))) {
       // En modo dibujo no dibujamos la zona seleccionada (se ve el draft editable)
       if (markMode && z.id === selectedId && drawShape === 'polygon') continue
 

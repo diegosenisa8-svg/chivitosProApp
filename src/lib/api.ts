@@ -60,7 +60,7 @@ export async function submitOrder(
   lines: CartLine[],
   currency: string,
   checkout?: CheckoutInfo,
-  extras?: { couponCode?: string },
+  extras?: { couponCode?: string; idempotencyKey?: string },
   customerToken?: string | null,
 ) {
   if (getApiBase() === null || !lines.length) return null
@@ -77,7 +77,16 @@ export async function submitOrder(
     })),
   }))
 
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  const idempotencyKey =
+    extras?.idempotencyKey ||
+    (typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `ord-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`)
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Idempotency-Key': idempotencyKey,
+  }
   if (customerToken) headers.Authorization = `Bearer ${customerToken}`
 
   const res = await fetch(apiUrl('/api/orders'), {
@@ -95,6 +104,7 @@ export async function submitOrder(
       schedule: checkout?.schedule || 'now',
       scheduleTime: checkout?.scheduleTime,
       couponCode: extras?.couponCode || '',
+      idempotencyKey,
       // La zona la resuelve el servidor desde la ubicación.
       location: checkout?.location || undefined,
       addressDetail: checkout?.addressDetail || '',
