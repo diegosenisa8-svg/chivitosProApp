@@ -14,6 +14,7 @@ import {
 } from '../lib/api'
 import { formatMoney } from '../lib/format'
 import { resolveDelivery } from '../lib/deliveryZones'
+import { scrollToFirst } from '../lib/scrollToError'
 import type { CheckoutInfo } from '../types'
 
 export function CheckoutPage() {
@@ -157,7 +158,16 @@ export function CheckoutPage() {
       next.min = `El mínimo de pedido es ${formatMoney(minOrder)}`
     }
     setErrors(next)
-    return Object.keys(next).length === 0
+    const keys = Object.keys(next)
+    if (keys.length) {
+      const order = ['name', 'phone', 'location', 'addressDetail', 'scheduleTime', 'min']
+      const first = order.find((k) => next[k]) || keys[0]
+      requestAnimationFrame(() => {
+        scrollToFirst([`[data-field="${first}"]`, '.error-inline'])
+      })
+      return false
+    }
+    return true
   }
 
   function checkoutWithZone(): CheckoutInfo {
@@ -321,30 +331,35 @@ export function CheckoutPage() {
       <main className="checkout-body">
         <FulfillmentToggle />
 
-        <label className="field">
+        <label className={`field${errors.name ? ' field--error' : ''}`} data-field="name">
           <span>Nombre</span>
           <input
             value={checkout.name}
             onChange={(e) => setCheckout({ name: e.target.value })}
             placeholder="Tu nombre"
+            aria-invalid={Boolean(errors.name)}
           />
           {errors.name && <em>{errors.name}</em>}
         </label>
 
-        <label className="field">
+        <label className={`field${errors.phone ? ' field--error' : ''}`} data-field="phone">
           <span>Teléfono</span>
           <input
             value={checkout.phone}
             onChange={(e) => setCheckout({ phone: e.target.value })}
             placeholder="09X XXX XXX"
             inputMode="tel"
+            aria-invalid={Boolean(errors.phone)}
           />
           {errors.phone && <em>{errors.phone}</em>}
         </label>
 
         {fulfillment === 'delivery' && (
           <>
-            <fieldset className="field geo-box">
+            <fieldset
+              className={`field geo-box${errors.location ? ' field--error' : ''}`}
+              data-field="location"
+            >
               <legend>Ubicación de entrega</legend>
               <p className="field-hint">
                 Necesitamos tu ubicación exacta para llevarte el pedido. No hace falta que
@@ -399,7 +414,10 @@ export function CheckoutPage() {
               )}
             </fieldset>
 
-            <label className="field">
+            <label
+              className={`field${errors.addressDetail ? ' field--error' : ''}`}
+              data-field="addressDetail"
+            >
               <span>Número de casa o apartamento</span>
               <input
                 value={checkout.addressDetail}
@@ -416,6 +434,7 @@ export function CheckoutPage() {
                   }
                 }}
                 placeholder="Ej: 1234, apto 3"
+                aria-invalid={Boolean(errors.addressDetail)}
               />
               {errors.addressDetail && <em>{errors.addressDetail}</em>}
             </label>
@@ -433,7 +452,10 @@ export function CheckoutPage() {
           </>
         )}
 
-        <fieldset className="field">
+        <fieldset
+          className={`field${errors.scheduleTime ? ' field--error' : ''}`}
+          data-field="scheduleTime"
+        >
           <legend>Horario</legend>
           <label className="radio">
             <input
@@ -524,7 +546,11 @@ export function CheckoutPage() {
           />
         </label>
 
-        {errors.min && <p className="error-inline">{errors.min}</p>}
+        {errors.min && (
+          <p className="error-inline" data-field="min" role="alert">
+            {errors.min}
+          </p>
+        )}
 
         <div className="totals">
           <div>

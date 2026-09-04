@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Toast } from '../components/Toast'
 import { useCart } from '../context/CartContext'
@@ -6,6 +6,7 @@ import { useMenu } from '../context/MenuContext'
 import { mediaUrl } from '../lib/apiBase'
 import { formatMoney, formatPrice } from '../lib/format'
 import { findItem, getFeaturedItems } from '../lib/menuUtils'
+import { scrollToAndFlash } from '../lib/scrollToError'
 import type { MenuItem, SelectedModifier } from '../types'
 
 type SelMap = Record<string, Record<string, number>>
@@ -16,6 +17,7 @@ export function ProductPage() {
   const { addLine } = useCart()
   const { menu } = useMenu()
   const item = findItem(menu, id)
+  const groupRefs = useRef<Record<string, HTMLElement | null>>({})
 
   const [qty, setQty] = useState(1)
   const [notes, setNotes] = useState('')
@@ -106,7 +108,14 @@ export function ProductPage() {
 
   function onAdd(product: MenuItem) {
     setTried(true)
-    if (missingRequired.length) return
+    if (missingRequired.length) {
+      const first = missingRequired[0]
+      // Esperar al paint con la clase `.invalid` antes de scrollear.
+      requestAnimationFrame(() => {
+        scrollToAndFlash(groupRefs.current[first.id])
+      })
+      return
+    }
 
     const modifiers: SelectedModifier[] = []
     for (const g of product.modifiers || []) {
@@ -142,6 +151,12 @@ export function ProductPage() {
     })
     navigate('/menu')
   }
+
+  const missingLabel = missingRequired[0]
+    ? missingRequired[0].min > 1
+      ? `Elegí al menos ${missingRequired[0].min} opciones en “${missingRequired[0].name}”.`
+      : `Elegí una opción en “${missingRequired[0].name}” para continuar.`
+    : ''
 
   return (
     <div className="page product-page">
@@ -187,11 +202,29 @@ export function ProductPage() {
           const invalid = tried && missingRequired.some((g) => g.id === group.id)
           const chosen = sel[group.id] || {}
           return (
-            <section key={group.id} className={`mod-group ${invalid ? 'invalid' : ''}`}>
+            <section
+              key={group.id}
+              ref={(el) => {
+                groupRefs.current[group.id] = el
+              }}
+              className={`mod-group ${invalid ? 'invalid' : ''}`}
+              data-mod-group={group.id}
+            >
               <h2>
                 {group.name}
-                {group.required ? ' (Obligatorio)' : ''}
+                {group.required ? (
+                  <span className="mod-required-badge">Obligatorio</span>
+                ) : (
+                  <span className="mod-optional-badge">Opcional</span>
+                )}
               </h2>
+              {invalid && (
+                <p className="mod-group-hint" role="alert">
+                  {group.min > 1
+                    ? `Seleccioná al menos ${group.min} opciones.`
+                    : 'Seleccioná al menos una opción.'}
+                </p>
+              )}
               <ul>
                 {group.options.map((opt) => {
                   const q = chosen[opt.id] || 0
@@ -276,8 +309,8 @@ export function ProductPage() {
       </div>
 
       {tried && missingRequired.length > 0 && (
-        <div className="error-banner">
-          Debe seleccionar al menos un <strong>{missingRequired[0].name}</strong> para este producto.
+        <div className="error-banner" role="alert">
+          {missingLabel}
         </div>
       )}
 

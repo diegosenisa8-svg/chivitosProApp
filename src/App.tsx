@@ -1,11 +1,9 @@
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useEffect, type ReactNode } from 'react'
-import { ThemeToggle } from './components/ThemeToggle'
 import { CartProvider } from './context/CartContext'
 import { CustomerAuthProvider, useCustomerAuth } from './context/CustomerAuthContext'
 import { MenuProvider } from './context/MenuContext'
 import { MenuCartBridge } from './context/MenuCartBridge'
-import { ThemeProvider } from './context/ThemeContext'
 import { applyTheme } from './lib/theme'
 import { AdminPage } from './pages/AdminPage'
 import { CartPage } from './pages/CartPage'
@@ -36,10 +34,10 @@ function AppRoutes() {
   const isAdmin = location.pathname.startsWith('/admin')
 
   useEffect(() => {
+    applyTheme('light')
+    document.documentElement.style.colorScheme = 'light'
     if (isAdmin) {
-      applyTheme('light')
       document.documentElement.classList.add('admin-tm')
-      document.documentElement.style.colorScheme = 'light'
     } else {
       document.documentElement.classList.remove('admin-tm')
     }
@@ -47,7 +45,6 @@ function AppRoutes() {
 
   return (
     <div className={isAdmin ? 'admin-root' : 'app-shell'}>
-      {!isAdmin ? <ThemeToggle /> : null}
       <Routes>
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/" element={<HomePage />} />
@@ -79,17 +76,15 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <MenuProvider>
-        <CustomerAuthProvider>
-          <CartProvider>
-            <MenuCartBridge />
-            <BrowserRouter>
-              <AppRoutes />
-            </BrowserRouter>
-          </CartProvider>
-        </CustomerAuthProvider>
-      </MenuProvider>
-    </ThemeProvider>
+    <MenuProvider>
+      <CustomerAuthProvider>
+        <CartProvider>
+          <MenuCartBridge />
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </CartProvider>
+      </CustomerAuthProvider>
+    </MenuProvider>
   )
 }
