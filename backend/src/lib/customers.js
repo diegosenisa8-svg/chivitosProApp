@@ -47,6 +47,47 @@ export async function upsertCustomerFromOrder({ name, phone, orderedAt = new Dat
 }
 
 /** Import clients from existing orders (idempotent-ish: resets counts from history). */
+/**
+ * Mapa phoneKey → email de cuenta registrada.
+ * Prioridad: CustomerAccount.phone normalizado; si falta, orders con customerAccount.
+ */
+export async function buildCustomerEmailByPhoneKey() {
+  const map = new Map()
+
+  const accounts = await prisma.customerAccount.findMany({
+    select: { email: true, phone: true },
+  })
+  for (const account of accounts) {
+    const key = normalizePhoneKey(account.phone)
+    if (key && account.email) map.set(key, account.email)
+  }
+
+  const orders = await prisma.order.findMany({
+    where: {
+      customerAccountId: { not: null },
+      phone: { not: null },
+    },
+    select: {
+      phone: true,
+      customerAccount: { select: { email: true } },
+    },
+  })
+  for (const order of orders) {
+    const key = normalizePhoneKey(order.phone)
+    const email = order.customerAccount?.email
+    if (key && email && !map.has(key)) map.set(key, email)
+  }
+
+  return map
+}
+
+/** Resuelve el email de un Customer CRM (solo si tiene cuenta / pedidos vinculados). */
+export async function resolveCustomerEmail(customer) {
+  if (!customer?.phoneKey) return null
+  const map = await buildCustomerEmailByPhoneKey()
+  return map.get(customer.phoneKey) || null
+}
+
 export async function syncCustomersFromOrders() {
   const orders = await prisma.order.findMany({
     where: {

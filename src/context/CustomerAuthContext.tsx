@@ -22,10 +22,9 @@ type CustomerAuthValue = {
   customer: CustomerUser | null
   booting: boolean
   login: (email: string, password: string) => Promise<void>
-  register: (data: {
-    email: string
-    password: string
-    name: string
+  loginWithGoogle: (data: {
+    googleIdToken: string
+    name?: string
     phone?: string
   }) => Promise<void>
   logout: () => void
@@ -115,9 +114,9 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
         storeToken(data.token)
         setCustomer(data.customer)
       },
-      register: async (payload) => {
+      loginWithGoogle: async (payload) => {
         const data = await authFetch<{ token: string; customer: CustomerUser }>(
-          '/api/auth/register',
+          '/api/auth/google',
           {
             method: 'POST',
             body: JSON.stringify(payload),

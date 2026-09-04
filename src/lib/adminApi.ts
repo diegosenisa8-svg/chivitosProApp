@@ -353,11 +353,23 @@ export type AdminCustomer = {
   orderCount: number
   lastOrderAt: string
   whatsappUrl: string | null
+  /** Email de CustomerAccount vinculado por teléfono / pedidos, si existe. */
+  email: string | null
 }
 
 export async function fetchCustomers(q = '') {
   const qs = q.trim() ? `?q=${encodeURIComponent(q.trim())}` : ''
   return adminFetch<AdminCustomer[]>(`/customers${qs}`)
+}
+
+export async function sendCustomerEmail(
+  customerId: string,
+  body: { subject?: string; message: string },
+) {
+  return adminFetch<{ ok: boolean; enviadoA: string }>(`/customers/${customerId}/send-email`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
 }
 
 export type MercadoPagoAdminStatus = {

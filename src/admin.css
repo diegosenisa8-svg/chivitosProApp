@@ -816,6 +816,67 @@ th {
   text-decoration: none;
 }
 
+.client-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.client-email {
+  display: block;
+  font-size: 12px;
+  margin-top: 4px;
+  color: var(--admin-ink);
+}
+
+.client-email.muted {
+  color: var(--admin-muted);
+}
+
+.client-mail-popup {
+  width: min(480px, 100%);
+}
+
+.client-mail-form {
+  display: grid;
+  gap: 12px;
+}
+
+.client-mail-form label {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--admin-muted);
+}
+
+.client-mail-form input,
+.client-mail-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--admin-line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: inherit;
+  background: var(--admin-bg);
+  color: var(--admin-ink);
+  resize: vertical;
+}
+
+.client-mail-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.admin-ok {
+  margin: 0;
+  color: #1b7a3d;
+  font-size: 13px;
+}
+
 .cat-actions,
 .product-row-actions {
   display: flex;

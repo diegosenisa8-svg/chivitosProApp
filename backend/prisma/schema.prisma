@@ -136,7 +136,10 @@ model ModifierOption {
 model CustomerAccount {
   id           String   @id @default(cuid())
   email        String   @unique
-  passwordHash String
+  /// Null en cuentas creadas solo con Google Sign-In.
+  passwordHash String?
+  /// Subject de Google (`sub` del ID token). Único si está presente.
+  googleSub    String?  @unique
   name         String
   phone        String   @default("")
   createdAt    DateTime @default(now())

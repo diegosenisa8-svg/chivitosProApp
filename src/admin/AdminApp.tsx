@@ -24,6 +24,7 @@ import {
   replaceMenuCatalog,
   reorderMenu,
   saveProductModifiers,
+  sendCustomerEmail,
   setAdminToken,
   unassignModifierGroupFromCategory,
   unassignModifierGroupFromProduct,
@@ -1046,6 +1047,13 @@ function ClientsView({
   setQuery: (v: string) => void
   onRefresh: () => void
 }) {
+  const [mailTarget, setMailTarget] = useState<AdminCustomer | null>(null)
+  const [mailSubject, setMailSubject] = useState('')
+  const [mailMessage, setMailMessage] = useState('')
+  const [mailSending, setMailSending] = useState(false)
+  const [mailError, setMailError] = useState('')
+  const [mailOk, setMailOk] = useState('')
+
   function formatLastOrder(iso: string) {
     try {
       return new Date(iso).toLocaleString('es-UY', {
@@ -1057,12 +1065,56 @@ function ClientsView({
     }
   }
 
+  function openMail(customer: AdminCustomer) {
+    setMailTarget(customer)
+    setMailSubject('')
+    setMailMessage('')
+    setMailError('')
+    setMailOk('')
+  }
+
+  function closeMail() {
+    if (mailSending) return
+    setMailTarget(null)
+    setMailError('')
+    setMailOk('')
+  }
+
+  async function handleSendMail(e: FormEvent) {
+    e.preventDefault()
+    if (!mailTarget?.email) return
+    const message = mailMessage.trim()
+    if (!message) {
+      setMailError('Escribí el mensaje.')
+      return
+    }
+    setMailSending(true)
+    setMailError('')
+    setMailOk('')
+    try {
+      const result = await sendCustomerEmail(mailTarget.id, {
+        subject: mailSubject.trim() || undefined,
+        message,
+      })
+      setMailOk(`Enviado a ${result.enviadoA}`)
+      setMailMessage('')
+      setMailSubject('')
+    } catch (err) {
+      setMailError(err instanceof Error ? err.message : 'No se pudo enviar')
+    } finally {
+      setMailSending(false)
+    }
+  }
+
   return (
     <section className="admin-section">
       <header className="admin-header">
         <div>
           <h2>Clientes</h2>
-          <p>Quienes pidieron desde la app · nombre, última compra y WhatsApp</p>
+          <p>
+            Quienes pidieron desde la app · nombre, última compra, WhatsApp y mail si tienen
+            cuenta registrada
+          </p>
         </div>
         <button type="button" className="admin-btn" onClick={onRefresh}>
           Actualizar
@@ -1095,24 +1147,82 @@ function ClientsView({
                   {c.phone}
                   {c.orderCount > 1 ? ` · ${c.orderCount} pedidos` : ' · 1 pedido'}
                 </span>
+                {c.email ? (
+                  <span className="client-email">{c.email}</span>
+                ) : (
+                  <span className="client-email muted">Sin email (sin cuenta registrada)</span>
+                )}
                 <span className="client-last">Última vez: {formatLastOrder(c.lastOrderAt)}</span>
               </div>
-              {c.whatsappUrl ? (
-                <a
-                  className="admin-btn primary"
-                  href={c.whatsappUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  WhatsApp
-                </a>
-              ) : (
-                <span className="admin-muted">Sin WA</span>
-              )}
+              <div className="client-row-actions">
+                {c.email ? (
+                  <button type="button" className="admin-btn" onClick={() => openMail(c)}>
+                    Enviar mail
+                  </button>
+                ) : null}
+                {c.whatsappUrl ? (
+                  <a
+                    className="admin-btn primary"
+                    href={c.whatsappUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    WhatsApp
+                  </a>
+                ) : (
+                  <span className="admin-muted">Sin WA</span>
+                )}
+              </div>
             </div>
           ))
         )}
       </div>
+
+      {mailTarget ? (
+        <div className="dev-popup-overlay" role="dialog" aria-modal="true">
+          <div className="dev-popup client-mail-popup">
+            <h3>Enviar mail</h3>
+            <p className="admin-muted" style={{ margin: 0 }}>
+              A {mailTarget.name}
+              {mailTarget.email ? ` · ${mailTarget.email}` : ''}
+            </p>
+            <form className="client-mail-form" onSubmit={handleSendMail}>
+              <label>
+                Asunto (opcional)
+                <input
+                  value={mailSubject}
+                  onChange={(e) => setMailSubject(e.target.value)}
+                  placeholder="Mensaje de ChivitosPro"
+                  maxLength={160}
+                  disabled={mailSending}
+                />
+              </label>
+              <label>
+                Mensaje
+                <textarea
+                  value={mailMessage}
+                  onChange={(e) => setMailMessage(e.target.value)}
+                  rows={6}
+                  maxLength={5000}
+                  placeholder="Escribí el texto que va a recibir el cliente…"
+                  required
+                  disabled={mailSending}
+                />
+              </label>
+              {mailError ? <p className="admin-error">{mailError}</p> : null}
+              {mailOk ? <p className="admin-ok">{mailOk}</p> : null}
+              <div className="client-mail-actions">
+                <button type="button" className="admin-btn" onClick={closeMail} disabled={mailSending}>
+                  Cerrar
+                </button>
+                <button type="submit" className="admin-btn primary" disabled={mailSending}>
+                  {mailSending ? 'Enviando…' : 'Enviar'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
     </section>
   )
 }

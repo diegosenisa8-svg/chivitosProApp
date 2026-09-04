@@ -7,7 +7,13 @@ import { hashPassword, signToken, verifyPassword } from '../lib/auth.js'
 import { requireAdmin, requireFullAdmin } from '../middleware/auth.js'
 import { mapMenu } from '../lib/menu.js'
 import { mergeSettings, slugify } from '../lib/settings.js'
-import { syncCustomersFromOrders, whatsappUrlForPhone } from '../lib/customers.js'
+import {
+  buildCustomerEmailByPhoneKey,
+  resolveCustomerEmail,
+  syncCustomersFromOrders,
+  whatsappUrlForPhone,
+} from '../lib/customers.js'
+import { isMailConfigured, sendEmail } from '../lib/mail.js'
 import { getMpCredentials } from '../lib/mercadopago.js'
 import { loadBundledMenu, replaceMenuCatalog } from '../lib/replaceMenu.js'
 import {
@@ -959,18 +965,21 @@ router.get('/customers', requireFullAdmin, async (req, res) => {
     const q = String(req.query.q || '').trim()
     await syncCustomersFromOrders().catch((e) => console.warn('customer sync', e))
 
-    const customers = await prisma.customer.findMany({
-      where: q
-        ? {
-            OR: [
-              { name: { contains: q, mode: 'insensitive' } },
-              { phone: { contains: q, mode: 'insensitive' } },
-              { phoneKey: { contains: q.replace(/\D/g, ''), mode: 'insensitive' } },
-            ],
-          }
-        : undefined,
-      orderBy: { lastOrderAt: 'desc' },
-    })
+    const [customers, emailByPhone] = await Promise.all([
+      prisma.customer.findMany({
+        where: q
+          ? {
+              OR: [
+                { name: { contains: q, mode: 'insensitive' } },
+                { phone: { contains: q, mode: 'insensitive' } },
+                { phoneKey: { contains: q.replace(/\D/g, ''), mode: 'insensitive' } },
+              ],
+            }
+          : undefined,
+        orderBy: { lastOrderAt: 'desc' },
+      }),
+      buildCustomerEmailByPhoneKey(),
+    ])
 
     res.json(
       customers.map((c) => ({
@@ -981,11 +990,76 @@ router.get('/customers', requireFullAdmin, async (req, res) => {
         orderCount: c.orderCount,
         lastOrderAt: c.lastOrderAt,
         whatsappUrl: whatsappUrlForPhone(c.phoneKey),
+        email: emailByPhone.get(c.phoneKey) || null,
       })),
     )
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'No se pudieron cargar clientes' })
+  }
+})
+
+/**
+ * Envía un mensaje de texto al email de la cuenta del cliente (si está registrado).
+ * El destinatario NO viene del body: se resuelve en el servidor.
+ */
+router.post('/customers/:id/send-email', requireFullAdmin, async (req, res) => {
+  try {
+    if (!isMailConfigured()) {
+      return res.status(503).json({
+        error:
+          'Correo no configurado. Definí BREVO_API_KEY + BREVO_SENDER_EMAIL (o RESEND_API_KEY + RESEND_FROM) en el servidor.',
+      })
+    }
+
+    const id = RESOURCE_ID.parse(req.params.id)
+    const adminId = req.admin?.id || 'unknown'
+    const rl = checkRateLimit(`admin-customer-mail:${adminId}`, {
+      limit: 20,
+      windowMs: 15 * 60 * 1000,
+    })
+    if (!rl.ok) {
+      return res.status(429).json({
+        error: `Demasiados envíos. Probá de nuevo en ${rl.retryAfterSec}s.`,
+      })
+    }
+
+    const body = z
+      .object({
+        subject: z.string().trim().min(1).max(160).optional(),
+        message: z.string().trim().min(1).max(5000),
+      })
+      .parse(req.body)
+
+    const customer = await prisma.customer.findUnique({ where: { id } })
+    if (!customer) {
+      return res.status(404).json({ error: 'Cliente no encontrado' })
+    }
+
+    const to = await resolveCustomerEmail(customer)
+    if (!to) {
+      return res.status(400).json({
+        error:
+          'Este cliente no tiene email: no hay cuenta registrada vinculada a su teléfono.',
+      })
+    }
+
+    const restaurant = await prisma.restaurant.findUnique({ where: { id: 1 } })
+    const brand = restaurant?.name?.trim() || 'ChivitosPro'
+    const subject = body.subject || `Mensaje de ${brand}`
+    const greeting = customer.name?.trim() ? `Hola ${customer.name.trim()},` : 'Hola,'
+    const text = `${greeting}\n\n${body.message}\n\n— ${brand}`
+
+    console.info(`Enviando mail a cliente ${customer.id} → ${to} (${text.length} chars)`)
+    await sendEmail({ to, subject, text })
+
+    res.json({ ok: true, enviadoA: to })
+  } catch (err) {
+    if (err?.name === 'ZodError') {
+      return res.status(400).json({ error: 'Datos inválidos', ...zodDetails(err) })
+    }
+    console.error(err)
+    res.status(500).json({ error: err.message || 'No se pudo enviar el correo' })
   }
 })
 

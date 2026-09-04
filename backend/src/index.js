@@ -21,10 +21,14 @@ import { OrderError, priceOrder } from './lib/pricing.js'
 import { PAYMENT_METHODS, zodDetails } from './lib/validation.js'
 import {
   CUSTOMER_STATUS_LABELS,
-  hashCustomerPassword,
   signCustomerToken,
   verifyCustomerPassword,
 } from './lib/customerAuth.js'
+import {
+  getGoogleClientId,
+  isGoogleAuthConfigured,
+  verifyGoogleIdToken,
+} from './lib/googleAuth.js'
 import { optionalCustomer, requireCustomer } from './middleware/customerAuth.js'
 import { checkRateLimit, resetRateLimit } from './lib/rateLimit.js'
 import adminRoutes from './routes/admin.js'
@@ -215,29 +219,51 @@ const orderSchema = z.object({
     .max(60),
 })
 
+app.get('/api/public/auth/google-client-id', (_req, res) => {
+  const clientId = getGoogleClientId()
+  res.json({
+    configured: isGoogleAuthConfigured(),
+    clientId: clientId || null,
+  })
+})
+
+/**
+ * Crear cuenta solo con Google. El email tipado por el cliente no se confía:
+ * sale del ID token verificado.
+ * @deprecated Preferí POST /api/auth/google (login o registro).
+ */
 app.post('/api/auth/register', async (req, res) => {
   try {
+    if (!isGoogleAuthConfigured()) {
+      return res.status(503).json({
+        error: 'Google Sign-In no está configurado. No se pueden crear cuentas nuevas.',
+      })
+    }
+
     const body = z
       .object({
-        email: z.string().email(),
-        password: z.string().min(6),
-        name: z.string().min(2),
+        googleIdToken: z.string().min(20),
+        name: z.string().min(2).optional(),
         phone: z.string().min(8).optional(),
       })
       .parse(req.body)
 
-    const email = body.email.trim().toLowerCase()
-    const exists = await prisma.customerAccount.findUnique({ where: { email } })
-    if (exists) {
-      return res.status(409).json({ error: 'Ese email ya está registrado' })
+    const googleUser = await verifyGoogleIdToken(body.googleIdToken)
+    const existing =
+      (await prisma.customerAccount.findUnique({ where: { googleSub: googleUser.sub } })) ||
+      (await prisma.customerAccount.findUnique({ where: { email: googleUser.email } }))
+    if (existing) {
+      return res.status(409).json({
+        error: 'Ese email ya está registrado. Usá “Continuar con Google” para ingresar.',
+      })
     }
 
-    const passwordHash = await hashCustomerPassword(body.password)
     const account = await prisma.customerAccount.create({
       data: {
-        email,
-        passwordHash,
-        name: body.name.trim(),
+        email: googleUser.email,
+        googleSub: googleUser.sub,
+        passwordHash: null,
+        name: (body.name || googleUser.name || 'Cliente').trim().slice(0, 120),
         phone: (body.phone || '').trim(),
       },
     })
@@ -256,8 +282,88 @@ app.post('/api/auth/register', async (req, res) => {
     if (err?.name === 'ZodError') {
       return res.status(400).json({ error: 'Datos inválidos', ...zodDetails(err) })
     }
+    if (err?.status) {
+      return res.status(err.status).json({ error: err.message })
+    }
     console.error(err)
     res.status(500).json({ error: 'No se pudo registrar' })
+  }
+})
+
+/**
+ * Login o registro con Google. Si la cuenta no existe, se crea.
+ * El email verificado sale siempre del ID token.
+ */
+app.post('/api/auth/google', async (req, res) => {
+  try {
+    const body = z
+      .object({
+        googleIdToken: z.string().min(20),
+        name: z.string().min(2).max(120).optional(),
+        phone: z.string().min(8).max(40).optional(),
+      })
+      .parse(req.body)
+
+    const ip = req.ip || 'unknown'
+    const rl = checkRateLimit(`customer-google:${ip}`, { limit: 30, windowMs: 15 * 60 * 1000 })
+    if (!rl.ok) {
+      res.setHeader('Retry-After', String(rl.retryAfterSec))
+      return res.status(429).json({
+        error: `Demasiados intentos. Probá de nuevo en ${rl.retryAfterSec}s`,
+      })
+    }
+
+    const googleUser = await verifyGoogleIdToken(body.googleIdToken)
+
+    let account =
+      (await prisma.customerAccount.findUnique({ where: { googleSub: googleUser.sub } })) ||
+      (await prisma.customerAccount.findUnique({ where: { email: googleUser.email } }))
+
+    let created = false
+    if (!account) {
+      account = await prisma.customerAccount.create({
+        data: {
+          email: googleUser.email,
+          googleSub: googleUser.sub,
+          passwordHash: null,
+          name: (body.name || googleUser.name || 'Cliente').trim().slice(0, 120),
+          phone: (body.phone || '').trim(),
+        },
+      })
+      created = true
+    } else {
+      const patch = {}
+      if (!account.googleSub) patch.googleSub = googleUser.sub
+      if (body.phone?.trim() && !account.phone?.trim()) patch.phone = body.phone.trim()
+      if (body.name?.trim() && account.name === 'Cliente') patch.name = body.name.trim()
+      if (Object.keys(patch).length) {
+        account = await prisma.customerAccount.update({
+          where: { id: account.id },
+          data: patch,
+        })
+      }
+    }
+
+    const token = signCustomerToken(account)
+    res.status(created ? 201 : 200).json({
+      token,
+      created,
+      customer: {
+        id: account.id,
+        email: account.email,
+        name: account.name,
+        phone: account.phone,
+      },
+    })
+  } catch (err) {
+    if (err?.name === 'ZodError') {
+      return res.status(400).json({ error: 'Datos inválidos', ...zodDetails(err) })
+    }
+    if (err?.status) {
+      return res.status(err.status).json({ error: err.message })
+    }
+    console.error(err)
+    res.status(500).json({ error: 'No se pudo autenticar con Google' })
   }
 })
 
@@ -285,8 +391,12 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     const account = await prisma.customerAccount.findUnique({ where: { email } })
-    if (!account) {
-      return res.status(401).json({ error: 'Email o contraseña incorrectos' })
+    if (!account?.passwordHash) {
+      return res.status(401).json({
+        error: account
+          ? 'Esta cuenta usa Google. Ingresá con “Continuar con Google”.'
+          : 'Email o contraseña incorrectos',
+      })
     }
     const ok = await verifyCustomerPassword(body.password, account.passwordHash)
     if (!ok) {
