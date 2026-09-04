@@ -7,7 +7,7 @@ import { z } from 'zod'
 import { prisma } from './lib/prisma.js'
 import { mapMenu } from './lib/menu.js'
 import { hashPassword, signPaymentToken, paymentTokenOrderId } from './lib/auth.js'
-import { upsertCustomerFromOrder } from './lib/customers.js'
+import { upsertCustomerFromAccount, upsertCustomerFromOrder } from './lib/customers.js'
 import { askAssistant } from './lib/assistant.js'
 import {
   createMercadoPagoPayment,
@@ -268,6 +268,10 @@ app.post('/api/auth/register', async (req, res) => {
       },
     })
 
+    await upsertCustomerFromAccount(account).catch((e) =>
+      console.warn('customer CRM sync', e?.message || e),
+    )
+
     const token = signCustomerToken(account)
     res.status(201).json({
       token,
@@ -344,6 +348,10 @@ app.post('/api/auth/google', async (req, res) => {
       }
     }
 
+    await upsertCustomerFromAccount(account).catch((e) =>
+      console.warn('customer CRM sync', e?.message || e),
+    )
+
     const token = signCustomerToken(account)
     res.status(created ? 201 : 200).json({
       token,
@@ -404,6 +412,9 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     resetRateLimit(`customer-login:${ip}:${email}`)
+    await upsertCustomerFromAccount(account).catch((e) =>
+      console.warn('customer CRM sync', e?.message || e),
+    )
     const token = signCustomerToken(account)
     res.json({
       token,

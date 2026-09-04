@@ -17,7 +17,10 @@ export function normalizePhoneKey(raw) {
 }
 
 export function whatsappUrlForPhone(phoneOrKey) {
-  const key = normalizePhoneKey(phoneOrKey)
+  const raw = String(phoneOrKey || '')
+  // Claves sintéticas de cuentas sin teléfono (acct:…).
+  if (raw.startsWith('acct:') || raw.startsWith('email:')) return null
+  const key = normalizePhoneKey(raw)
   return key ? `https://wa.me/${key}` : null
 }
 
@@ -46,7 +49,71 @@ export async function upsertCustomerFromOrder({ name, phone, orderedAt = new Dat
   })
 }
 
-/** Import clients from existing orders (idempotent-ish: resets counts from history). */
+/**
+ * Alta/actualización en el CRM admin al crear o iniciar sesión con cuenta.
+ * Si no hay teléfono, usa phoneKey sintético `acct:{id}` para que igual figure en el listado.
+ */
+export async function upsertCustomerFromAccount(account) {
+  if (!account?.id || !account?.email) return null
+
+  const email = String(account.email).trim().toLowerCase()
+  const name = (account.name && String(account.name).trim()) || 'Cliente'
+  const phone = (account.phone && String(account.phone).trim()) || ''
+  const phoneKey = normalizePhoneKey(phone)
+  const now = new Date()
+
+  let existing = await prisma.customer.findFirst({
+    where: { customerAccountId: account.id },
+  })
+  if (!existing && phoneKey.length >= 8) {
+    existing = await prisma.customer.findUnique({ where: { phoneKey } })
+  }
+  if (!existing) {
+    existing = await prisma.customer.findFirst({ where: { email } })
+  }
+
+  if (existing) {
+    const data = {
+      name,
+      email,
+      customerAccountId: account.id,
+    }
+    if (phoneKey.length >= 8) {
+      data.phoneKey = phoneKey
+      data.phone = phone || existing.phone
+    }
+    return prisma.customer.update({
+      where: { id: existing.id },
+      data,
+    })
+  }
+
+  return prisma.customer.create({
+    data: {
+      phoneKey: phoneKey.length >= 8 ? phoneKey : `acct:${account.id}`,
+      phone: phone || '—',
+      name,
+      email,
+      customerAccountId: account.id,
+      orderCount: 0,
+      lastOrderAt: now,
+    },
+  })
+}
+
+/** Trae al CRM a todas las cuentas registradas que todavía no tienen fila Customer. */
+export async function syncCustomersFromAccounts() {
+  const accounts = await prisma.customerAccount.findMany({
+    select: { id: true, email: true, name: true, phone: true },
+  })
+  for (const account of accounts) {
+    await upsertCustomerFromAccount(account).catch((e) =>
+      console.warn('customer from account', account.id, e?.message || e),
+    )
+  }
+  return accounts.length
+}
+
 /**
  * Mapa phoneKey → email de cuenta registrada.
  * Prioridad: CustomerAccount.phone normalizado; si falta, orders con customerAccount.
@@ -81,13 +148,15 @@ export async function buildCustomerEmailByPhoneKey() {
   return map
 }
 
-/** Resuelve el email de un Customer CRM (solo si tiene cuenta / pedidos vinculados). */
+/** Resuelve el email de un Customer CRM (campo email o cuenta vinculada). */
 export async function resolveCustomerEmail(customer) {
+  if (customer?.email) return String(customer.email).trim().toLowerCase()
   if (!customer?.phoneKey) return null
   const map = await buildCustomerEmailByPhoneKey()
   return map.get(customer.phoneKey) || null
 }
 
+/** Import clients from existing orders (idempotent-ish: resets counts from history). */
 export async function syncCustomersFromOrders() {
   const orders = await prisma.order.findMany({
     where: {

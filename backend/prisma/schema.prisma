@@ -148,16 +148,21 @@ model CustomerAccount {
 }
 
 model Customer {
-  id           String   @id @default(cuid())
-  phoneKey     String   @unique
-  phone        String
-  name         String
-  orderCount   Int      @default(1)
-  lastOrderAt  DateTime
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                String   @id @default(cuid())
+  phoneKey          String   @unique
+  phone             String
+  name              String
+  /// Email de la cuenta registrada (Google / app), si existe.
+  email             String?
+  /// Cuenta de cliente vinculada (login Google o email).
+  customerAccountId String?  @unique
+  orderCount        Int      @default(0)
+  lastOrderAt       DateTime
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   @@index([lastOrderAt])
+  @@index([email])
 }
 
 model Order {

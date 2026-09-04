@@ -1112,8 +1112,7 @@ function ClientsView({
         <div>
           <h2>Clientes</h2>
           <p>
-            Quienes pidieron desde la app · nombre, última compra, WhatsApp y mail si tienen
-            cuenta registrada
+            Cuentas registradas y quienes pidieron · nombre, email, última actividad y WhatsApp
           </p>
         </div>
         <button type="button" className="admin-btn" onClick={onRefresh}>
@@ -1144,8 +1143,12 @@ function ClientsView({
               <div>
                 <strong>{c.name}</strong>
                 <span>
-                  {c.phone}
-                  {c.orderCount > 1 ? ` · ${c.orderCount} pedidos` : ' · 1 pedido'}
+                  {c.phone || 'Sin teléfono'}
+                  {c.orderCount === 0
+                    ? ' · sin pedidos aún'
+                    : c.orderCount === 1
+                      ? ' · 1 pedido'
+                      : ` · ${c.orderCount} pedidos`}
                 </span>
                 {c.email ? (
                   <span className="client-email">{c.email}</span>

@@ -10,6 +10,7 @@ import { mergeSettings, slugify } from '../lib/settings.js'
 import {
   buildCustomerEmailByPhoneKey,
   resolveCustomerEmail,
+  syncCustomersFromAccounts,
   syncCustomersFromOrders,
   whatsappUrlForPhone,
 } from '../lib/customers.js'
@@ -964,6 +965,7 @@ router.get('/customers', requireFullAdmin, async (req, res) => {
   try {
     const q = String(req.query.q || '').trim()
     await syncCustomersFromOrders().catch((e) => console.warn('customer sync', e))
+    await syncCustomersFromAccounts().catch((e) => console.warn('account sync', e))
 
     const [customers, emailByPhone] = await Promise.all([
       prisma.customer.findMany({
@@ -973,6 +975,7 @@ router.get('/customers', requireFullAdmin, async (req, res) => {
                 { name: { contains: q, mode: 'insensitive' } },
                 { phone: { contains: q, mode: 'insensitive' } },
                 { phoneKey: { contains: q.replace(/\D/g, ''), mode: 'insensitive' } },
+                { email: { contains: q, mode: 'insensitive' } },
               ],
             }
           : undefined,
@@ -985,12 +988,12 @@ router.get('/customers', requireFullAdmin, async (req, res) => {
       customers.map((c) => ({
         id: c.id,
         name: c.name,
-        phone: c.phone,
+        phone: c.phone === '—' ? '' : c.phone,
         phoneKey: c.phoneKey,
         orderCount: c.orderCount,
         lastOrderAt: c.lastOrderAt,
         whatsappUrl: whatsappUrlForPhone(c.phoneKey),
-        email: emailByPhone.get(c.phoneKey) || null,
+        email: c.email || emailByPhone.get(c.phoneKey) || null,
       })),
     )
   } catch (err) {
