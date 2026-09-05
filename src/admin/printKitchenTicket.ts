@@ -3,12 +3,6 @@ import type { AdminOrder } from '../lib/adminApi'
 export type TicketRestaurant = {
   name?: string
   address?: string
-  addressDetail?: string | null
-  addressReference?: string | null
-  outOfRange?: boolean
-  deliveryZoneName?: string | null
-  lat?: number | null
-  lng?: number | null
   city?: string
   phone?: string
   whatsapp?: string
@@ -74,7 +68,77 @@ function modifierLines(raw: unknown): string[] {
   })
 }
 
-function buildTicketHtml(order: AdminOrder, restaurant?: TicketRestaurant | null) {
+/** Traduce lat/lng a calle (Nominatim). Si falla, null — no imprimimos coordenadas. */
+async function streetFromCoords(lat: number, lng: number): Promise<string | null> {
+  try {
+    const url = new URL('https://nominatim.openstreetmap.org/reverse')
+    url.searchParams.set('format', 'jsonv2')
+    url.searchParams.set('lat', String(lat))
+    url.searchParams.set('lon', String(lng))
+    url.searchParams.set('zoom', '18')
+    url.searchParams.set('addressdetails', '1')
+    url.searchParams.set('accept-language', 'es')
+    const res = await fetch(url.toString(), {
+      headers: { Accept: 'application/json' },
+    })
+    if (!res.ok) return null
+    const data = (await res.json()) as {
+      display_name?: string
+      address?: Record<string, string>
+    }
+    const a = data.address || {}
+    const road = a.road || a.pedestrian || a.street || a.path || a.residential || ''
+    const num = a.house_number || ''
+    const street = [road, num].filter(Boolean).join(' ').trim()
+    const suburb = a.suburb || a.neighbourhood || a.quarter || a.city_district || ''
+    const city = a.city || a.town || a.village || a.municipality || ''
+    const line = [street, suburb, city].filter(Boolean).join(', ')
+    if (line) return line
+    if (data.display_name) {
+      return data.display_name.split(',').slice(0, 3).join(',').trim()
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
+async function deliveryAddressLines(order: AdminOrder): Promise<string[]> {
+  const lines: string[] = []
+  let street: string | null = null
+  if (order.lat != null && order.lng != null) {
+    street = await streetFromCoords(order.lat, order.lng)
+  }
+  if (street) lines.push(street)
+
+  const detail = String(order.addressDetail || '').trim()
+  if (detail) lines.push(`Nº / apto: ${detail}`)
+
+  const ref = String(order.addressReference || '').trim()
+  if (ref) lines.push(`Ref: ${ref}`)
+
+  if (order.deliveryZoneName && !order.outOfRange) {
+    lines.push(`Zona: ${order.deliveryZoneName}`)
+  }
+
+  // Fallback si no hubo reverse-geocode ni detalle: texto compuesto sin coords.
+  if (!lines.length) {
+    const composed = String(order.address || '')
+      .split('·')
+      .map((p) => p.trim())
+      .filter((p) => p && !/^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/.test(p))
+    if (composed.length) lines.push(...composed)
+    else lines.push('Sin dirección')
+  }
+
+  return lines
+}
+
+function ticketBodyHtml(
+  order: AdminOrder,
+  restaurant: TicketRestaurant | null | undefined,
+  deliveryLines: string[],
+) {
   const name = splitName(order.customerName)
   const paid = isPaid(order.payment, order.status)
   const payTitle = paymentTitle(order.payment)
@@ -83,7 +147,6 @@ function buildTicketHtml(order: AdminOrder, restaurant?: TicketRestaurant | null
     [restaurant?.address, restaurant?.city].filter(Boolean).join(', ') ||
     'Uruguay 1802, 50000 Salto'
   const footPhone = restaurant?.phone || restaurant?.whatsapp || '+598 4735 4634'
-  const orderNum = (order.id.replace(/\D/g, '').slice(-10) || order.id.slice(0, 10)).toUpperCase()
   const currency = order.currency || 'UYU'
   const isDelivery = order.fulfillment === 'delivery'
 
@@ -104,26 +167,112 @@ function buildTicketHtml(order: AdminOrder, restaurant?: TicketRestaurant | null
     })
     .join('')
 
+  const addrBlock = isDelivery
+    ? deliveryLines.map((l) => `<div class="gray">${esc(l)}</div>`).join('')
+    : ''
+
+  return `
+  <div class="ticket">
+  <div class="bar">${esc(payTitle)}</div>
+  <div class="gray">
+    <table><tr>
+      <td class="l">${esc(order.payment || '—')}</td>
+      <td class="r">${paid ? 'Confirmado' : 'Pendiente'}</td>
+    </tr></table>
+  </div>
+
+  <div class="bar">
+    <table><tr>
+      <td class="l">${isDelivery ? 'Dirección' : 'Retiro en local'}</td>
+      <td class="r">${isDelivery ? 'Delivery' : ''}</td>
+    </tr></table>
+  </div>
+  ${addrBlock}
+  ${isDelivery && order.outOfRange ? `<div><b>** FUERA DE RANGO - CONFIRMAR **</b></div>` : ''}
+  ${order.notes ? `<div class="gray"><b>NOTAS:</b> ${esc(order.notes)}</div>` : ''}
+
+  <div class="h">Información Cliente:</div>
+  <div class="kv">Nombre: ${esc(name.first)}</div>
+  <div class="kv">Apellido: ${esc(name.last)}</div>
+  <div class="kv">Teléfono: ${esc(order.phone || '—')}</div>
+
+  <div class="h">Artículos:</div>
+  ${items}
+
+  ${
+    order.discount > 0
+      ? `<div class="box">
+          <table><tr>
+            <td class="l"><b>Descuento</b></td>
+            <td class="r"><b>${esc(money(order.discount))}</b></td>
+          </tr></table>
+          <div class="pill">Ahorro: ${esc(money(order.discount, true, currency))}</div>
+        </div>`
+      : ''
+  }
+
+  <div class="totals">
+    ${
+      order.deliveryFee > 0
+        ? `<div>Envío: ${esc(money(order.deliveryFee, true, currency))}</div>`
+        : ''
+    }
+    <div>Sub-total: ${esc(money(order.subtotal ?? order.total, true, currency))}</div>
+    <div class="total">Total: ${esc(money(order.total, true, currency))}</div>
+  </div>
+
+  <div class="pay">
+    <table><tr>
+      <td class="l">${paid ? '☑' : '☐'} Pagado</td>
+      <td class="r">${paid ? '☐' : '☑'} No Pagado</td>
+    </tr></table>
+  </div>
+
+  <div class="foot">
+    <div><b>${esc(brand)}</b></div>
+    <div>${esc(footAddr)}</div>
+    <div>${esc(footPhone)}</div>
+  </div>
+  </div>`
+}
+
+function buildTicketHtml(
+  order: AdminOrder,
+  restaurant: TicketRestaurant | null | undefined,
+  deliveryLines: string[],
+) {
+  const orderNum = (order.id.replace(/\D/g, '').slice(-10) || order.id.slice(0, 10)).toUpperCase()
+  const copy = ticketBodyHtml(order, restaurant, deliveryLines)
+
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="utf-8" />
 <title>Ticket ${esc(orderNum)}</title>
 <style>
-  @page { size: 80mm 210mm; margin: 0; }
+  /* Alto automático: sin hoja fija 210mm (evita imprimir blanco de más). */
+  @page { size: 80mm auto; margin: 0; }
   * { box-sizing: border-box; }
   html, body {
     margin: 0;
     padding: 0;
     width: 72.1mm;
     max-width: 72.1mm;
+    height: auto;
     background: #fff;
     color: #000;
     font: 11.5px/1.3 Arial, Helvetica, sans-serif;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
-  body { padding: 1.5mm 2mm 4mm; }
+  body { padding: 1.5mm 2mm 2mm; }
+  .ticket { width: 100%; }
+  .ticket + .ticket {
+    break-before: page;
+    page-break-before: always;
+    margin-top: 0;
+    padding-top: 1.5mm;
+  }
   table { width: 100%; border-collapse: collapse; }
   td { padding: 0; vertical-align: top; }
   td.l { text-align: left; word-break: break-word; }
@@ -177,82 +326,24 @@ function buildTicketHtml(order: AdminOrder, restaurant?: TicketRestaurant | null
   .pay table td { font-weight: 700; }
   .foot {
     text-align: center;
-    margin-top: 10px;
+    margin-top: 8px;
     font-size: 11px;
     line-height: 1.35;
   }
 </style>
 </head>
 <body>
-  <div class="bar">${esc(payTitle)}</div>
-  <div class="gray">
-    <table><tr>
-      <td class="l">${esc(order.payment || '—')}</td>
-      <td class="r">${paid ? 'Confirmado' : 'Pendiente'}</td>
-    </tr></table>
-  </div>
-
-  <div class="bar">
-    <table><tr>
-      <td class="l">${isDelivery ? 'Dirección' : 'Retiro en local'}</td>
-      <td class="r">${isDelivery ? 'Delivery' : ''}</td>
-    </tr></table>
-  </div>
-  ${isDelivery ? `<div class="gray">${esc(order.addressDetail || order.address || 'Sin dirección')}</div>` : ''}
-  ${isDelivery && order.addressReference ? `<div class="gray">Ref: ${esc(order.addressReference)}</div>` : ''}
-  ${isDelivery && order.outOfRange ? `<div><b>** FUERA DE RANGO - CONFIRMAR **</b></div>` : ''}
-  ${isDelivery && order.lat != null && order.lng != null ? `<div class="gray">${order.lat.toFixed(5)}, ${order.lng.toFixed(5)}</div>` : ''}
-  ${order.notes ? `<div class="gray"><b>NOTAS:</b> ${esc(order.notes)}</div>` : ''}
-
-  <div class="h">Información Cliente:</div>
-  <div class="kv">Nombre: ${esc(name.first)}</div>
-  <div class="kv">Apellido: ${esc(name.last)}</div>
-  <div class="kv">Teléfono: ${esc(order.phone || '—')}</div>
-
-  <div class="h">Artículos:</div>
-  ${items}
-
-  ${
-    order.discount > 0
-      ? `<div class="box">
-          <table><tr>
-            <td class="l"><b>Descuento</b></td>
-            <td class="r"><b>${esc(money(order.discount))}</b></td>
-          </tr></table>
-          <div class="pill">Ahorro: ${esc(money(order.discount, true, currency))}</div>
-        </div>`
-      : ''
-  }
-
-  <div class="totals">
-    ${
-      order.deliveryFee > 0
-        ? `<div>Envío: ${esc(money(order.deliveryFee, true, currency))}</div>`
-        : ''
-    }
-    <div>Sub-total: ${esc(money(order.subtotal ?? order.total, true, currency))}</div>
-    <div class="total">Total: ${esc(money(order.total, true, currency))}</div>
-  </div>
-
-  <div class="pay">
-    <table><tr>
-      <td class="l">${paid ? '☑' : '☐'} Pagado</td>
-      <td class="r">${paid ? '☐' : '☑'} No Pagado</td>
-    </tr></table>
-  </div>
-
-  <div class="foot">
-    <div><b>${esc(brand)}</b></div>
-    <div>${esc(footAddr)}</div>
-    <div>${esc(footPhone)}</div>
-  </div>
+  ${copy}
+  ${copy}
 </body>
 </html>`
 }
 
-/** Imprime únicamente el ticket en medida POS-80C (80 x 210 mm / útil 72.1 mm). */
-export function printKitchenTicket(order: AdminOrder, restaurant?: TicketRestaurant | null) {
-  const html = buildTicketHtml(order, restaurant)
+/** Imprime 2 copias del ticket POS-80C, cortando al alto del contenido (sin blanco final). */
+export async function printKitchenTicket(order: AdminOrder, restaurant?: TicketRestaurant | null) {
+  const deliveryLines =
+    order.fulfillment === 'delivery' ? await deliveryAddressLines(order) : []
+  const html = buildTicketHtml(order, restaurant, deliveryLines)
 
   const old = document.getElementById('pos80-print-frame')
   if (old) old.remove()
@@ -261,7 +352,7 @@ export function printKitchenTicket(order: AdminOrder, restaurant?: TicketRestaur
   iframe.id = 'pos80-print-frame'
   iframe.setAttribute('title', 'Ticket POS-80C')
   iframe.style.cssText =
-    'position:fixed;left:-9999px;top:0;width:80mm;height:210mm;border:0;visibility:hidden;'
+    'position:fixed;left:-9999px;top:0;width:80mm;height:1px;border:0;visibility:hidden;'
   document.body.appendChild(iframe)
 
   const doc = iframe.contentDocument || iframe.contentWindow?.document
@@ -289,5 +380,5 @@ export function printKitchenTicket(order: AdminOrder, restaurant?: TicketRestaur
   }
 
   iframe.onload = () => window.setTimeout(run, 80)
-  window.setTimeout(run, 400)
+  window.setTimeout(run, 500)
 }
