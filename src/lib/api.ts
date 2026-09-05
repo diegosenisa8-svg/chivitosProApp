@@ -111,7 +111,11 @@ export async function submitOrder(
       idempotencyKey,
       // La zona la resuelve el servidor desde la ubicación.
       location: checkout?.location || undefined,
-      addressDetail: checkout?.addressDetail || '',
+      addressDetail: (() => {
+        const num = String(checkout?.addressDetail || '').trim()
+        const apt = String(checkout?.addressApartment || '').trim()
+        return [num, apt ? `apto ${apt}` : ''].filter(Boolean).join(', ')
+      })(),
       addressReference: checkout?.addressReference || '',
     }),
   })

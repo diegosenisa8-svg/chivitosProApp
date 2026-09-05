@@ -1644,6 +1644,22 @@ fieldset.field {
   width: 100%;
 }
 
+.address-fields {
+  display: grid;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.geo-street {
+  font-weight: 700;
+  color: var(--text, #1a1a1a);
+}
+
+.geo-street.muted {
+  font-weight: 500;
+  color: var(--muted, #6b7280);
+}
+
 .geo-status {
   display: grid;
   gap: 4px;

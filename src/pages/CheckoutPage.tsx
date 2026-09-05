@@ -14,6 +14,7 @@ import {
 } from '../lib/api'
 import { formatMoney } from '../lib/format'
 import { resolveDelivery } from '../lib/deliveryZones'
+import { reverseGeocodeStreet } from '../lib/reverseGeocode'
 import { scrollToFirst } from '../lib/scrollToError'
 import type { CheckoutInfo } from '../types'
 
@@ -40,6 +41,7 @@ export function CheckoutPage() {
   const [mpError, setMpError] = useState('')
   const [geoState, setGeoState] = useState<'idle' | 'asking' | 'ok' | 'error'>('idle')
   const [geoError, setGeoError] = useState('')
+  const [detectedStreet, setDetectedStreet] = useState('')
   /** Elegí GPS o escribir dirección antes de pedir permisos del navegador. */
   const [locationMode, setLocationMode] = useState<'choose' | 'gps' | 'manual'>('choose')
   const orderIdempotencyKey = useRef(
@@ -109,12 +111,15 @@ export function CheckoutPage() {
     }
     setGeoState('asking')
     setGeoError('')
+    setDetectedStreet('')
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        const lat = pos.coords.latitude
+        const lng = pos.coords.longitude
         setCheckout({
           location: {
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
+            lat,
+            lng,
             accuracy: pos.coords.accuracy,
           },
         })
@@ -125,9 +130,13 @@ export function CheckoutPage() {
           delete next.location
           return next
         })
+        void reverseGeocodeStreet(lat, lng).then((street) => {
+          setDetectedStreet(street || '')
+        })
       },
       (err) => {
         setGeoState('error')
+        setDetectedStreet('')
         setGeoError(
           err.code === err.PERMISSION_DENIED
             ? 'Necesitamos tu ubicación para llevarte el pedido. Activala en los permisos del navegador y tocá Reintentar.'
@@ -143,6 +152,7 @@ export function CheckoutPage() {
   useEffect(() => {
     if (fulfillment !== 'delivery') {
       setLocationMode('choose')
+      setDetectedStreet('')
       return
     }
     if (checkout.location) setLocationMode('gps')
@@ -153,6 +163,7 @@ export function CheckoutPage() {
   function chooseGps() {
     setLocationMode('gps')
     setCheckout({ address: '' })
+    setDetectedStreet('')
     requestLocation()
   }
 
@@ -160,11 +171,21 @@ export function CheckoutPage() {
     setLocationMode('manual')
     setGeoState('idle')
     setGeoError('')
+    setDetectedStreet('')
     setCheckout({ location: null })
     setErrors((prev) => {
       if (!prev.location) return prev
       const next = { ...prev }
       delete next.location
+      return next
+    })
+  }
+
+  function clearAddressDetailError() {
+    setErrors((prev) => {
+      if (!prev.addressDetail) return prev
+      const next = { ...prev }
+      delete next.addressDetail
       return next
     })
   }
@@ -184,7 +205,7 @@ export function CheckoutPage() {
         next.location = 'Escribí la calle o cómo llegar'
       }
       if (!checkout.addressDetail.trim()) {
-        next.addressDetail = 'Ingresá el número de casa o apartamento'
+        next.addressDetail = 'Ingresá el número de la casa o puerta'
       }
     }
     if (checkout.schedule === 'later' && !checkout.scheduleTime) {
@@ -426,21 +447,23 @@ export function CheckoutPage() {
               data-field="location"
             >
               <legend>¿Cómo indicamos la entrega?</legend>
-              <p className="field-hint">
-                Usá el GPS si estás en el lugar, o escribí la dirección si es un edificio, otra
-                casa, o un lugar complicado de ubicar.
-              </p>
 
               {locationMode === 'choose' && (
-                <div className="geo-mode-actions">
-                  <button type="button" className="btn btn-primary" onClick={chooseGps}>
-                    Usar mi ubicación
-                  </button>
-                  <button type="button" className="btn btn-ghost" onClick={chooseManual}>
-                    Escribir dirección
-                  </button>
-                  {errors.location && <em>{errors.location}</em>}
-                </div>
+                <>
+                  <p className="field-hint">
+                    Usá el GPS si estás en el lugar, o escribí la dirección si es un edificio, otra
+                    casa, o un lugar complicado de ubicar.
+                  </p>
+                  <div className="geo-mode-actions">
+                    <button type="button" className="btn btn-primary" onClick={chooseGps}>
+                      Usar mi ubicación
+                    </button>
+                    <button type="button" className="btn btn-ghost" onClick={chooseManual}>
+                      Escribir dirección
+                    </button>
+                    {errors.location && <em>{errors.location}</em>}
+                  </div>
+                </>
               )}
 
               {locationMode === 'gps' && (
@@ -471,6 +494,11 @@ export function CheckoutPage() {
                             ? `Zona: ${selectedZone.name}`
                             : 'Ubicación lista'}
                       </strong>
+                      {detectedStreet ? (
+                        <span className="geo-street">Detectamos: {detectedStreet}</span>
+                      ) : (
+                        <span className="geo-street muted">Buscando calle de la ubicación…</span>
+                      )}
                       <span>
                         {delivery.outOfRange
                           ? `Se cobra el envío más alto (${formatMoney(delivery.fee)}) y el local confirma si puede llegar.`
@@ -495,6 +523,49 @@ export function CheckoutPage() {
                       </button>
                     </div>
                   )}
+
+                  {checkout.location && (
+                    <div className="address-fields">
+                      <label
+                        className={`field${errors.addressDetail ? ' field--error' : ''}`}
+                        data-field="addressDetail"
+                      >
+                        <span>Número</span>
+                        <input
+                          value={checkout.addressDetail}
+                          onChange={(e) => {
+                            setCheckout({ addressDetail: e.target.value })
+                            if (e.target.value.trim()) clearAddressDetailError()
+                          }}
+                          placeholder="Ej: 1980"
+                          inputMode="numeric"
+                          aria-invalid={Boolean(errors.addressDetail)}
+                        />
+                        {errors.addressDetail && <em>{errors.addressDetail}</em>}
+                      </label>
+                      <label className="field">
+                        <span>
+                          Apartamento <small>(opcional)</small>
+                        </span>
+                        <input
+                          value={checkout.addressApartment || ''}
+                          onChange={(e) => setCheckout({ addressApartment: e.target.value })}
+                          placeholder="Ej: 3B"
+                        />
+                      </label>
+                      <label className="field">
+                        <span>
+                          Referencia <small>(opcional)</small>
+                        </span>
+                        <input
+                          value={checkout.addressReference}
+                          onChange={(e) => setCheckout({ addressReference: e.target.value })}
+                          placeholder="Ej: complejo los algarrobos, reja verde"
+                        />
+                      </label>
+                    </div>
+                  )}
+
                   <button type="button" className="linkish" onClick={chooseManual}>
                     Preferís escribir la dirección
                   </button>
@@ -502,9 +573,9 @@ export function CheckoutPage() {
               )}
 
               {locationMode === 'manual' && (
-                <>
+                <div className="address-fields">
                   <label className="field" style={{ margin: 0 }}>
-                    <span>Calle / cómo llegar</span>
+                    <span>Calle</span>
                     <input
                       value={checkout.address}
                       onChange={(e) => {
@@ -519,57 +590,57 @@ export function CheckoutPage() {
                           })
                         }
                       }}
-                      placeholder="Ej: Artigas 1234, entre Rivera y 18 de Julio"
+                      placeholder="Ej: Artigas"
                       aria-invalid={Boolean(errors.location)}
                     />
                   </label>
+                  <label
+                    className={`field${errors.addressDetail ? ' field--error' : ''}`}
+                    data-field="addressDetail"
+                  >
+                    <span>Número</span>
+                    <input
+                      value={checkout.addressDetail}
+                      onChange={(e) => {
+                        setCheckout({ addressDetail: e.target.value })
+                        if (e.target.value.trim()) clearAddressDetailError()
+                      }}
+                      placeholder="Ej: 1980"
+                      inputMode="numeric"
+                      aria-invalid={Boolean(errors.addressDetail)}
+                    />
+                    {errors.addressDetail && <em>{errors.addressDetail}</em>}
+                  </label>
+                  <label className="field">
+                    <span>
+                      Apartamento <small>(opcional)</small>
+                    </span>
+                    <input
+                      value={checkout.addressApartment || ''}
+                      onChange={(e) => setCheckout({ addressApartment: e.target.value })}
+                      placeholder="Ej: 3B"
+                    />
+                  </label>
+                  <label className="field">
+                    <span>
+                      Referencia <small>(opcional)</small>
+                    </span>
+                    <input
+                      value={checkout.addressReference}
+                      onChange={(e) => setCheckout({ addressReference: e.target.value })}
+                      placeholder="Ej: complejo los algarrobos, timbre del fondo"
+                    />
+                  </label>
                   <p className="field-hint">
-                    El local confirma la zona y el envío. Ideal para apartamentos, porterías o si
-                    el pedido va a otra dirección.
+                    El local confirma la zona y el envío. Ideal si el pedido va a otra dirección.
                   </p>
                   {errors.location && <em>{errors.location}</em>}
                   <button type="button" className="linkish" onClick={chooseGps}>
                     Usar ubicación del celular
                   </button>
-                </>
+                </div>
               )}
             </fieldset>
-
-            <label
-              className={`field${errors.addressDetail ? ' field--error' : ''}`}
-              data-field="addressDetail"
-            >
-              <span>Número de casa o apartamento</span>
-              <input
-                value={checkout.addressDetail}
-                onChange={(e) => {
-                  const addressDetail = e.target.value
-                  setCheckout({ addressDetail })
-                  if (addressDetail.trim()) {
-                    setErrors((prev) => {
-                      if (!prev.addressDetail) return prev
-                      const next = { ...prev }
-                      delete next.addressDetail
-                      return next
-                    })
-                  }
-                }}
-                placeholder="Ej: 1234, apto 3"
-                aria-invalid={Boolean(errors.addressDetail)}
-              />
-              {errors.addressDetail && <em>{errors.addressDetail}</em>}
-            </label>
-
-            <label className="field">
-              <span>
-                Referencia para el repartidor <small>(opcional)</small>
-              </span>
-              <input
-                value={checkout.addressReference}
-                onChange={(e) => setCheckout({ addressReference: e.target.value })}
-                placeholder="Ej: casa de reja verde, timbre del fondo"
-              />
-            </label>
           </>
         )}
 

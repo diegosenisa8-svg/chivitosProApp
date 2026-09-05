@@ -256,8 +256,10 @@ export type CheckoutInfo = {
   address: string
   /** Ubicación del dispositivo (modo GPS). */
   location?: GeoPoint | null
-  /** Número de casa o apartamento. Obligatorio para delivery. */
+  /** Número de puerta / casa. */
   addressDetail: string
+  /** Apartamento / unidad (opcional). */
+  addressApartment?: string
   /** Referencia opcional para el repartidor. */
   addressReference: string
   /** Zona resuelta desde la ubicación. Solo para mostrar: la decide el servidor. */

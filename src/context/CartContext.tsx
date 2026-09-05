@@ -48,6 +48,7 @@ const defaultCheckout: CheckoutInfo = {
   address: '',
   location: null,
   addressDetail: '',
+  addressApartment: '',
   addressReference: '',
   deliveryZoneId: '',
   schedule: 'now',
