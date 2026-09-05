@@ -524,8 +524,10 @@ app.get('/api/me/orders/:id', requireCustomer, async (req, res) => {
  */
 function composeAddress(body, priced) {
   const partes = [
+    (body.address || '').trim(),
     (body.addressDetail || '').trim(),
     (body.addressReference || '').trim(),
+    priced.manualAddress ? 'DIRECCIÓN ESCRITA' : null,
     priced.outOfRange ? 'FUERA DE ZONA' : priced.zone?.name,
   ].filter(Boolean)
   return partes.join(' · ') || null

@@ -1635,6 +1635,15 @@ fieldset.field {
   gap: 10px;
 }
 
+.geo-mode-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.geo-mode-actions .btn {
+  width: 100%;
+}
+
 .geo-status {
   display: grid;
   gap: 4px;

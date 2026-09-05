@@ -105,11 +105,24 @@ async function streetFromCoords(lat: number, lng: number): Promise<string | null
 
 async function deliveryAddressLines(order: AdminOrder): Promise<string[]> {
   const lines: string[] = []
+
+  // Calle escrita a mano (modo "describir ubicación")
+  const written = String(order.address || '')
+    .split('·')
+    .map((p) => p.trim())
+    .filter((p) => p && !/^FUERA DE ZONA$/i.test(p) && !/^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/.test(p))
+
+  // Preferir calle legible: reverse-geocode si hay GPS; si no, texto del pedido.
   let street: string | null = null
   if (order.lat != null && order.lng != null) {
     street = await streetFromCoords(order.lat, order.lng)
   }
   if (street) lines.push(street)
+  else if (written.length) {
+    // Si el address compuesto empieza por detalle numérico corto, no lo uses como calle.
+    const maybeStreet = written.find((p) => p.length > 4 && !/^\d+[A-Za-z]?$/.test(p))
+    if (maybeStreet) lines.push(maybeStreet)
+  }
 
   const detail = String(order.addressDetail || '').trim()
   if (detail) lines.push(`Nº / apto: ${detail}`)
@@ -121,17 +134,20 @@ async function deliveryAddressLines(order: AdminOrder): Promise<string[]> {
     lines.push(`Zona: ${order.deliveryZoneName}`)
   }
 
-  // Fallback si no hubo reverse-geocode ni detalle: texto compuesto sin coords.
   if (!lines.length) {
-    const composed = String(order.address || '')
-      .split('·')
-      .map((p) => p.trim())
-      .filter((p) => p && !/^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/.test(p))
-    if (composed.length) lines.push(...composed)
+    if (written.length) lines.push(...written)
     else lines.push('Sin dirección')
   }
 
   return lines
+}
+
+function formatConfirmedAt(iso: string) {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '—'
+  return d
+    .toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit', hour12: true })
+    .toLowerCase()
 }
 
 function ticketBodyHtml(
@@ -149,6 +165,8 @@ function ticketBodyHtml(
   const footPhone = restaurant?.phone || restaurant?.whatsapp || '+598 4735 4634'
   const currency = order.currency || 'UYU'
   const isDelivery = order.fulfillment === 'delivery'
+  const orderNum = (order.id.replace(/\D/g, '').slice(-10) || order.id.slice(0, 10)).toUpperCase()
+  const confirmedAt = formatConfirmedAt(order.createdAt)
 
   const items = order.items
     .map((i) => {
@@ -173,7 +191,13 @@ function ticketBodyHtml(
 
   return `
   <div class="ticket">
-  <div class="bar">${esc(payTitle)}</div>
+  <div class="bar">
+    <table><tr>
+      <td class="l">Pedido #${esc(orderNum)}</td>
+      <td class="r">${esc(payTitle)}</td>
+    </tr></table>
+  </div>
+  <div class="gray">Confirmado a las ${esc(confirmedAt)}</div>
   <div class="gray">
     <table><tr>
       <td class="l">${esc(order.payment || '—')}</td>

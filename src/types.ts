@@ -252,9 +252,9 @@ export type CheckoutInfo = {
   name: string
   phone: string
   fulfillment: Fulfillment
-  /** Texto legible que arma el servidor. El cliente ya no lo escribe. */
+  /** Calle / descripción escrita (modo "describir ubicación"). */
   address: string
-  /** Ubicación del dispositivo. Obligatoria para delivery. */
+  /** Ubicación del dispositivo (modo GPS). */
   location?: GeoPoint | null
   /** Número de casa o apartamento. Obligatorio para delivery. */
   addressDetail: string

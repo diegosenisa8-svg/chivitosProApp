@@ -254,12 +254,21 @@ test('la zona la resuelven las coordenadas, no el cliente', () => {
   assert.equal(cerro.deliveryFee, 100)
 })
 
-test('sin ubicación no se puede pedir delivery', () => {
+test('sin ubicación GPS se puede pedir si hay dirección escrita', () => {
   const sinUbicacion = { ...baseBody }
   delete sinUbicacion.location
   assert.throws(() => priceOrder({ restaurant, products, body: sinUbicacion }), OrderError)
 
-  // Una coordenada inventada fuera de rango terrestre tampoco vale.
+  const manual = priceOrder({
+    restaurant,
+    products,
+    body: { ...sinUbicacion, address: 'Artigas 1200' },
+  })
+  assert.equal(manual.manualAddress, true)
+  assert.equal(manual.location, null)
+  assert.equal(manual.deliveryFee, restaurant.deliveryFee)
+
+  // Una coordenada inventada fuera de rango terrestre tampoco vale como GPS.
   assert.throws(
     () => priceOrder({ restaurant, products, body: { ...baseBody, location: { lat: 0, lng: 0 } } }),
     OrderError,

@@ -40,6 +40,8 @@ export function CheckoutPage() {
   const [mpError, setMpError] = useState('')
   const [geoState, setGeoState] = useState<'idle' | 'asking' | 'ok' | 'error'>('idle')
   const [geoError, setGeoError] = useState('')
+  /** Elegí GPS o escribir dirección antes de pedir permisos del navegador. */
+  const [locationMode, setLocationMode] = useState<'choose' | 'gps' | 'manual'>('choose')
   const orderIdempotencyKey = useRef(
     typeof crypto !== 'undefined' && 'randomUUID' in crypto
       ? crypto.randomUUID()
@@ -137,13 +139,35 @@ export function CheckoutPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Se pide apenas entra al checkout con delivery: sin ubicación no hay pedido.
+  // Al cambiar a delivery, volvemos a preguntar el modo (no pedir GPS solo).
   useEffect(() => {
-    if (fulfillment === 'delivery' && !checkout.location && geoState === 'idle') {
-      requestLocation()
+    if (fulfillment !== 'delivery') {
+      setLocationMode('choose')
+      return
     }
+    if (checkout.location) setLocationMode('gps')
+    else if (checkout.address.trim()) setLocationMode('manual')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fulfillment])
+
+  function chooseGps() {
+    setLocationMode('gps')
+    setCheckout({ address: '' })
+    requestLocation()
+  }
+
+  function chooseManual() {
+    setLocationMode('manual')
+    setGeoState('idle')
+    setGeoError('')
+    setCheckout({ location: null })
+    setErrors((prev) => {
+      if (!prev.location) return prev
+      const next = { ...prev }
+      delete next.location
+      return next
+    })
+  }
 
   function validate() {
     const next: Record<string, string> = {}
@@ -151,17 +175,21 @@ export function CheckoutPage() {
     if (!checkout.phone.trim() || checkout.phone.replace(/\D/g, '').length < 8) {
       next.phone = 'Ingresá un teléfono válido'
     }
-    if (fulfillment === 'delivery' && !checkout.location) {
-      next.location = 'Activá tu ubicación para poder pedir delivery'
-    }
-    if (fulfillment === 'delivery' && !checkout.addressDetail.trim()) {
-      next.addressDetail = 'Ingresá el número de casa o apartamento'
+    if (fulfillment === 'delivery') {
+      if (locationMode === 'choose') {
+        next.location = 'Elegí cómo indicar la dirección de entrega'
+      } else if (locationMode === 'gps' && !checkout.location) {
+        next.location = 'Activá tu ubicación o cambiá a “Escribir dirección”'
+      } else if (locationMode === 'manual' && !checkout.address.trim()) {
+        next.location = 'Escribí la calle o cómo llegar'
+      }
+      if (!checkout.addressDetail.trim()) {
+        next.addressDetail = 'Ingresá el número de casa o apartamento'
+      }
     }
     if (checkout.schedule === 'later' && !checkout.scheduleTime) {
       next.scheduleTime = 'Elegí un horario'
     }
-    // Fuera de rango no hay zona de la cual tomar el mínimo: se usa el general,
-    // igual que en backend/src/lib/pricing.js.
     const minOrder =
       fulfillment === 'delivery' && !delivery.outOfRange && selectedZone?.minOrder
         ? selectedZone.minOrder
@@ -381,59 +409,113 @@ export function CheckoutPage() {
               className={`field geo-box${errors.location ? ' field--error' : ''}`}
               data-field="location"
             >
-              <legend>Ubicación de entrega</legend>
+              <legend>¿Cómo indicamos la entrega?</legend>
               <p className="field-hint">
-                Necesitamos tu ubicación exacta para llevarte el pedido. No hace falta que
-                escribas la calle.
+                Usá el GPS si estás en el lugar, o escribí la dirección si es un edificio, otra
+                casa, o un lugar complicado de ubicar.
               </p>
 
-              {!checkout.location ? (
-                <>
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={requestLocation}
-                    disabled={geoState === 'asking'}
-                  >
-                    {geoState === 'asking'
-                      ? 'Obteniendo ubicación…'
-                      : geoState === 'error'
-                        ? 'Reintentar'
-                        : 'Usar mi ubicación'}
+              {locationMode === 'choose' && (
+                <div className="geo-mode-actions">
+                  <button type="button" className="btn btn-primary" onClick={chooseGps}>
+                    Usar mi ubicación
                   </button>
-                  {geoError && <em>{geoError}</em>}
+                  <button type="button" className="btn btn-ghost" onClick={chooseManual}>
+                    Escribir dirección
+                  </button>
                   {errors.location && <em>{errors.location}</em>}
-                </>
-              ) : (
-                <div className={`geo-status${delivery.outOfRange ? ' geo-status--warn' : ''}`}>
-                  <strong>
-                    {delivery.outOfRange
-                      ? 'Estás fuera de las zonas de reparto'
-                      : selectedZone?.name
-                        ? `Zona: ${selectedZone.name}`
-                        : 'Ubicación lista'}
-                  </strong>
-                  <span>
-                    {delivery.outOfRange
-                      ? `Se cobra el envío más alto (${formatMoney(delivery.fee)}) y el local confirma si puede llegar.`
-                      : delivery.fee > 0
-                        ? `Envío ${formatMoney(delivery.fee)}`
-                        : 'Envío gratis'}
-                  </span>
-                  {checkout.location.accuracy != null && (
-                    <span
-                      className={checkout.location.accuracy > 150 ? 'geo-accuracy-poor' : undefined}
-                    >
-                      Precisión ±{Math.round(checkout.location.accuracy)} m
-                      {checkout.location.accuracy > 150
-                        ? ' — poco precisa. Si no es tu dirección, actualizá la ubicación.'
-                        : ''}
-                    </span>
-                  )}
-                  <button type="button" className="linkish" onClick={requestLocation}>
-                    Actualizar ubicación
-                  </button>
                 </div>
+              )}
+
+              {locationMode === 'gps' && (
+                <>
+                  {!checkout.location ? (
+                    <>
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={requestLocation}
+                        disabled={geoState === 'asking'}
+                      >
+                        {geoState === 'asking'
+                          ? 'Obteniendo ubicación…'
+                          : geoState === 'error'
+                            ? 'Reintentar ubicación'
+                            : 'Usar mi ubicación'}
+                      </button>
+                      {geoError && <em>{geoError}</em>}
+                      {errors.location && <em>{errors.location}</em>}
+                    </>
+                  ) : (
+                    <div className={`geo-status${delivery.outOfRange ? ' geo-status--warn' : ''}`}>
+                      <strong>
+                        {delivery.outOfRange
+                          ? 'Estás fuera de las zonas de reparto'
+                          : selectedZone?.name
+                            ? `Zona: ${selectedZone.name}`
+                            : 'Ubicación lista'}
+                      </strong>
+                      <span>
+                        {delivery.outOfRange
+                          ? `Se cobra el envío más alto (${formatMoney(delivery.fee)}) y el local confirma si puede llegar.`
+                          : delivery.fee > 0
+                            ? `Envío ${formatMoney(delivery.fee)}`
+                            : 'Envío gratis'}
+                      </span>
+                      {checkout.location.accuracy != null && (
+                        <span
+                          className={
+                            checkout.location.accuracy > 150 ? 'geo-accuracy-poor' : undefined
+                          }
+                        >
+                          Precisión ±{Math.round(checkout.location.accuracy)} m
+                          {checkout.location.accuracy > 150
+                            ? ' — poco precisa. Si no es tu dirección, actualizá la ubicación.'
+                            : ''}
+                        </span>
+                      )}
+                      <button type="button" className="linkish" onClick={requestLocation}>
+                        Actualizar ubicación
+                      </button>
+                    </div>
+                  )}
+                  <button type="button" className="linkish" onClick={chooseManual}>
+                    Preferís escribir la dirección
+                  </button>
+                </>
+              )}
+
+              {locationMode === 'manual' && (
+                <>
+                  <label className="field" style={{ margin: 0 }}>
+                    <span>Calle / cómo llegar</span>
+                    <input
+                      value={checkout.address}
+                      onChange={(e) => {
+                        const address = e.target.value
+                        setCheckout({ address, location: null })
+                        if (address.trim()) {
+                          setErrors((prev) => {
+                            if (!prev.location) return prev
+                            const next = { ...prev }
+                            delete next.location
+                            return next
+                          })
+                        }
+                      }}
+                      placeholder="Ej: Artigas 1234, entre Rivera y 18 de Julio"
+                      aria-invalid={Boolean(errors.location)}
+                    />
+                  </label>
+                  <p className="field-hint">
+                    El local confirma la zona y el envío. Ideal para apartamentos, porterías o si
+                    el pedido va a otra dirección.
+                  </p>
+                  {errors.location && <em>{errors.location}</em>}
+                  <button type="button" className="linkish" onClick={chooseGps}>
+                    Usar ubicación del celular
+                  </button>
+                </>
               )}
             </fieldset>
 

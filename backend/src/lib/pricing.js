@@ -199,32 +199,26 @@ export function priceOrder({ restaurant, products, body }) {
   const subtotal = round2(items.reduce((s, i) => s + i.lineTotal, 0))
 
   // --- ubicación y zona ------------------------------------------------------
-  // La zona ya no la elige el cliente: se deduce de las coordenadas que manda el
-  // navegador. Antes viajaba el id de la zona en el body, así que se podía
-  // elegir la más barata desde cualquier dirección.
+  // Delivery acepta GPS (zona automática) o dirección escrita a mano (sin pin).
   const zones = activeZones(settings)
   let zone = null
   let outOfRange = false
   let deliveryFee = 0
   let location = null
+  let manualAddress = false
 
   if (fulfillment === 'delivery') {
     const point = body.location
       ? { lat: Number(body.location.lat), lng: Number(body.location.lng) }
       : null
+    const hasGps = isValidPoint(point)
+    const streetText = String(body.address || '').trim()
 
-    if (!isValidPoint(point)) {
+    if (!hasGps && !streetText) {
       throw new OrderError(
-        'Necesitamos tu ubicación para poder entregarte. Activá la ubicación y volvé a intentar.',
+        'Indicá la ubicación GPS o escribí la dirección de entrega.',
         { code: 'LOCATION_REQUIRED' },
       )
-    }
-
-    const accuracy = Number(body.location.accuracy)
-    location = {
-      lat: point.lat,
-      lng: point.lng,
-      accuracy: Number.isFinite(accuracy) ? accuracy : null,
     }
 
     if (!String(body.addressDetail || '').trim()) {
@@ -233,25 +227,37 @@ export function priceOrder({ restaurant, products, body }) {
       })
     }
 
-    if (subtotal > 0) {
-      // Solo cuentan zonas con geometría real. Si ninguna la tiene (caso típico
-      // tras cargar solo nombre+tarifa en el panel), no marcamos fuera de rango:
-      // cobramos el envío general del local.
-      const usableZones = zonesWithGeometry(zones)
-      if (usableZones.length === 0) {
-        deliveryFee = Math.max(0, Number(restaurant.deliveryFee) || 0)
-        outOfRange = false
-        zone = null
-      } else {
-        zone = findZoneAtPoint(usableZones, point)
-        if (zone) {
-          deliveryFee = zoneDeliveryFee(zone)
+    if (hasGps) {
+      const accuracy = Number(body.location.accuracy)
+      location = {
+        lat: point.lat,
+        lng: point.lng,
+        accuracy: Number.isFinite(accuracy) ? accuracy : null,
+      }
+
+      if (subtotal > 0) {
+        const usableZones = zonesWithGeometry(zones)
+        if (usableZones.length === 0) {
+          deliveryFee = Math.max(0, Number(restaurant.deliveryFee) || 0)
+          outOfRange = false
+          zone = null
         } else {
-          // Fuera de todas las zonas con geometría: entra marcado y paga la más cara.
-          outOfRange = true
-          deliveryFee = usableZones.reduce((max, z) => Math.max(max, zoneDeliveryFee(z)), 0)
+          zone = findZoneAtPoint(usableZones, point)
+          if (zone) {
+            deliveryFee = zoneDeliveryFee(zone)
+          } else {
+            outOfRange = true
+            deliveryFee = usableZones.reduce((max, z) => Math.max(max, zoneDeliveryFee(z)), 0)
+          }
         }
       }
+    } else {
+      // Dirección escrita: el local confirma zona/costo; cobramos el envío general.
+      manualAddress = true
+      deliveryFee = Math.max(0, Number(restaurant.deliveryFee) || 0)
+      outOfRange = false
+      zone = null
+      location = null
     }
   }
 
@@ -303,5 +309,6 @@ export function priceOrder({ restaurant, products, body }) {
     zone: zone ? { id: zone.id, name: zone.name } : null,
     outOfRange,
     location,
+    manualAddress,
   }
 }
