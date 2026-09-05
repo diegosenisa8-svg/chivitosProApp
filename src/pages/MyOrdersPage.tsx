@@ -168,7 +168,6 @@ export function MyOrdersPage() {
                   <p className="order-status-meta">
                     Tocá de nuevo para contraer · estados: En preparación → Listo → En camino →
                     Entregado
-                    Listo → En camino → Entregado
                   </p>
                 ) : (
                   <p className="order-status-meta">Tocá para ver detalle / extras</p>
