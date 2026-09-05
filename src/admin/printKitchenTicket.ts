@@ -1,5 +1,4 @@
 import type { AdminOrder } from '../lib/adminApi'
-import { ORDER_STATUS_LABELS } from '../lib/adminApi'
 
 export type TicketRestaurant = {
   name?: string
@@ -31,17 +30,6 @@ function money(n: number, withCurrency = false, currency = 'UYU') {
     maximumFractionDigits: 2,
   })
   return withCurrency ? `${v} ${currency}` : v
-}
-
-function formatLong(iso: string) {
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return '—'
-  const day = d.getDate()
-  const month = d.toLocaleDateString('es-UY', { month: 'long' })
-  const time = d
-    .toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit', hour12: true })
-    .toLowerCase()
-  return `${day}-${month} a las ${time}`
 }
 
 function paymentTitle(payment: string) {
@@ -90,23 +78,14 @@ function buildTicketHtml(order: AdminOrder, restaurant?: TicketRestaurant | null
   const name = splitName(order.customerName)
   const paid = isPaid(order.payment, order.status)
   const payTitle = paymentTitle(order.payment)
-  const schedule =
-    order.schedule === 'now' ? 'Lo antes posible' : order.scheduleTime || 'Programado'
-  const etaMax =
-    restaurant?.etaMax ?? (order.fulfillment === 'delivery' ? 30 : 15)
-  const etaMin = restaurant?.etaMin
-  const etaLabel = etaMin != null ? `${etaMin}-${etaMax} min` : `${etaMax} min`
   const brand = restaurant?.name || 'ChivitosPro'
   const footAddr =
     [restaurant?.address, restaurant?.city].filter(Boolean).join(', ') ||
     'Uruguay 1802, 50000 Salto'
   const footPhone = restaurant?.phone || restaurant?.whatsapp || '+598 4735 4634'
   const orderNum = (order.id.replace(/\D/g, '').slice(-10) || order.id.slice(0, 10)).toUpperCase()
-  const when = formatLong(order.createdAt)
-  const accepted = formatLong(order.updatedAt || order.createdAt)
   const currency = order.currency || 'UYU'
   const isDelivery = order.fulfillment === 'delivery'
-  const status = ORDER_STATUS_LABELS[order.status] || order.status
 
   const items = order.items
     .map((i) => {
@@ -215,22 +194,6 @@ function buildTicketHtml(order: AdminOrder, restaurant?: TicketRestaurant | null
 
   <div class="bar">
     <table><tr>
-      <td class="l">${esc(schedule)}</td>
-      <td class="r">${esc(etaLabel)}</td>
-    </tr></table>
-  </div>
-  ${
-    isDelivery
-      ? `<div class="bar"><table><tr>
-          <td class="l">Tiempo estimado</td>
-          <td class="r">~ ${esc(String(etaMax))} min</td>
-        </tr></table></div>
-        <div class="gray">Pedido ${esc(when)}</div>`
-      : ''
-  }
-
-  <div class="bar">
-    <table><tr>
       <td class="l">${isDelivery ? 'Dirección' : 'Retiro en local'}</td>
       <td class="r">${isDelivery ? 'Delivery' : ''}</td>
     </tr></table>
@@ -240,12 +203,6 @@ function buildTicketHtml(order: AdminOrder, restaurant?: TicketRestaurant | null
   ${isDelivery && order.outOfRange ? `<div><b>** FUERA DE RANGO - CONFIRMAR **</b></div>` : ''}
   ${isDelivery && order.lat != null && order.lng != null ? `<div class="gray">${order.lat.toFixed(5)}, ${order.lng.toFixed(5)}</div>` : ''}
   ${order.notes ? `<div class="gray"><b>NOTAS:</b> ${esc(order.notes)}</div>` : ''}
-
-  <div class="h">Detalles del Pedido:</div>
-  <div class="kv">Número: ${esc(orderNum)}</div>
-  <div class="kv">Puesto en: ${esc(when)}</div>
-  <div class="kv">Actualizado: ${esc(accepted)}</div>
-  <div class="kv">Estado: ${esc(status)}</div>
 
   <div class="h">Información Cliente:</div>
   <div class="kv">Nombre: ${esc(name.first)}</div>
