@@ -53,6 +53,7 @@ const defaultCheckout: CheckoutInfo = {
   schedule: 'now',
   scheduleTime: '',
   payment: 'efectivo',
+  cashTendered: null,
   notes: '',
 }
 

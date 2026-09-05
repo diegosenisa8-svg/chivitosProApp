@@ -55,6 +55,7 @@ export type AdminOrder = {
   currency: string
   createdAt: string
   updatedAt: string
+  payload?: unknown
   items: {
     id: string
     productId: string

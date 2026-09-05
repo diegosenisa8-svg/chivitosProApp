@@ -101,6 +101,10 @@ export async function submitOrder(
       fulfillment: checkout?.fulfillment || 'delivery',
       address: checkout?.address,
       payment: checkout?.payment || 'efectivo',
+      cashTendered:
+        checkout?.payment === 'efectivo' && checkout?.cashTendered != null
+          ? Number(checkout.cashTendered)
+          : undefined,
       schedule: checkout?.schedule || 'now',
       scheduleTime: checkout?.scheduleTime,
       couponCode: extras?.couponCode || '',

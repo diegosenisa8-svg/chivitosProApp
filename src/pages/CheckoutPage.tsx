@@ -190,6 +190,14 @@ export function CheckoutPage() {
     if (checkout.schedule === 'later' && !checkout.scheduleTime) {
       next.scheduleTime = 'Elegí un horario'
     }
+    if (checkout.payment === 'efectivo') {
+      const cash = Number(checkout.cashTendered)
+      if (!Number.isFinite(cash) || cash <= 0) {
+        next.cashTendered = 'Indicá con cuánto vas a pagar'
+      } else if (cash < total) {
+        next.cashTendered = `Tiene que ser al menos el total (${formatMoney(total)})`
+      }
+    }
     const minOrder =
       fulfillment === 'delivery' && !delivery.outOfRange && selectedZone?.minOrder
         ? selectedZone.minOrder
@@ -200,7 +208,15 @@ export function CheckoutPage() {
     setErrors(next)
     const keys = Object.keys(next)
     if (keys.length) {
-      const order = ['name', 'phone', 'location', 'addressDetail', 'scheduleTime', 'min']
+      const order = [
+        'name',
+        'phone',
+        'location',
+        'addressDetail',
+        'scheduleTime',
+        'cashTendered',
+        'min',
+      ]
       const first = order.find((k) => next[k]) || keys[0]
       requestAnimationFrame(() => {
         scrollToFirst([`[data-field="${first}"]`, '.error-inline'])
@@ -595,8 +611,10 @@ export function CheckoutPage() {
             onChange={(e) => {
               setBinBlocked(false)
               setMpError('')
+              const payment = e.target.value as CheckoutInfo['payment']
               setCheckout({
-                payment: e.target.value as CheckoutInfo['payment'],
+                payment,
+                cashTendered: payment === 'efectivo' ? checkout.cashTendered : null,
               })
             }}
           >
@@ -609,6 +627,39 @@ export function CheckoutPage() {
               ))}
           </select>
         </label>
+
+        {checkout.payment === 'efectivo' && (
+          <label className={`field${errors.cashTendered ? ' field--error' : ''}`} data-field="cashTendered">
+            <span>¿Con cuánto pagás?</span>
+            <input
+              type="number"
+              min={0}
+              step={10}
+              inputMode="decimal"
+              value={checkout.cashTendered ?? ''}
+              onChange={(e) => {
+                const raw = e.target.value
+                setCheckout({
+                  cashTendered: raw === '' ? null : Number(raw),
+                })
+                setErrors((prev) => {
+                  if (!prev.cashTendered) return prev
+                  const next = { ...prev }
+                  delete next.cashTendered
+                  return next
+                })
+              }}
+              placeholder={`Ej: ${Math.ceil(total / 100) * 100 || 1000}`}
+              aria-invalid={Boolean(errors.cashTendered)}
+            />
+            {checkout.cashTendered != null && checkout.cashTendered >= total && (
+              <span className="field-hint">
+                Cambio: {formatMoney(Math.max(0, checkout.cashTendered - total))}
+              </span>
+            )}
+            {errors.cashTendered && <em>{errors.cashTendered}</em>}
+          </label>
+        )}
 
         {checkout.payment === 'transferencia' && (
           <div className="transfer-box">

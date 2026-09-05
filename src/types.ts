@@ -265,5 +265,7 @@ export type CheckoutInfo = {
   schedule: 'now' | 'later'
   scheduleTime: string
   payment: 'efectivo' | 'pos' | 'transferencia' | 'mercadopago'
+  /** Con cuánto paga el cliente (efectivo). Sirve para calcular el cambio en el ticket. */
+  cashTendered?: number | null
   notes: string
 }

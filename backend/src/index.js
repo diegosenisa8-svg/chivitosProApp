@@ -185,6 +185,8 @@ const orderSchema = z.object({
   fulfillment: z.enum(['delivery', 'pickup']).default('delivery'),
   address: z.string().max(400).optional(),
   payment: PAYMENT_METHODS.default('efectivo'),
+  /** Billete/monto con el que paga (efectivo). Opcional. */
+  cashTendered: z.number().nonnegative().max(10_000_000).optional(),
   schedule: z.enum(['now', 'later']).default('now'),
   scheduleTime: z.string().max(40).optional(),
   couponCode: z.string().max(40).optional(),
@@ -636,6 +638,17 @@ app.post('/api/orders', optionalCustomer, async (req, res) => {
     const priced = priceOrder({ restaurant, products, body })
     const currency = restaurant.currency || 'UYU'
 
+    if (
+      body.payment === 'efectivo' &&
+      body.cashTendered != null &&
+      Number(body.cashTendered) < priced.total
+    ) {
+      return res.status(400).json({
+        error: `El monto con el que paga (${body.cashTendered}) es menor al total (${priced.total})`,
+        code: 'CASH_TOO_LOW',
+      })
+    }
+
     let accountId = null
     let customerName = body.customerName
     let phone = body.phone
@@ -675,6 +688,10 @@ app.post('/api/orders', optionalCustomer, async (req, res) => {
         total: priced.total,
         payload: {
           request: body,
+          cashTendered:
+            body.payment === 'efectivo' && body.cashTendered != null
+              ? Number(body.cashTendered)
+              : undefined,
           pricing: {
             subtotal: priced.subtotal,
             discount: priced.discount,

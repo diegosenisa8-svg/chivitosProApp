@@ -26,19 +26,29 @@ function money(n: number, withCurrency = false, currency = 'UYU') {
   return withCurrency ? `${v} ${currency}` : v
 }
 
-function paymentTitle(payment: string) {
+function paymentShort(payment: string) {
   const p = (payment || '').toLowerCase()
-  if (/mercado|mp|online|tarjeta|card|débito|debito|crédito|credito/.test(p)) return 'Pago Online'
-  if (/efectivo|cash/.test(p)) return 'Pago en efectivo'
+  if (/mercado|mp|online|tarjeta|card|débito|debito|crédito|credito/.test(p)) return 'MP'
+  if (/efectivo|cash/.test(p)) return 'Efectivo'
   if (/transfer/.test(p)) return 'Transferencia'
-  return payment || 'Pago'
+  if (/pos/.test(p)) return 'POS'
+  return (payment || 'Pago').slice(0, 12)
 }
 
-function isPaid(payment: string, status: string) {
-  const p = (payment || '').toLowerCase()
-  if (/mercado|mp|online|tarjeta|card|pagado|paid|transfer/.test(p)) return true
-  if (['delivered', 'ready', 'delivering'].includes(status) && /online|mp/.test(p)) return true
-  return false
+/** Número corto para cocina: últimos 3 dígitos del id (Pedido #001). */
+function shortOrderNum(orderId: string) {
+  const digits = orderId.replace(/\D/g, '')
+  const tail = (digits.slice(-3) || orderId.slice(-3) || '000').padStart(3, '0')
+  return tail.toUpperCase()
+}
+
+function cashTenderedFromOrder(order: AdminOrder): number | null {
+  const payload = order.payload
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return null
+  const root = payload as { cashTendered?: unknown; request?: { cashTendered?: unknown } }
+  const raw = root.cashTendered ?? root.request?.cashTendered
+  const n = Number(raw)
+  return Number.isFinite(n) && n > 0 ? n : null
 }
 
 function splitName(full?: string | null) {
@@ -156,17 +166,22 @@ function ticketBodyHtml(
   deliveryLines: string[],
 ) {
   const name = splitName(order.customerName)
-  const paid = isPaid(order.payment, order.status)
-  const payTitle = paymentTitle(order.payment)
+  const payLabel = paymentShort(order.payment)
   const brand = restaurant?.name || 'ChivitosPro'
   const footAddr =
     [restaurant?.address, restaurant?.city].filter(Boolean).join(', ') ||
     'Uruguay 1802, 50000 Salto'
-  const footPhone = restaurant?.phone || restaurant?.whatsapp || '+598 4735 4634'
+  const cell = (restaurant?.whatsapp || '').trim()
+  const landline = (restaurant?.phone || '').trim()
   const currency = order.currency || 'UYU'
   const isDelivery = order.fulfillment === 'delivery'
-  const orderNum = (order.id.replace(/\D/g, '').slice(-10) || order.id.slice(0, 10)).toUpperCase()
+  const orderNum = shortOrderNum(order.id)
   const confirmedAt = formatConfirmedAt(order.createdAt)
+  const cashIn = cashTenderedFromOrder(order)
+  const change =
+    cashIn != null && /efectivo|cash/i.test(order.payment || '')
+      ? Math.max(0, round2(cashIn - order.total))
+      : null
 
   const items = order.items
     .map((i) => {
@@ -189,21 +204,23 @@ function ticketBodyHtml(
     ? deliveryLines.map((l) => `<div class="gray">${esc(l)}</div>`).join('')
     : ''
 
+  const phonesRow =
+    cell || landline
+      ? `<table class="phones"><tr>
+          <td class="l">${cell ? `Cel: ${esc(cell)}` : ''}</td>
+          <td class="r">${landline ? `Fijo: ${esc(landline)}` : ''}</td>
+        </tr></table>`
+      : `<div>Tel: —</div>`
+
   return `
   <div class="ticket">
   <div class="bar">
     <table><tr>
-      <td class="l">Pedido #${esc(orderNum)}</td>
-      <td class="r">${esc(payTitle)}</td>
+      <td class="l num">Pedido #${esc(orderNum)}</td>
+      <td class="r">${esc(payLabel)}</td>
     </tr></table>
   </div>
   <div class="gray">Confirmado a las ${esc(confirmedAt)}</div>
-  <div class="gray">
-    <table><tr>
-      <td class="l">${esc(order.payment || '—')}</td>
-      <td class="r">${paid ? 'Confirmado' : 'Pendiente'}</td>
-    </tr></table>
-  </div>
 
   <div class="bar">
     <table><tr>
@@ -243,21 +260,24 @@ function ticketBodyHtml(
     }
     <div>Sub-total: ${esc(money(order.subtotal ?? order.total, true, currency))}</div>
     <div class="total">Total: ${esc(money(order.total, true, currency))}</div>
-  </div>
-
-  <div class="pay">
-    <table><tr>
-      <td class="l">${paid ? '☑' : '☐'} Pagado</td>
-      <td class="r">${paid ? '☐' : '☑'} No Pagado</td>
-    </tr></table>
+    ${
+      cashIn != null
+        ? `<div class="cash">Paga con: ${esc(money(cashIn, true, currency))}</div>
+           <div class="cash"><b>Cambio: ${esc(money(change ?? 0, true, currency))}</b></div>`
+        : ''
+    }
   </div>
 
   <div class="foot">
     <div><b>${esc(brand)}</b></div>
     <div>${esc(footAddr)}</div>
-    <div>${esc(footPhone)}</div>
+    ${phonesRow}
   </div>
   </div>`
+}
+
+function round2(n: number) {
+  return Math.round(n * 100) / 100
 }
 
 function buildTicketHtml(
@@ -265,7 +285,7 @@ function buildTicketHtml(
   restaurant: TicketRestaurant | null | undefined,
   deliveryLines: string[],
 ) {
-  const orderNum = (order.id.replace(/\D/g, '').slice(-10) || order.id.slice(0, 10)).toUpperCase()
+  const orderNum = shortOrderNum(order.id)
   const copy = ticketBodyHtml(order, restaurant, deliveryLines)
 
   return `<!DOCTYPE html>
@@ -309,6 +329,10 @@ function buildTicketHtml(
     margin-top: 5px;
   }
   .bar table td { color: #fff !important; font-weight: 700; }
+  .bar .num { font-size: 11px; letter-spacing: 0.02em; }
+  .totals .cash { margin-top: 2px; font-size: 12px; }
+  .foot .phones td { font-size: 11px; padding-top: 2px; }
+  .pay { display: none; }
   .gray {
     background: #e8e8e8 !important;
     padding: 4px 5px;
