@@ -339,7 +339,7 @@ export function AdminApp() {
   }, [admin, section, refreshDashboard, refreshOrders])
 
   const hasPendingOrders = useMemo(
-    () => orders.some((o) => o.status === 'pending'),
+    () => orders.some((o) => o.status === 'pending' || o.status === 'confirmed'),
     [orders],
   )
 
@@ -1365,13 +1365,13 @@ function OrdersView({
               type="button"
               className={`order-row ${selectedOrder?.id === o.id ? 'active' : ''} ${
                 flashSet.has(o.id) ? 'order-flash' : ''
-              } ${o.status === 'pending' ? 'order-row--pending' : ''}`}
+              } ${o.status === 'pending' || o.status === 'confirmed' ? 'order-row--pending' : ''}`}
               onClick={() => setSelectedOrder(o)}
             >
               <div>
                 <strong>
                   {flashSet.has(o.id) ? '● NUEVO · ' : ''}
-                  {o.status === 'pending' ? '⏳ ' : ''}
+                  {o.status === 'pending' || o.status === 'confirmed' ? '⏳ ' : ''}
                   {o.customerName || 'Cliente'}
                 </strong>
                 <span>
@@ -1583,15 +1583,15 @@ function OrderDetail({
           ))}
         </ul>
         <div className="status-actions">
-          {kiosk && order.status === 'pending' && (
+          {kiosk && (order.status === 'pending' || order.status === 'confirmed') && (
             <>
               <button
                 type="button"
                 className="admin-btn primary"
                 disabled={saving}
-                onClick={() => onUpdate({ status: 'confirmed' })}
+                onClick={() => onUpdate({ status: 'preparing' })}
               >
-                Aceptar
+                En preparación
               </button>
               <button
                 type="button"
@@ -1631,7 +1631,13 @@ function OrderDetail({
           <button
             type="button"
             className="admin-btn primary"
-            onClick={() => printKitchenTicket(order, restaurant)}
+            disabled={saving}
+            onClick={() => {
+              printKitchenTicket(order, restaurant)
+              if (order.status === 'pending' || order.status === 'confirmed') {
+                void onUpdate({ status: 'preparing' })
+              }
+            }}
           >
             Imprimir ticket POS-80C
           </button>

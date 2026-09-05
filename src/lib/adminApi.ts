@@ -397,8 +397,6 @@ export const ORDER_STATUS_LABELS: Record<string, string> = {
 }
 
 export const ORDER_STATUS_FLOW = [
-  'pending',
-  'confirmed',
   'preparing',
   'ready',
   'delivering',

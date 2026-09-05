@@ -31,8 +31,8 @@ export function verifyCustomerToken(token) {
 }
 
 export const CUSTOMER_STATUS_LABELS = {
-  pending: 'Pendiente',
-  confirmed: 'Aceptado',
+  pending: 'Recibido',
+  confirmed: 'Recibido',
   preparing: 'En preparación',
   ready: 'Listo',
   delivering: 'En camino',

@@ -166,7 +166,8 @@ export function MyOrdersPage() {
                 </ul>
                 {expandedId === o.id ? (
                   <p className="order-status-meta">
-                    Tocá de nuevo para contraer · estados: Pendiente → Aceptado → En preparación →
+                    Tocá de nuevo para contraer · estados: En preparación → Listo → En camino →
+                    Entregado
                     Listo → En camino → Entregado
                   </p>
                 ) : (
