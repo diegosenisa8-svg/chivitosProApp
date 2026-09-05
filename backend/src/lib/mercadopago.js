@@ -49,7 +49,6 @@ export async function createMercadoPagoPayment({
   payerEmail,
   description,
   externalReference,
-  bin,
 }) {
   const { accessToken } = getMpCredentials()
   if (!accessToken) {
@@ -70,8 +69,6 @@ export async function createMercadoPagoPayment({
     },
   }
   if (issuerId) body.issuer_id = Number(issuerId)
-  // El BIN se usa solo para bloquear tarjetas (BROU) en nuestro backend.
-  // No se manda a MP: additional_info.bin no es un parámetro válido en /v1/payments.
 
   const res = await fetch('https://api.mercadopago.com/v1/payments', {
     method: 'POST',

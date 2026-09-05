@@ -847,7 +847,6 @@ app.post('/api/payments/mercadopago', optionalCustomer, async (req, res) => {
       payerEmail: body.payerEmail || undefined,
       description: `Pedido ${order.id.slice(0, 8)} — ChivitosPro`,
       externalReference: order.id,
-      bin,
     })
 
     const mpStatus = String(payment.status || '')
